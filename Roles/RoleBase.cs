@@ -68,6 +68,7 @@ public abstract class RoleBase : IComparable<RoleBase>
     public virtual bool CanUseSabotage(PlayerControl pc)
     {
         if (pc.Is(CustomRoles.Aide)) return false;
+        if (Options.DisableSabotagingOn1v1.GetBool() && Options.CurrentGameMode == CustomGameMode.Standard && Main.AllAlivePlayerControls.Length == 2) return false;
         return pc.Is(CustomRoleTypes.Impostor) || pc.Is(CustomRoles.Trickster) || pc.Is(CustomRoles.Mischievous) || (pc.Is(CustomRoles.Bloodlust) && Bloodlust.HasImpVision.GetBool() && pc.IsAlive());
     }
 
@@ -133,13 +134,13 @@ public abstract class RoleBase : IComparable<RoleBase>
         if (Imitator.PlayerIdList.Contains(pc.PlayerId))
         {
             string command = $"/imitate {target.PlayerId}";
-            ChatCommands.ImitateCommand(pc, command, command.Split(' '));
+            ChatCommands.ImitateCommand(pc, "Command.Imitate", command, command.Split(' '));
         }
     }
 
     public virtual void OnMeetingShapeshift(PlayerControl shapeshifter, PlayerControl target)
     {
-        if (Options.UseMeetingShapeshiftForGuessing.GetBool())
+        if (Options.UseMeetingShapeshiftForGuessing.GetBool() && GuessManager.StartMeetingPatch.CanGuess(shapeshifter, Options.GuesserNumRestrictions.GetBool()))
             GuessManager.OnMeetingShapeshiftReceived(shapeshifter, target);
     }
 
@@ -167,6 +168,11 @@ public abstract class RoleBase : IComparable<RoleBase>
 
     public virtual void AfterMeetingTasks() { }
 
+    public virtual void OnRevived(PlayerControl pc)
+    {
+        AfterMeetingTasks();
+    }
+
     public virtual string GetProgressText(byte playerId, bool comms)
     {
         StringBuilder sb = new();
@@ -191,7 +197,7 @@ public abstract class RoleBase : IComparable<RoleBase>
         return seerRole.IsNK() && seerRole == target.GetCustomRole() && seer.GetTeam() == target.GetTeam();
     }
 
-    public virtual void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public virtual void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
         keepGameGoing = false;
         countsAs = 1;
@@ -235,7 +241,7 @@ public class OptionSetupHandler(int id, TabGroup tab, CustomRoles role)
     {
         try
         {
-            bool generalOption = !Translator.GetString(fieldName).Contains("INVALID");
+            bool generalOption = !Translator.GetString(fieldName).StartsWith('*');
             string name = overrideName == "" ? generalOption ? fieldName : $"{role}.{fieldName}" : overrideName;
 
             field = (valueRule, defaultValue) switch

@@ -91,8 +91,8 @@ internal class Necromancer : RoleBase
     {
         if (Deathknight.DeathknightId == byte.MaxValue && !target.Is(CustomRoles.Loyal) && !target.Is(CustomRoles.Curser) && !target.IsConverted())
         {
-            target.RpcChangeRoleBasis(CustomRoles.Deathknight);
             target.RpcSetCustomRole(CustomRoles.Deathknight);
+            target.RpcChangeRoleBasis(CustomRoles.Deathknight);
 
             killer.SetKillCooldown();
 
@@ -107,7 +107,7 @@ internal class Necromancer : RoleBase
 
             new[] { CustomRoles.Damocles, CustomRoles.Stressed }.Do(x => Main.PlayerStates[target.PlayerId].RemoveSubRole(x));
 
-            if (killer.IsLocalPlayer())
+            if (killer.AmOwner)
                 Achievements.Type.YoureMyFriendNow.Complete();
 
             return false;
@@ -238,7 +238,7 @@ internal class Deathknight : RoleBase
 
             Logger.Info($"Recruit: {target.Data?.PlayerName} = {target.GetCustomRole()} + {CustomRoles.Undead}", $"Assign {CustomRoles.Undead}");
 
-            if (killer.IsLocalPlayer())
+            if (killer.AmOwner)
                 Achievements.Type.YoureMyFriendNow.Complete();
 
             return false;

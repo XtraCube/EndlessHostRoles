@@ -1,6 +1,9 @@
-﻿using AmongUs.GameOptions;
+using System;
+using System.Linq;
+using AmongUs.GameOptions;
 using EHR.Modules;
 using Hazel;
+using UnityEngine;
 
 namespace EHR.Crewmate;
 
@@ -104,7 +107,7 @@ public class Retributionist : RoleBase
     public override void OnMeetingShapeshift(PlayerControl shapeshifter, PlayerControl target)
     {
         var command = $"/retribute {target.PlayerId}";
-        ChatCommands.RetributeCommand(shapeshifter, command, command.Split(' '));
+        ChatCommands.RetributeCommand(shapeshifter, "Command.Retribute", command, command.Split(' '));
     }
 
     public void ReceiveRPC(MessageReader reader)
@@ -112,8 +115,62 @@ public class Retributionist : RoleBase
         Camping = reader.ReadByte();
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    private static void RetributionistOnClick(byte playerId /*, MeetingHud __instance*/)
     {
+        Logger.Msg($"Click: ID {playerId}", "Retributionist UI");
+        PlayerControl pc = Utils.GetPlayerById(playerId);
+        if (pc == null || !pc.IsAlive() || !GameStates.IsVoting || Starspawn.IsDayBreak) return;
+
+        if (AmongUsClient.Instance.AmHost)
+        {
+            var command = $"/retribute {playerId}";
+            ChatCommands.RetributeCommand(PlayerControl.LocalPlayer, "Command.Retribute", command, command.Split(' '));
+        }
+        else
+        {
+            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.RetributionistClick, SendOption.Reliable, AmongUsClient.Instance.HostId);
+            writer.Write(playerId);
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
+        }
+    }
+
+    public static void CreateRetributionistButton(MeetingHud __instance)
+    {
+        foreach (PlayerVoteArea pva in __instance.playerStates.ToArray())
+        {
+            PlayerControl pc = Utils.GetPlayerById(pva.TargetPlayerId);
+            if (pc == null || !pc.IsAlive()) continue;
+
+            GameObject template = pva.Buttons.transform.Find("CancelButton").gameObject;
+            GameObject targetBox = Object.Instantiate(template, pva.transform);
+            targetBox.name = "ShootButton";
+            targetBox.transform.localPosition = new(-0.35f, 0.03f, -1.31f);
+            var renderer = targetBox.GetComponent<SpriteRenderer>();
+            renderer.sprite = Utils.LoadSprite("EHR.Resources.Images.Skills.MeetingKillButton.png", 140f);
+            var button = targetBox.GetComponent<PassiveButton>();
+            button.OnClick.RemoveAllListeners();
+            button.OnClick.AddListener((Action)(() => RetributionistOnClick(pva.TargetPlayerId)));
+        }
+    }
+
+    //[HarmonyPatch(typeof(MeetingHud), nameof(MeetingHud.Start))]
+    public static class StartMeetingPatch
+    {
+        public static void Postfix(MeetingHud __instance)
+        {
+            if (PlayerControl.LocalPlayer.Is(CustomRoles.Retributionist) && PlayerControl.LocalPlayer.IsAlive())
+                CreateRetributionistButton(__instance);
+        }
+    }
+
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
+    {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = GameStates.IsInTask || Notified;
         countsAs = 1;
     }

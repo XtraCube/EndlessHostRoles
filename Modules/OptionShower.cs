@@ -13,6 +13,8 @@ public static class OptionShower
     public static int CurrentPage;
     public static List<string> Pages = [];
     public static string LastText = string.Empty;
+    private static bool Running;
+    private static bool InQueue;
 
     static OptionShower() { }
 
@@ -33,6 +35,16 @@ public static class OptionShower
 
     public static IEnumerator GetText()
     {
+        if (Running)
+        {
+            if (InQueue) yield break;
+            InQueue = true;
+            while (Running) yield return null;
+            InQueue = false;
+        }
+        
+        Running = true;
+        
         StringBuilder sb = new();
 
         Pages =
@@ -48,7 +60,7 @@ public static class OptionShower
         {
             if (Options.CurrentGameMode == CustomGameMode.Standard)
             {
-                sb.Append($"<color={Utils.GetRoleColorCode(CustomRoles.GM)}>{Utils.GetRoleName(CustomRoles.GM)}:</color> {(Main.GM.Value ? GetString("RoleRate") : GetString("RoleOff"))}\n\n");
+                sb.Append($"<color={Utils.GetRoleColorCode(CustomRoles.GM)}>{Utils.GetRoleName(CustomRoles.GM)}</color>: {(Main.GM.Value ? GetString("RoleRate") : GetString("RoleOff"))}\n\n");
                 sb.Append(GetString("ActiveRolesList")).Append('\n');
                 var count = 4;
 
@@ -75,7 +87,7 @@ public static class OptionShower
             }
 
             Pages.Add("");
-            sb.Append($"<color={Utils.GetRoleColorCode(CustomRoles.GM)}>{Utils.GetRoleName(CustomRoles.GM)}:</color> {(Main.GM.Value ? GetString("RoleRate") : GetString("RoleOff"))}\n\n");
+            sb.Append($"<color={Utils.GetRoleColorCode(CustomRoles.GM)}>{Utils.GetRoleName(CustomRoles.GM)}</color>: {(Main.GM.Value ? GetString("RoleRate") : GetString("RoleOff"))}\n\n");
 
             var index = 0;
 
@@ -122,6 +134,8 @@ public static class OptionShower
         }
 
         if (CurrentPage >= Pages.Count) CurrentPage = Pages.Count - 1;
+
+        Running = false;
     }
 
     public static void Next()
@@ -142,4 +156,5 @@ public static class OptionShower
             if (opt.Value.GetBool()) ShowChildren(opt.Value, ref sb, color, deep + 1);
         }
     }
+
 }

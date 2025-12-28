@@ -121,6 +121,8 @@ public class PlagueBearer : RoleBase
     {
         if (IsPlagued(killer.PlayerId, target.PlayerId))
         {
+            killer.ResetKillCooldown();
+            killer.SetKillCooldown(PlagueBearerCDOpt.GetFloat());
             killer.Notify(GetString("PlagueBearerAlreadyPlagued"));
             return false;
         }
@@ -202,7 +204,7 @@ public class Pestilence : RoleBase
         target.Kill(killer);
         target.SetKillCooldown(1f);
 
-        if (target.IsLocalPlayer())
+        if (target.AmOwner)
             Achievements.Type.YoureTooLate.Complete();
 
         return false;

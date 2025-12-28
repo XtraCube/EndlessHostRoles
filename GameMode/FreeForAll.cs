@@ -137,6 +137,7 @@ internal static class FreeForAll
 
         KillCount = [];
         RoundTime = FFAGameTime.GetInt() + 8;
+        Utils.SendRPC(CustomRPC.FFASync, 1, RoundTime);
 
         PlayerTeams = [];
 
@@ -147,7 +148,7 @@ internal static class FreeForAll
         foreach (PlayerControl pc in allPlayers)
         {
             KillCount[pc.PlayerId] = 0;
-            Utils.SendRPC(CustomRPC.FFASync, pc.PlayerId, 0);
+            Utils.SendRPC(CustomRPC.FFASync, 2, pc.PlayerId, 0);
         }
 
         if (FFATeamMode.GetBool())
@@ -174,6 +175,11 @@ internal static class FreeForAll
 
     public static string GetHudText()
     {
+        if (RoundTime == 60)
+        {
+            SoundManager.Instance.PlaySound(HudManager.Instance.LobbyTimerExtensionUI.lobbyTimerPopUpSound, false);
+            Utils.FlashColor(new(1f, 1f, 0f, 0.4f), 1.4f);
+        }
         return $"{RoundTime / 60:00}:{RoundTime % 60:00}";
     }
 
@@ -226,6 +232,12 @@ internal static class FreeForAll
                 }
 
                 Logger.Info($"The last 2 players ({killer.GetRealName().RemoveHtmlTags()} & {otherPC?.GetRealName().RemoveHtmlTags()}) now have an arrow toward each other", "FFA");
+
+                if (FFADisableVentingWhenTwoPlayersAlive.GetBool())
+                {
+                    if (killer.inVent) killer.MyPhysics?.RpcExitVent(killer.GetClosestVent().Id);
+                    if (otherPC != null && otherPC.inVent) otherPC.MyPhysics?.RpcExitVent(otherPC.GetClosestVent().Id);
+                }
             }
 
             if (FFAEnableRandomAbilities.GetBool())
@@ -337,7 +349,7 @@ internal static class FreeForAll
         ChatCommands.Spectators.ToValidPlayers().Do(x => x.KillFlash());
 
         KillCount[killer.PlayerId]++;
-        Utils.SendRPC(CustomRPC.FFASync, killer.PlayerId, KillCount[killer.PlayerId]);
+        Utils.SendRPC(CustomRPC.FFASync, 2, killer.PlayerId, KillCount[killer.PlayerId]);
     }
 
     public static string GetPlayerArrow(PlayerControl seer, PlayerControl target = null)
@@ -371,6 +383,7 @@ internal static class FreeForAll
             LastFixedUpdate = now;
 
             RoundTime--;
+            Utils.SendRPC(CustomRPC.FFASync, 1, RoundTime);
 
             var rd = IRandom.Instance;
             var ffaDoTPdecider = (byte)rd.Next(0, 100);

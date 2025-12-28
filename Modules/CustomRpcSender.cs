@@ -412,7 +412,7 @@ public static class CustomRpcSenderExtensions
 
             void ChangeRoleMapForClient(byte id)
             {
-                (byte, byte) key = (player.PlayerId, id);
+                (byte, byte) key = (id, player.PlayerId);
 
                 if (StartGameHostPatch.RpcSetRoleReplacer.RoleMap.TryGetValue(key, out (RoleTypes RoleType, CustomRoles CustomRole) pair))
                 {
@@ -514,10 +514,10 @@ public static class CustomRpcSenderExtensions
             else
                 player.AddAbilityCD((int)Math.Round(time));
 
-            if (player.GetCustomRole() is not CustomRoles.Necromancer and not CustomRoles.Deathknight and not CustomRoles.Refugee and not CustomRoles.Sidekick) return false;
+            if (player.GetCustomRole() is not CustomRoles.Necromancer and not CustomRoles.Deathknight and not CustomRoles.Renegade and not CustomRoles.Sidekick) return false;
         }
 
-        if (!player.CanUseKillButton() && !AntiBlackout.SkipTasks) return false;
+        if (!player.CanUseKillButton() && !AntiBlackout.SkipTasks && !IntroCutsceneDestroyPatch.PreventKill) return false;
 
         player.AddKillTimerToDict(cd: time);
         if (target == null) target = player;
@@ -640,6 +640,8 @@ public static class CustomRpcSenderExtensions
 
     public static bool TP(this CustomRpcSender sender, PlayerControl pc, Vector2 location, bool noCheckState = false, bool log = true)
     {
+        if (!AmongUsClient.Instance.AmHost) return false;
+        
         CustomNetworkTransform nt = pc.NetTransform;
 
         if (!noCheckState)
@@ -659,15 +661,9 @@ public static class CustomRpcSenderExtensions
             }
         }
 
-        switch (AmongUsClient.Instance.AmHost)
-        {
-            case true:
-                nt.SnapTo(location, (ushort)(nt.lastSequenceId + 328));
-                nt.SetDirtyBit(uint.MaxValue);
-                break;
-            case false when !nt.AmOwner:
-                return false;
-        }
+        
+        nt.SnapTo(location, (ushort)(nt.lastSequenceId + 328));
+        nt.SetDirtyBit(uint.MaxValue);
 
         var newSid = (ushort)(nt.lastSequenceId + 8);
 

@@ -367,46 +367,51 @@ public static class CaptureTheFlag
         }
 
         yield return new WaitForSeconds(0.2f);
-        /*
+        
+        try
+        {
+            foreach (CTFTeamData data in TeamData.Values)
+            {
                 try
                 {
-                    foreach (CTFTeamData data in TeamData.Values)
+                    foreach (byte id1 in data.Players)
                     {
                         try
                         {
-                            foreach (byte id1 in data.Players)
+                            var pc1 = id1.GetPlayer();
+                            if (pc1 == null || pc1.AmOwner) continue;
+
+                            var sender = CustomRpcSender.Create("CTF Set Teams");
+                            sender.StartMessage(pc1.OwnerId);
+
+                            foreach (byte id2 in data.Players)
                             {
                                 try
                                 {
-                                    var pc1 = id1.GetPlayer();
-                                    if (pc1 == null) continue;
+                                    if (id1 == id2) continue;
 
-                                    int targetClientId = pc1.OwnerId;
+                                    var pc2 = id2.GetPlayer();
+                                    if (pc2 == null) continue;
 
-                                    foreach (byte id2 in data.Players)
-                                    {
-                                        try
-                                        {
-                                            if (id1 == id2) continue;
-
-                                            var pc2 = id2.GetPlayer();
-                                            if (pc2 == null) continue;
-
-                                            pc2.RpcSetRoleDesync(RoleTypes.Phantom, targetClientId, true);
-                                        }
-                                        catch (Exception e) { Utils.ThrowException(e); }
-                                    }
+                                    sender.StartRpc(pc2.NetId, RpcCalls.SetRole)
+                                        .Write((ushort)RoleTypes.Phantom)
+                                        .Write(true)
+                                        .EndRpc();
                                 }
                                 catch (Exception e) { Utils.ThrowException(e); }
                             }
+                            
+                            sender.SendMessage();
                         }
                         catch (Exception e) { Utils.ThrowException(e); }
                     }
                 }
                 catch (Exception e) { Utils.ThrowException(e); }
+            }
+        }
+        catch (Exception e) { Utils.ThrowException(e); }
 
         yield return new WaitForSeconds(0.2f);
-        */
 
         ValidTag = true;
         GameStartTS = Utils.TimeStamp;
@@ -423,6 +428,8 @@ public static class CaptureTheFlag
             data.Flag.TP(flagBase);
             data.Players.ToValidPlayers().MassTP(flagBase);
         }
+        
+        Main.AllPlayerControls.Do(x => TargetArrow.RemoveAllTarget(x.PlayerId));
     }
 
     public static void OnCheckMurder(PlayerControl killer, PlayerControl target)
@@ -624,6 +631,7 @@ public static class CaptureTheFlag
                         return;
                     }
 
+                    
                     Restart();
                 }
             }
@@ -703,7 +711,7 @@ public static class CaptureTheFlag
     {
         public static void Postfix(PlayerControl __instance)
         {
-            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || Options.CurrentGameMode != CustomGameMode.CaptureTheFlag || !Main.IntroDestroyed || __instance.PlayerId >= 254 || WinnerData.Team != "No one wins" || Utils.GameStartTimeStamp + 15 > Utils.TimeStamp) return;
+            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || Options.CurrentGameMode != CustomGameMode.CaptureTheFlag || !Main.IntroDestroyed || __instance.PlayerId >= 254 || WinnerData.Team != "No one wins" || IntroCutsceneDestroyPatch.IntroDestroyTS + 5 > Utils.TimeStamp) return;
 
             if (__instance.IsHost())
             {
@@ -715,7 +723,7 @@ public static class CaptureTheFlag
 
                     switch (timeLeft)
                     {
-                        case <= 1 when TeamData[CTFTeam.Blue].RoundsWon != TeamData[CTFTeam.Yellow].RoundsWon:
+                        case <= 1 when TeamData.Count == 2 && TeamData[CTFTeam.Blue].RoundsWon != TeamData[CTFTeam.Yellow].RoundsWon:
                         {
                             CTFTeamData winner = TeamData.Values.MaxBy(x => x.RoundsWon);
                             winner.SetAsWinner();
@@ -753,7 +761,7 @@ public static class CaptureTheFlag
                     TemporarilyOutPlayers.Remove(__instance.PlayerId);
                     __instance.ReviveFromTemporaryExile();
                     __instance.TP(team.GetFlagBase().Position);
-                    RPC.PlaySoundRPC(__instance.PlayerId, Sounds.TaskComplete);
+                    RPC.PlaySoundRPC(__instance.PlayerId, Sounds.SpawnSound);
                     Utils.NotifyRoles(SpecifySeer: __instance, SpecifyTarget: __instance, SendOption: SendOption.None);
                 }
                 else if (GameEndCriteria.GetValue() != 2)

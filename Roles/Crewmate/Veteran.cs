@@ -11,6 +11,13 @@ internal class Veteran : RoleBase
 
     public static bool On;
     public override bool IsEnable => On;
+    
+    public static OptionItem VeteranSkillCooldown;
+    public static OptionItem VeteranSkillDuration;
+    public static OptionItem VeteranSkillMaxOfUsage;
+    public static OptionItem VeteranAbilityUseGainWithEachTaskCompleted;
+    public static OptionItem VeteranAbilityChargesWhenFinishedTasks;
+    public static OptionItem VeteranAlertActivatesOnNonKillingInteractions;
 
     public override void SetupCustomOption()
     {
@@ -25,7 +32,7 @@ internal class Veteran : RoleBase
             .SetParent(CustomRoleSpawnChances[CustomRoles.Veteran])
             .SetValueFormat(OptionFormat.Seconds);
 
-        VeteranSkillMaxOfUseage = new IntegerOptionItem(id + 4, "VeteranSkillMaxOfUseage", new(0, 30, 1), 1, TabGroup.CrewmateRoles)
+        VeteranSkillMaxOfUsage = new IntegerOptionItem(id + 4, "VeteranSkillMaxOfUsage", new(0, 30, 1), 1, TabGroup.CrewmateRoles)
             .SetParent(CustomRoleSpawnChances[CustomRoles.Veteran])
             .SetValueFormat(OptionFormat.Times);
 
@@ -36,12 +43,15 @@ internal class Veteran : RoleBase
         VeteranAbilityChargesWhenFinishedTasks = new FloatOptionItem(id + 6, "AbilityChargesWhenFinishedTasks", new(0f, 5f, 0.05f), 0.2f, TabGroup.CrewmateRoles)
             .SetParent(CustomRoleSpawnChances[CustomRoles.Veteran])
             .SetValueFormat(OptionFormat.Times);
+        
+        VeteranAlertActivatesOnNonKillingInteractions = new BooleanOptionItem(id + 7, "VeteranAlertActivatesOnNonKillingInteractions", false, TabGroup.CrewmateRoles)
+            .SetParent(CustomRoleSpawnChances[CustomRoles.Veteran]);
     }
 
     public override void Add(byte playerId)
     {
         On = true;
-        playerId.SetAbilityUseLimit(VeteranSkillMaxOfUseage.GetFloat());
+        playerId.SetAbilityUseLimit(VeteranSkillMaxOfUsage.GetFloat());
     }
 
     public override void Init()
@@ -106,9 +116,7 @@ internal class Veteran : RoleBase
     {
         if (!killer.IsAlive()) return false;
         
-        if (VeteranInProtect.ContainsKey(target.PlayerId)
-            && killer.PlayerId != target.PlayerId
-            && VeteranInProtect[target.PlayerId] + VeteranSkillDuration.GetInt() >= Utils.TimeStamp)
+        if (VeteranInProtect.ContainsKey(target.PlayerId) && killer.PlayerId != target.PlayerId)
         {
             if (!killer.Is(CustomRoles.Pestilence))
             {
@@ -122,7 +130,7 @@ internal class Veteran : RoleBase
             killer.Kill(target);
             Logger.Info($"{target.GetRealName()} reverse reverse killed: {target.GetRealName()}", "Pestilence Reflect");
 
-            if (killer.IsLocalPlayer())
+            if (killer.AmOwner)
                 Achievements.Type.YoureTooLate.Complete();
 
             return false;
@@ -148,8 +156,14 @@ internal class Veteran : RoleBase
         return !IsThisRole(pc) || pc.Is(CustomRoles.Nimble) || pc.GetClosestVent()?.Id == ventId;
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

@@ -42,7 +42,7 @@ internal static class EAC
 
         MessageReader sr = MessageReader.Get(reader);
         bool gameStarted = AmongUsClient.Instance.GameState is InnerNetClient.GameStates.Started or InnerNetClient.GameStates.Ended;
-        
+
         try
         {
             var rpc = (RpcCalls)callId;
@@ -239,16 +239,7 @@ internal static class EAC
                     var target = sr.ReadNetObject<PlayerControl>();
                     var resultFlags = (MurderResultFlags)sr.ReadInt32();
 
-                    if (GameStates.IsLobby)
-                    {
-                        Report(pc, "Directly Murder Player In Lobby");
-                        HandleCheat(pc, "Directly Murder Player In Lobby");
-                        Logger.Fatal($"Player [{pc.OwnerId}:{pc.GetRealName()}] was killed directly in the lobby, rejected", "EAC");
-                        sr.Recycle();
-                        return true;
-                    }
-
-                    if (!resultFlags.HasFlag(MurderResultFlags.FailedError) && !resultFlags.HasFlag(MurderResultFlags.FailedProtected) && target != null && !target.Data.IsDead)
+                    if (GameStates.IsInTask && !resultFlags.HasFlag(MurderResultFlags.FailedError) && !resultFlags.HasFlag(MurderResultFlags.FailedProtected) && target != null && !target.Data.IsDead)
                         LateTask.New(() => target.RpcRevive(), 0.1f, log: false);
 
                     Report(pc, "Directly Murder Player");
@@ -299,6 +290,7 @@ internal static class EAC
                         sr.Recycle();
                         return true;
                     }
+
                     break;
                 }
                 case RpcCalls.Shapeshift when !pc.IsNonHostModdedClient():
@@ -316,7 +308,7 @@ internal static class EAC
                 case RpcCalls.StartVanish:
                 case RpcCalls.StartAppear:
                 {
-                    string sreason = "Direct Phantom RPCs " + rpc;
+                    string sreason = "Direct Specter RPCs " + rpc;
                     Report(pc, sreason);
                     MessageWriter swriter = AmongUsClient.Instance.StartRpcImmediately(pc.NetId, (byte)RpcCalls.StartAppear, SendOption.Reliable);
                     swriter.Write(false);
@@ -670,6 +662,7 @@ internal static class EAC
                         sr.Recycle();
                         return true;
                     }
+
                     break;
                 }
             }
@@ -684,7 +677,7 @@ internal static class EAC
                         string secondString = sr.ReadString();
                         sr.ReadInt32();
 
-                        bool flag = string.IsNullOrEmpty(firstString) && string.IsNullOrEmpty(secondString);
+                        bool flag = string.IsNullOrWhiteSpace(firstString) && string.IsNullOrWhiteSpace(secondString);
 
                         if (!flag)
                         {
@@ -738,7 +731,7 @@ internal static class EAC
                         string firstString = sr.ReadString();
                         string secondString = sr.ReadString();
                         sr.ReadInt32();
-                        bool flag = string.IsNullOrEmpty(firstString) && string.IsNullOrEmpty(secondString);
+                        bool flag = string.IsNullOrWhiteSpace(firstString) && string.IsNullOrWhiteSpace(secondString);
 
                         if (!flag)
                         {
@@ -748,6 +741,7 @@ internal static class EAC
                         }
                     }
                     catch { }
+
                     break;
                 }
                 case 250:
@@ -895,7 +889,7 @@ internal static class EAC
                         subReader.Recycle();
                         return true;
                     }
-                    
+
                     int ventid = subReader.ReadPackedInt32();
 
                     if (!HasVent(ventid))
@@ -967,7 +961,7 @@ internal static class EAC
                         subReader.Recycle();
                         return true;
                     }
-                    
+
                     int ladderId = subReader.ReadPackedInt32();
 
                     if (!HasLadder(ladderId))
@@ -1028,11 +1022,8 @@ internal static class EAC
                 }
             }
         }
-        finally
-        {
-            subReader.Recycle();
-        }
-        
+        finally { subReader.Recycle(); }
+
         return false;
 
         bool HasLadder(int ladderId) => ShipStatus.Instance.Ladders.Any(l => l.Id == ladderId);
@@ -1104,7 +1095,7 @@ internal static class EAC
             case 5:
             {
                 if (pc.IsTrusted()) break;
-                
+
                 string hashedPuid = pc.GetClient().GetHashedPuid();
                 if (!BanManager.TempBanWhiteList.Contains(hashedPuid)) BanManager.TempBanWhiteList.Add(hashedPuid);
 
@@ -1159,10 +1150,7 @@ internal static class EAC
                         if (mapid is not (1 or 5)) goto Cheat;
                         break;
                     }
-                    default:
-                    {
-                        goto Cheat;
-                    }
+                    default: { goto Cheat; }
                 }
 
                 break;
@@ -1191,10 +1179,7 @@ internal static class EAC
                 if (amount is not (64 or 65 or 16 or 17 or 32 or 33)) goto Cheat;
                 break;
             }
-            case SystemTypes.MushroomMixupSabotage:
-            {
-                goto Cheat;
-            }
+            case SystemTypes.MushroomMixupSabotage: { goto Cheat; }
         }
 
         return false;
@@ -1226,17 +1211,15 @@ internal enum GameDataTag : byte
 
 #if !ANDROID
 [HarmonyPatch(typeof(InnerNetClient), nameof(InnerNetClient.HandleGameDataInner))]
-internal class GameDataHandlerPatch
+internal static class GameDataHandlerPatch
 {
-    private static IEnumerator EmptyCoroutine()
+    private static IEnumerator EmptyCoroutine() // fixes errors if we return false
     {
         yield break;
     }
-    
+
     public static bool Prefix(InnerNetClient __instance, MessageReader reader, int msgNum, ref Il2CppSystem.Collections.IEnumerator __result)
     {
-        __result = EmptyCoroutine().WrapToIl2Cpp(); // fix errors if we return false
-        
         var tag = (GameDataTag)reader.Tag;
 
         switch (tag)
@@ -1251,6 +1234,7 @@ internal class GameDataHandlerPatch
                     {
                         Logger.Warn($"Received DataFlag for object {netId.ToString()} {obj.name} that we own.", "GameDataHandlerPatch");
                         EAC.WarnHost();
+                        __result = EmptyCoroutine().WrapToIl2Cpp();
                         return false;
                     }
 
@@ -1260,6 +1244,7 @@ internal class GameDataHandlerPatch
                         {
                             Logger.Warn($"Received DataFlag for MeetingHud {netId.ToString()} that we own.", "GameDataHandlerPatch");
                             EAC.WarnHost();
+                            __result = EmptyCoroutine().WrapToIl2Cpp();
                             return false;
                         }
 
@@ -1267,6 +1252,7 @@ internal class GameDataHandlerPatch
                         {
                             Logger.Warn($"Received DataFlag for VoteBanSystem {netId.ToString()} that we own.", "GameDataHandlerPatch");
                             EAC.WarnHost();
+                            __result = EmptyCoroutine().WrapToIl2Cpp();
                             return false;
                         }
 
@@ -1274,6 +1260,7 @@ internal class GameDataHandlerPatch
                         {
                             Logger.Warn($"Received DataFlag for NetworkedPlayerInfo {netId.ToString()} that we own.", "GameDataHandlerPatch");
                             EAC.WarnHost();
+                            __result = EmptyCoroutine().WrapToIl2Cpp();
                             return false;
                         }
                     }
@@ -1298,13 +1285,15 @@ internal class GameDataHandlerPatch
                 if (client == null)
                 {
                     Logger.Warn($"Received SceneChangeFlag for unknown client {clientId}.", "GameDataHandlerPatch");
+                    __result = EmptyCoroutine().WrapToIl2Cpp();
                     return false;
                 }
 
-                if (string.IsNullOrEmpty(scene))
+                if (string.IsNullOrWhiteSpace(scene))
                 {
                     Logger.Warn($"Client {client.PlayerName} ({client.Id}) tried to send SceneChangeFlag with null scene.", "GameDataHandlerPatch");
                     EAC.WarnHost();
+                    __result = EmptyCoroutine().WrapToIl2Cpp();
                     return false;
                 }
 
@@ -1315,12 +1304,14 @@ internal class GameDataHandlerPatch
 
                     if (GameStates.IsOnlineGame && AmongUsClient.Instance.AmHost) Utils.ErrorEnd("SceneChange Tutorial Hack");
 
+                    __result = EmptyCoroutine().WrapToIl2Cpp();
                     return false;
                 }
 
                 if (GameStates.IsInGame)
                 {
                     Logger.Warn($"Client {client.PlayerName} ({client.Id}) tried to send SceneChangeFlag during mid of game.", "GameDataHandlerPatch");
+                    __result = EmptyCoroutine().WrapToIl2Cpp();
                     return false;
                 }
 
@@ -1336,6 +1327,7 @@ internal class GameDataHandlerPatch
                 {
                     Logger.Warn($"Received ReadyFlag for unknown client {clientId}.", "GameDataHandlerPatch");
                     EAC.WarnHost();
+                    __result = EmptyCoroutine().WrapToIl2Cpp();
                     return false;
                 }
 
@@ -1345,6 +1337,7 @@ internal class GameDataHandlerPatch
                     {
                         Logger.Warn($"Received ReadyFlag while game is started from {clientId}.", "GameDataHandlerPatch");
                         EAC.WarnHost();
+                        __result = EmptyCoroutine().WrapToIl2Cpp();
                         return false;
                     }
                 }

@@ -45,17 +45,16 @@ internal class Freezer : RoleBase
     {
         if (shapeshifting)
         {
-            float beforeSpeed = Main.AllPlayerSpeed[target.PlayerId];
             Main.AllPlayerSpeed[target.PlayerId] = Main.MinSpeed;
             target.MarkDirtySettings();
 
             LateTask.New(() =>
             {
-                Main.AllPlayerSpeed[target.PlayerId] = beforeSpeed;
+                Main.AllPlayerSpeed[target.PlayerId] = Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod);
                 target.MarkDirtySettings();
             }, FreezeDuration.GetFloat(), "FreezerFreezeDuration");
 
-            if (target.IsLocalPlayer())
+            if (target.AmOwner)
                 Achievements.Type.TooCold.CompleteAfterGameEnd();
         }
 

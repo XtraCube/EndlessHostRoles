@@ -42,9 +42,6 @@ internal class Transporter : RoleBase
         try
         {
             opt.SetVision(false);
-            float crewVision = Main.RealOptionsData.GetFloat(FloatOptionNames.CrewLightMod);
-            opt.SetFloat(FloatOptionNames.CrewLightMod, crewVision);
-            opt.SetFloat(FloatOptionNames.ImpostorLightMod, crewVision);
             AURoleOptions.ShapeshifterCooldown = AbilityCooldown.GetFloat();
             AURoleOptions.ShapeshifterDuration = 1f;
         }
@@ -59,7 +56,7 @@ internal class Transporter : RoleBase
         if (!shapeshifting) return true;
 
         if (shapeshifter == null || target == null || shapeshifter == target || !shapeshifter.IsAlive() || !target.IsAlive())
-            return true;
+            return false;
 
         if (shapeshifter.GetAbilityUseLimit() < 1f)
             return false;

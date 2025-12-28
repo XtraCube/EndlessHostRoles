@@ -114,8 +114,8 @@ internal class Adventurer : RoleBase
         ShieldedPlayers = [];
         RevealedPlayers = [];
 
-        LastRandomResourceTimeStamp = Utils.TimeStamp + 8;
-        LastGroupingResourceTimeStamp = Utils.TimeStamp + 20;
+        LastRandomResourceTimeStamp = Utils.TimeStamp + 30;
+        LastGroupingResourceTimeStamp = Utils.TimeStamp + 30;
         ResourceLocations = [];
 
         foreach (Resource resource in Enum.GetValues<Resource>()) ResourceCounts[resource] = 0;
@@ -163,7 +163,7 @@ internal class Adventurer : RoleBase
                     Utils.SendRPC(CustomRPC.SyncRoleData, pc.PlayerId, 2, (int)resource, count);
                 }
 
-                if (pc.IsLocalPlayer())
+                if (pc.AmOwner)
                     Achievements.Type.HowDoICraftThisAgain.Complete();
 
                 break;
@@ -338,6 +338,9 @@ internal class Adventurer : RoleBase
 
     public override void AfterMeetingTasks()
     {
+        long now = Utils.TimeStamp;
+        LastGroupingResourceTimeStamp = now;
+        LastRandomResourceTimeStamp = now;
         ActiveWeapons.Remove(Weapon.Proxy);
     }
 
@@ -442,8 +445,14 @@ internal class Adventurer : RoleBase
         return finalText;
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

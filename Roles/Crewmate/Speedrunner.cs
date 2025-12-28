@@ -29,7 +29,7 @@ internal class Speedrunner : RoleBase
 
     public override void SetupCustomOption()
     {
-        SetupSingleRoleOptions(652500, TabGroup.CrewmateRoles, CustomRoles.Speedrunner, zeroOne: true);
+        SetupSingleRoleOptions(652500, TabGroup.CrewmateRoles, CustomRoles.Speedrunner);
 
         SpeedrunnerNotifyKillers = new BooleanOptionItem(652510, "SpeedrunnerNotifyKillers", true, TabGroup.CrewmateRoles)
             .SetParent(CustomRoleSpawnChances[CustomRoles.Speedrunner]);
@@ -92,8 +92,14 @@ internal class Speedrunner : RoleBase
         return string.Format(notifyString, speedrunnerName, ts.RemainingTasksCount);
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

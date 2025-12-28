@@ -59,15 +59,15 @@ public abstract class CustomSabotage
 
         foreach (CustomSabotage sabotage in Instances)
         {
-            string tempSuffix = sabotage.GetSuffix(seer, target, hud, meeting).Trim();
+            string tempSuffix = sabotage.GetSuffix(seer, target, hud, meeting);
 
-            if (!string.IsNullOrEmpty(tempSuffix))
+            if (!string.IsNullOrWhiteSpace(tempSuffix))
                 suffix.Append($"{tempSuffix}\n");
         }
 
         var result = suffix.ToString();
 
-        if (seer.IsNonHostModdedClient())
+        if (seer.IsNonHostModdedClient() && suffix.Length > 0)
         {
             long now = Utils.TimeStamp;
             
@@ -135,7 +135,7 @@ public class GrabOxygenMaskSabotage : CustomSabotage
             _ => SystemTypes.Outside
         };
 
-        TimeLimit = GetDefaultSabotageTimeLimit(map);
+        TimeLimit = Math.Min(60, GetDefaultSabotageTimeLimit(map));
         AdjustTimeLimitBasedOnPlayerSpeed(ref TimeLimit);
 
         RoomPosition = RandomSpawn.SpawnMap.GetSpawnMap().Positions.GetValueOrDefault(TargetRoom, TargetRoom.GetRoomClass().transform.position);
@@ -145,7 +145,7 @@ public class GrabOxygenMaskSabotage : CustomSabotage
     protected override void Update()
     {
         PlayerControl[] aapc = Main.AllAlivePlayerControls;
-        byte[] playersInRoom = aapc.Select(x => (id: x.PlayerId, room: x.GetPlainShipRoom())).Where(x => x.room != null && x.room.RoomId == TargetRoom).Select(x => x.id).ToArray();
+        byte[] playersInRoom = aapc.Where(x => x.IsInRoom(TargetRoom)).Select(x => x.PlayerId).ToArray();
         playersInRoom.Except(HasMask).ToValidPlayers().NotifyPlayers(Translator.GetString("CustomSabotage.GrabOxygenMask.Done"));
         playersInRoom.Except(HasMask).Do(x => LocateArrow.Remove(x, RoomPosition));
         HasMask.UnionWith(playersInRoom);

@@ -272,20 +272,13 @@ public class Penguin : RoleBase
 
         stopCount = true;
 
-        // If you meet a meeting with time running out, kill it even if you're on a ladder.
-        if (AbductVictim != null && AbductTimer <= 0f)
-        {
-            if (!IsGoose) Penguin_.Kill(AbductVictim);
-
-            RemoveVictim(false);
-        }
-
         if (!AmongUsClient.Instance.AmHost) return;
         if (AbductVictim == null) return;
 
-        if (!IsGoose && MeetingKill) Penguin_.Kill(AbductVictim);
+        if (!IsGoose && MeetingKill && AbductVictim.IsAlive())
+            Penguin_.Kill(AbductVictim);
 
-        RemoveVictim();
+        RemoveVictim(false);
     }
 
     public override void AfterMeetingTasks()
@@ -349,7 +342,7 @@ public class Penguin : RoleBase
                 LastNotify = Utils.TimeStamp;
             }
 
-            if (AbductTimer <= 0f && !Penguin_.MyPhysics.Animations.IsPlayingAnyLadderAnimation())
+            if (AbductTimer <= 0f && !Penguin_.MyPhysics.Animations.IsPlayingAnyLadderAnimation() && !Penguin_.inMovingPlat && !Penguin_.onLadder)
             {
                 // Set IsDead to true first (prevents ladder chase)
                 if (!IsGoose)
@@ -359,7 +352,7 @@ public class Penguin : RoleBase
                 }
 
                 // If the penguin himself is on a ladder, kill him after getting off the ladder.
-                if (!AbductVictim.MyPhysics.Animations.IsPlayingAnyLadderAnimation())
+                if (!AbductVictim.MyPhysics.Animations.IsPlayingAnyLadderAnimation() && !AbductVictim.inMovingPlat && !AbductVictim.onLadder)
                 {
                     PlayerControl abductVictim = AbductVictim;
 
@@ -369,7 +362,7 @@ public class Penguin : RoleBase
 
                         int sId = abductVictim.NetTransform.lastSequenceId + 5;
                         abductVictim.NetTransform.SnapTo(Penguin_.Pos(), (ushort)sId);
-                        Penguin_.Kill(abductVictim);
+                        Penguin_.MurderPlayer(abductVictim, MurderResultFlags.Succeeded);
 
                         var sender = CustomRpcSender.Create("PenguinMurder", SendOption.Reliable);
                         {
@@ -383,6 +376,7 @@ public class Penguin : RoleBase
                             sender.AutoStartRpc(Penguin_.NetId, RpcCalls.MurderPlayer);
                             {
                                 sender.WriteNetObject(abductVictim);
+                                sender.Write((int)MurderResultFlags.Succeeded);
                             }
                             sender.EndRpc();
                         }
@@ -393,7 +387,7 @@ public class Penguin : RoleBase
                 }
             }
             // SnapToRPC does not work for players on top of the ladder, and only the host behaves differently, so teleporting is not done uniformly.
-            else if (!AbductVictim.MyPhysics.Animations.IsPlayingAnyLadderAnimation())
+            else if (!AbductVictim.MyPhysics.Animations.IsPlayingAnyLadderAnimation() && !AbductVictim.inMovingPlat && !AbductVictim.onLadder)
             {
                 Vector3 position = Penguin_.Pos();
 
@@ -413,10 +407,7 @@ public class Penguin : RoleBase
 
     public override string GetSuffix(PlayerControl seer, PlayerControl target, bool hud = false, bool meeting = false)
     {
-        if (seer == null || seer.PlayerId != target.PlayerId || (seer.IsModdedClient() && !hud)) return string.Empty;
-
-        if (!Main.PlayerStates.TryGetValue(seer.PlayerId, out PlayerState state) || state.Role is not Penguin pg || pg.AbductVictim == null) return string.Empty;
-
+        if (seer == null || seer.PlayerId != target.PlayerId || (seer.IsModdedClient() && !hud) || !Main.PlayerStates.TryGetValue(seer.PlayerId, out PlayerState state) || state.Role is not Penguin pg || pg.AbductVictim == null) return string.Empty;
         return $"\u21b9 {(int)(pg.AbductTimer + 1f)}s";
     }
 }

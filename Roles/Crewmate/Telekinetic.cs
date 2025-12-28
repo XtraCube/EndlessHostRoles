@@ -125,7 +125,7 @@ public class Telekinetic : RoleBase
 
                 Timer += 35;
 
-                if (target.IsLocalPlayer())
+                if (target.AmOwner)
                     Achievements.Type.TooCold.CompleteAfterGameEnd();
 
                 break;
@@ -226,8 +226,14 @@ public class Telekinetic : RoleBase
         Doors
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

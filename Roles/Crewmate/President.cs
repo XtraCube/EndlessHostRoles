@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
 using EHR.Neutral;
+using EHR.Patches;
 
 namespace EHR.Crewmate;
 
@@ -34,12 +35,12 @@ public class President : RoleBase
     [
         CustomRoles.Sheriff,
         CustomRoles.Bodyguard,
-        CustomRoles.ParityCop,
+        CustomRoles.Inspector,
         CustomRoles.Jailor,
         CustomRoles.SecurityGuard,
         CustomRoles.NiceGuesser,
         CustomRoles.Inquirer,
-        CustomRoles.Farseer
+        CustomRoles.Investigator
     ];
 
     private bool IsDeclassification;
@@ -172,6 +173,7 @@ public class President : RoleBase
                 Utils.SendMessage(string.Format(Translator.GetString("President.UsedDecreeMessage.RevealMessage"), pc.PlayerId.ColoredPlayerName()));
                 break;
             case Decree.Finish:
+                MeetingHudRpcClosePatch.AllowClose = true;
                 MeetingHud.Instance?.RpcClose();
                 Utils.SendMessage(string.Format(Translator.GetString("President.UsedDecreeMessage.Everyone"), Translator.GetString($"President.Decree.{decree}")));
                 break;

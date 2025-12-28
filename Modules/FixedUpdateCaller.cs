@@ -24,6 +24,8 @@ public static class FixedUpdateCaller
         {
             InnerNetClientFixedUpdatePatch.Postfix();
 
+            var amongUsClient = AmongUsClient.Instance;
+
             var shipStatus = ShipStatus.Instance;
 
             if (shipStatus)
@@ -55,6 +57,7 @@ public static class FixedUpdateCaller
             }
 
 #if ANDROID
+
             if (GameStartManager.InstanceExists)
                 GameStartManagerPatch.GameStartManagerUpdatePatch.Postfix_ManualCall(GameStartManager.Instance);
 #endif
@@ -80,14 +83,14 @@ public static class FixedUpdateCaller
 
             if (!PlayerControl.LocalPlayer) return;
 
-            if (AmongUsClient.Instance.IsGameStarted)
+            if (amongUsClient.IsGameStarted)
                 Utils.CountAlivePlayers();
 
             try
             {
                 if (HudManager.InstanceExists && GameStates.IsInTask && !ExileController.Instance && !AntiBlackout.SkipTasks && PlayerControl.LocalPlayer.CanUseKillButton())
                 {
-                    Predicate<PlayerControl> predicate = AmongUsClient.Instance.AmHost
+                    Predicate<PlayerControl> predicate = amongUsClient.AmHost
                         ? Options.CurrentGameMode switch
                         {
                             CustomGameMode.BedWars => BedWars.IsNotInLocalPlayersTeam,
@@ -120,9 +123,10 @@ public static class FixedUpdateCaller
 
             try
             {
-                if (CopyCat.Instances.Count > 0) CopyCat.Instances.RemoveAll(x => x.CopyCatPC == null);
+                if (amongUsClient.AmHost && GameStates.InGame && !GameStates.IsEnded)
+                    FixedUpdatePatch.LoversSuicide();
             }
-            catch { }
+            catch (Exception e) { Utils.ThrowException(e); }
 
             bool lobby = GameStates.IsLobby;
 
@@ -157,10 +161,10 @@ public static class FixedUpdateCaller
                             case CustomGameMode.HotPotato:
                                 HotPotato.FixedUpdatePatch.Postfix(pc);
                                 break;
-                            case CustomGameMode.MoveAndStop:
-                                MoveAndStop.FixedUpdatePatch.Postfix(pc);
+                            case CustomGameMode.StopAndGo:
+                                StopAndGo.FixedUpdatePatch.Postfix(pc);
                                 break;
-                            case CustomGameMode.SoloKombat:
+                            case CustomGameMode.SoloPVP:
                                 SoloPVP.FixedUpdatePatch.Postfix(pc);
                                 break;
                             case CustomGameMode.Speedrun:
@@ -168,6 +172,9 @@ public static class FixedUpdateCaller
                                 break;
                             case CustomGameMode.BedWars:
                                 BedWars.FixedUpdatePatch.Postfix(pc);
+                                break;
+                            case CustomGameMode.Snowdown:
+                                Snowdown.FixedUpdatePatch.Postfix(pc);
                                 break;
                         }
 
@@ -215,7 +222,7 @@ public static class FixedUpdateCaller
 
                 try
                 {
-                    if (AmongUsClient.Instance.AmHost && Options.EnableGameTimeLimit.GetBool())
+                    if (amongUsClient.AmHost && Options.EnableGameTimeLimit.GetBool())
                     {
                         Main.GameTimer += Time.fixedDeltaTime;
                         

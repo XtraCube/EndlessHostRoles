@@ -86,7 +86,7 @@ public class PatrollingState(byte sentinelId, int patrolDuration, float patrolRa
         if (!GameStates.IsInTask) return;
 
         foreach (PlayerControl pc in NearbyKillers)
-            pc.Suicide(realKiller: Sentinel);
+            pc.Suicide(PlayerState.DeathReason.Patrolled, Sentinel);
 
         Sentinel.MarkDirtySettings();
     }
@@ -220,8 +220,14 @@ internal class Sentinel : RoleBase
         return !IsThisRole(pc) || pc.Is(CustomRoles.Nimble) || pc.GetClosestVent()?.Id == ventId;
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

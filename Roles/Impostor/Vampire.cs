@@ -18,10 +18,10 @@ public class Vampire : RoleBase
 
     private static OptionItem Cooldown;
     private static OptionItem OptionKillDelay;
-    private static OptionItem OptionCanKillNormally;
+    public static OptionItem OptionCanKillNormally;
+
     private bool CanKillNormally;
     private bool CanVent;
-
     private bool IsPoisoner;
     private float KillCooldown;
     private float KillDelay;
@@ -82,11 +82,6 @@ public class Vampire : RoleBase
         if (IsPoisoner) opt.SetVision(Poisoner.ImpostorVision.GetBool());
     }
 
-    public static bool IsVampire(byte playerId)
-    {
-        return PlayerIdList.Contains(playerId);
-    }
-
     public override void SetKillCooldown(byte id)
     {
         Main.AllPlayerKillCooldown[id] = KillCooldown;
@@ -99,7 +94,6 @@ public class Vampire : RoleBase
 
     public override bool OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
-        if (!IsVampire(killer.PlayerId)) return true;
         if (target.Is(CustomRoles.Bait)) return true;
         if (target.Is(CustomRoles.Pestilence)) return true;
         if (target.Is(CustomRoles.Guardian) && target.AllTasksCompleted()) return true;
@@ -126,7 +120,6 @@ public class Vampire : RoleBase
         if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance) return;
 
         byte vampireID = vampire.PlayerId;
-        if (!IsVampire(vampire.PlayerId)) return;
 
         List<byte> targetList = [.. BittenPlayers.Where(b => b.Value.VampireId == vampireID).Select(b => b.Key)];
 
@@ -159,7 +152,7 @@ public class Vampire : RoleBase
 
             if (!meeting && vampire.IsAlive())
             {
-                if (target.Is(CustomRoles.Trapper)) vampire.TrapperKilled(target);
+                if (target.Is(CustomRoles.Beartrap)) vampire.BeartrapKilled(target);
                 vampire.Notify(GetString("VampireTargetDead"));
             }
         }
@@ -195,4 +188,5 @@ public class Vampire : RoleBase
         public readonly byte VampireId = vampierId;
         public float KillTimer = killTimer;
     }
+
 }

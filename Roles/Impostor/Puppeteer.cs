@@ -20,7 +20,7 @@ internal class Puppeteer : RoleBase
 
     private static OptionItem PuppeteerKCD;
     private static OptionItem PuppeteerCD;
-    private static OptionItem PuppeteerCanKillNormally;
+    public static OptionItem PuppeteerCanKillNormally;
     private static OptionItem PuppeteerManipulationBypassesLazy;
     private static OptionItem PuppeteerManipulationBypassesLazyGuy;
     private static OptionItem PuppeteerPuppetCanKillPuppeteer;
@@ -32,6 +32,7 @@ internal class Puppeteer : RoleBase
     private static OptionItem PuppeteerManipulationEndsAfterFixedTime;
     private static OptionItem PuppeteerManipulationEndsAfterTime;
     private static OptionItem PuppetDiesAlongWithVictim;
+    
     public override bool IsEnable => On;
 
     public override void SetupCustomOption()
@@ -114,7 +115,7 @@ internal class Puppeteer : RoleBase
     public override bool OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
         if (Thanos.IsImmune(target)) return false;
-        if (target.Is(CustomRoles.Needy) && !PuppeteerManipulationBypassesLazyGuy.GetBool()) return false;
+        if (target.Is(CustomRoles.LazyGuy) && !PuppeteerManipulationBypassesLazyGuy.GetBool()) return false;
         if (target.Is(CustomRoles.Lazy) && !PuppeteerManipulationBypassesLazy.GetBool()) return false;
 
         if (Medic.ProtectList.Contains(target.PlayerId)) return false;

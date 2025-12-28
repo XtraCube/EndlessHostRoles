@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
+using EHR.Modules;
 using EHR.Neutral;
 using static EHR.Options;
 using static EHR.Translator;
@@ -17,6 +18,8 @@ public class Sapper : RoleBase
     private static OptionItem Delay;
     private static OptionItem Radius;
     private static OptionItem CanSabotage;
+    private static OptionItem CanKill;
+    private static OptionItem CooldownsResetEachOther;
 
     private static Dictionary<Vector2, long> Bombs = [];
 
@@ -42,6 +45,12 @@ public class Sapper : RoleBase
 
         CanSabotage = new BooleanOptionItem(Id + 14, "CanSabotage", false, TabGroup.ImpostorRoles)
             .SetParent(CustomRoleSpawnChances[CustomRoles.Sapper]);
+        
+        CanKill = new BooleanOptionItem(Id + 15, "CanKill", true, TabGroup.ImpostorRoles)
+            .SetParent(CustomRoleSpawnChances[CustomRoles.Sapper]);
+        
+        CooldownsResetEachOther = new BooleanOptionItem(Id + 16, "CooldownsResetEachOther", true, TabGroup.ImpostorRoles)
+            .SetParent(CanKill);
     }
 
     public override void Init()
@@ -71,11 +80,6 @@ public class Sapper : RoleBase
         }
     }
 
-    public override void SetKillCooldown(byte id)
-    {
-        Main.AllPlayerKillCooldown[id] = 300f;
-    }
-
     public override bool CanUseSabotage(PlayerControl pc)
     {
         return CanSabotage.GetBool();
@@ -87,14 +91,19 @@ public class Sapper : RoleBase
         return PlaceBomb(shapeshifter);
     }
 
-    public override bool OnCheckMurder(PlayerControl killer, PlayerControl target)
-    {
-        return false;
-    }
-
     public override bool CanUseKillButton(PlayerControl pc)
     {
-        return false;
+        return CanKill.GetBool();
+    }
+
+    public override void OnMurder(PlayerControl killer, PlayerControl target)
+    {
+        if (!CooldownsResetEachOther.GetBool()) return;
+        
+        if (UsePets.GetBool() && !UsePhantomBasis.GetBool())
+            killer.AddAbilityCD();
+        else
+            killer.RpcResetAbilityCooldown();
     }
 
     public override void OnPet(PlayerControl pc)
@@ -112,6 +121,7 @@ public class Sapper : RoleBase
         if (pc == null) return false;
         if (!pc.IsAlive() || Pelican.IsEaten(pc.PlayerId)) return false;
         Bombs.TryAdd(pc.Pos(), TimeStamp);
+        if (CanKill.GetBool() && CooldownsResetEachOther.GetBool()) pc.SetKillCooldown();
         return false;
     }
 
@@ -133,6 +143,9 @@ public class Sapper : RoleBase
                 }
 
                 tg.Suicide(PlayerState.DeathReason.Bombed, pc);
+                
+                if (pc.AmOwner && tg.IsImpostor())
+                    Achievements.Type.FriendlyFire.Complete();
             }
 
             Bombs.Remove(bomb.Key);

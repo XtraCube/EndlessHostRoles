@@ -164,6 +164,9 @@ public class Dad : RoleBase
     public override void Remove(byte playerId)
     {
         Instances.Remove(this);
+        if (!AmongUsClient.Instance.AmHost) return;
+        Main.AllPlayerSpeed[playerId] = Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod);
+        PlayerGameOptionsSender.SetDirty(playerId);
     }
 
     public override void ApplyGameOptions(IGameOptions opt, byte playerId)
@@ -473,9 +476,17 @@ public class Dad : RoleBase
         return !IsThisRole(pc) || pc.Is(CustomRoles.Nimble) || pc.GetClosestVent()?.Id == ventId;
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
-        keepGameGoing = true;
-        countsAs = 1;
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
+        bool wentForMilk = UsingAbilities.Contains(Ability.GoForMilk);
+        
+        keepGameGoing = !wentForMilk;
+        countsAs = wentForMilk ? 0 : 1;
     }
 }

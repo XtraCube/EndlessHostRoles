@@ -138,7 +138,7 @@ public class Amnesiac : RoleBase
 
     public override bool CheckReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target, PlayerControl killer)
     {
-        if (target.Object.Is(CustomRoles.Unreportable)) return true;
+        if (target.Object.Is(CustomRoles.Disregarded)) return true;
 
         if (RememberMode.GetValue() == 0)
         {
@@ -186,14 +186,14 @@ public class Amnesiac : RoleBase
                 amneNotifyString = Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedCrewmate"));
                 break;
             case CustomRoles.LovingImpostor:
-                RememberedRole = CustomRoles.Refugee;
+                RememberedRole = CustomRoles.Renegade;
                 amneNotifyString = Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedImpostor"));
                 break;
             default:
                 switch (target.GetTeam())
                 {
                     case Team.Impostor:
-                        RememberedRole = SingleRoles.Contains(targetRole) ? CustomRoles.Refugee : targetRole;
+                        RememberedRole = SingleRoles.Contains(targetRole) ? CustomRoles.Renegade : targetRole;
                         amneNotifyString = Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedImpostor"));
                         break;
                     case Team.Crewmate:
@@ -245,7 +245,9 @@ public class Amnesiac : RoleBase
         LateTask.New(() => amnesiac.SetKillCooldown(3f), 0.2f, log: false);
         if (role.IsRecruitingRole()) amnesiac.SetAbilityUseLimit(0);
 
-        if (!amnesiac.IsLocalPlayer()) return;
+        if (Utils.HasTasks(amnesiac.Data, false)) amnesiac.GetTaskState().HasTasks = true;
+
+        if (!amnesiac.AmOwner) return;
 
         switch (role)
         {
@@ -261,6 +263,11 @@ public class Amnesiac : RoleBase
     }
 
     public override void OnReportDeadBody()
+    {
+        LocateArrow.RemoveAllTarget(AmnesiacId);
+    }
+
+    public override void AfterMeetingTasks()
     {
         LocateArrow.RemoveAllTarget(AmnesiacId);
     }

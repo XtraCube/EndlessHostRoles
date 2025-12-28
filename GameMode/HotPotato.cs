@@ -24,7 +24,7 @@ internal static class HotPotato
     private static long LastPassTS;
 
     public static bool CanPassViaKillButton => HolderCanPassViaKillButton.GetBool();
-    public static int TimeBetweenPasses => Time.GetInt();
+
     public static (byte HolderID, byte LastHolderID) GetState()
     {
         return (HotPotatoState.HolderID, HotPotatoState.LastHolderID);
@@ -80,14 +80,7 @@ internal static class HotPotato
 
     public static void OnGameStart()
     {
-        int time = Time.GetInt();
-        time += Main.CurrentMap switch
-        {
-            MapNames.Airship => ExtraTimeOnAirship.GetInt(),
-            MapNames.Fungle => ExtraTimeOnFungle.GetInt(),
-            _ => 0
-        };
-        HotPotatoState = (byte.MaxValue, byte.MaxValue, time, 1);
+        HotPotatoState = (byte.MaxValue, byte.MaxValue, GetKillInterval(), 1);
         LastPassTS = Utils.TimeStamp;
     }
 
@@ -101,9 +94,9 @@ internal static class HotPotato
         return HotPotatoState.HolderID == id ? "  \u2668  " : string.Empty;
     }
 
-    public static string GetSuffixText(byte id)
+    public static string GetSuffixText(byte id, bool hud)
     {
-        if (!Main.PlayerStates.TryGetValue(id, out PlayerState state) || state.IsDead) return string.Empty;
+        if (!Main.PlayerStates.TryGetValue(id, out PlayerState state) || (id.IsPlayerModdedClient() && !hud) || state.IsDead) return string.Empty;
         string holding = HotPotatoState.HolderID == id ? $"{Translator.GetString("HotPotato_HoldingNotify")}\n" : string.Empty;
         string arrows = TargetArrow.GetAllArrows(id);
         arrows = arrows.Length > 0 ? $"\n{arrows}" : string.Empty;
@@ -112,8 +105,27 @@ internal static class HotPotato
 
     public static void ReceiveRPC(MessageReader reader)
     {
-        HotPotatoState.HolderID = reader.ReadByte();
-        HotPotatoState.LastHolderID = reader.ReadByte();
+        switch (reader.ReadPackedInt32())
+        {
+            case 1:
+                int timeLeft = reader.ReadPackedInt32();
+                HotPotatoState.TimeLeft = timeLeft;
+                break;
+            case 2:
+                HotPotatoState.HolderID = reader.ReadByte();
+                HotPotatoState.LastHolderID = reader.ReadByte();
+                break;
+        }
+    }
+
+    public static int GetKillInterval()
+    {
+        return Time.GetInt() + Main.CurrentMap switch
+        {
+            MapNames.Airship => ExtraTimeOnAirship.GetInt(),
+            MapNames.Fungle => ExtraTimeOnFungle.GetInt(),
+            _ => 0
+        };
     }
 
     //[HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.FixedUpdate))]
@@ -124,7 +136,7 @@ internal static class HotPotato
 
         public static void Postfix(PlayerControl __instance)
         {
-            if (Options.CurrentGameMode != CustomGameMode.HotPotato || !Main.IntroDestroyed || !AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || __instance.PlayerId >= 254 || Utils.GameStartTimeStamp + 15 > Utils.TimeStamp) return;
+            if (Options.CurrentGameMode != CustomGameMode.HotPotato || !Main.IntroDestroyed || !AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || __instance.PlayerId >= 254 || IntroCutsceneDestroyPatch.IntroDestroyTS + 5 > Utils.TimeStamp) return;
 
             PlayerControl holder = Utils.GetPlayerById(HotPotatoState.HolderID);
 
@@ -139,6 +151,7 @@ internal static class HotPotato
             if (now > LastFixedUpdate)
             {
                 HotPotatoState.TimeLeft--;
+                Utils.SendRPC(CustomRPC.HotPotatoSync, 1, HotPotatoState.TimeLeft);
                 LastFixedUpdate = now;
                 Utils.NotifyRoles(SendOption: SendOption.None);
             }
@@ -146,10 +159,10 @@ internal static class HotPotato
             if (HotPotatoState.TimeLeft <= 0)
             {
                 holder.Suicide();
-                SurvivalTimes[HotPotatoState.HolderID] = Time.GetInt() * (HotPotatoState.RoundNum - 1);
+                SurvivalTimes[HotPotatoState.HolderID] = (HotPotatoState.RoundNum - 1) * GetKillInterval();
                 PassHotPotato();
 
-                if (holder.IsLocalPlayer())
+                if (holder.AmOwner)
                     Achievements.Type.OutOfTime.Complete();
 
                 return;
@@ -181,14 +194,7 @@ internal static class HotPotato
 
             if (resetTime)
             {
-                int time = Time.GetInt();
-                time += Main.CurrentMap switch
-                {
-                    MapNames.Airship => ExtraTimeOnAirship.GetInt(),
-                    MapNames.Fungle => ExtraTimeOnFungle.GetInt(),
-                    _ => 0
-                };
-                HotPotatoState.TimeLeft = time;
+                HotPotatoState.TimeLeft = GetKillInterval();
                 HotPotatoState.RoundNum++;
             }
 
@@ -199,11 +205,11 @@ internal static class HotPotato
                 HotPotatoState.LastHolderID = HotPotatoState.HolderID;
                 HotPotatoState.HolderID = target.PlayerId;
 
-                Utils.SendRPC(CustomRPC.HotPotatoSync, HotPotatoState.HolderID, HotPotatoState.LastHolderID);
+                Utils.SendRPC(CustomRPC.HotPotatoSync, 2, HotPotatoState.HolderID, HotPotatoState.LastHolderID);
 
                 if (CanPassViaKillButton)
                 {
-                    target.RpcChangeRoleBasis(CustomRoles.SerialKiller);
+                    target.RpcSetRoleDesync(RoleTypes.Impostor, target.OwnerId);
                     LateTask.New(() => target.SetKillCooldown(1f), 0.2f, log: false);
                 }
 
@@ -220,12 +226,12 @@ internal static class HotPotato
 
                 if (lastHolder != null)
                 {
-                    if (CanPassViaKillButton) lastHolder.RpcChangeRoleBasis(CustomRoles.Potato);
+                    if (CanPassViaKillButton && lastHolder.IsAlive()) lastHolder.RpcSetRoleGlobal(RoleTypes.Crewmate);
 
                     TargetArrow.RemoveAllTarget(HotPotatoState.LastHolderID);
 
                     Main.AllPlayerSpeed[HotPotatoState.LastHolderID] = DefaultSpeed;
-                    lastHolder.MarkDirtySettings();
+                    PlayerGameOptionsSender.SetDirty(HotPotatoState.LastHolderID);
                     Utils.NotifyRoles(SpecifyTarget: lastHolder);
 
                     Logger.Info($"Hot Potato Passed: {lastHolder.GetRealName()} => {target.GetRealName()}", "HotPotato");

@@ -140,9 +140,9 @@ internal class Revolutionist : RoleBase
     {
         byte playerId = player.PlayerId;
 
-        if (GameStates.IsInTask && RevolutionistTimer.ContainsKey(playerId))
+        if (GameStates.IsInTask && RevolutionistTimer.TryGetValue(playerId, out var value))
         {
-            PlayerControl rvTarget = RevolutionistTimer[playerId].Player;
+            PlayerControl rvTarget = value.Player;
 
             if (!player.IsAlive() || Pelican.IsEaten(playerId))
             {
@@ -152,7 +152,7 @@ internal class Revolutionist : RoleBase
             }
             else
             {
-                float rvTime = RevolutionistTimer[playerId].Timer;
+                float rvTime = value.Timer;
 
                 if (!rvTarget.IsAlive())
                     RevolutionistTimer.Remove(playerId);
@@ -193,15 +193,15 @@ internal class Revolutionist : RoleBase
             }
         }
 
-        if (GameStates.IsInTask && player.IsDrawDone() && player.IsAlive())
+        if (GameStates.IsInTask && player.IsDrawDone() && player.IsAlive() && !player.Data.IsDead)
         {
-            if (RevolutionistStart.ContainsKey(playerId))
+            if (RevolutionistStart.TryGetValue(playerId, out var start))
             {
                 if (RevolutionistLastTime.ContainsKey(playerId))
                 {
                     long nowtime = Utils.TimeStamp;
                     RevolutionistLastTime[playerId] = nowtime;
-                    var time = (int)(RevolutionistLastTime[playerId] - RevolutionistStart[playerId]);
+                    var time = (int)(RevolutionistLastTime[playerId] - start);
                     int countdown = RevolutionistVentCountDown.GetInt() - time;
                     RevolutionistCountdown.Clear();
 
@@ -220,12 +220,12 @@ internal class Revolutionist : RoleBase
 
                         player.Suicide(PlayerState.DeathReason.Sacrifice);
 
-                        if (player.IsLocalPlayer())
+                        if (player.AmOwner)
                             Achievements.Type.OutOfTime.Complete();
                     }
                     else RevolutionistCountdown[playerId] = countdown;
                 }
-                else RevolutionistLastTime.TryAdd(playerId, RevolutionistStart[playerId]);
+                else RevolutionistLastTime.TryAdd(playerId, start);
             }
             else RevolutionistStart.TryAdd(playerId, Utils.TimeStamp);
         }
@@ -240,5 +240,13 @@ internal class Revolutionist : RoleBase
             CustomWinnerHolder.WinnerIds.Add(pc.PlayerId);
             foreach (PlayerControl apc in x) CustomWinnerHolder.WinnerIds.Add(apc.PlayerId);
         }
+    }
+
+    public override void OnRevived(PlayerControl pc)
+    {
+        RevolutionistTimer.Remove(pc.PlayerId);
+        RevolutionistStart.Remove(pc.PlayerId);
+        RevolutionistLastTime.Remove(pc.PlayerId);
+        RevolutionistCountdown.Remove(pc.PlayerId);
     }
 }

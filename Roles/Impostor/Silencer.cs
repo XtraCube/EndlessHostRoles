@@ -17,6 +17,7 @@ public class Silencer : RoleBase
 
     public static OptionItem SkillCooldown;
     public static OptionItem SilenceMode;
+    public static OptionItem MaxPlayersAliveForSilencedToVote;
 
     public static List<byte> ForSilencer = [];
 
@@ -33,14 +34,18 @@ public class Silencer : RoleBase
 
     public override void SetupCustomOption()
     {
-        SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.Silencer);
+        SetupSingleRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.Silencer);
 
-        SkillCooldown = new FloatOptionItem(Id + 5, "SilencerSkillCooldown", new(2.5f, 60f, 0.5f), 30f, TabGroup.ImpostorRoles)
+        SkillCooldown = new FloatOptionItem(Id + 5, "AbilityCooldown", new(2.5f, 60f, 0.5f), 30f, TabGroup.ImpostorRoles)
             .SetParent(CustomRoleSpawnChances[CustomRoles.Silencer])
             .SetValueFormat(OptionFormat.Seconds);
 
         SilenceMode = new StringOptionItem(Id + 4, "SilenceMode", SilenceModes, 1, TabGroup.ImpostorRoles)
             .SetParent(CustomRoleSpawnChances[CustomRoles.Silencer]);
+        
+        MaxPlayersAliveForSilencedToVote = new IntegerOptionItem(Id + 6, "MaxPlayersAliveForSilencedToVote", new(1, 15, 1), 5, TabGroup.ImpostorRoles)
+            .SetParent(CustomRoleSpawnChances[CustomRoles.Silencer])
+            .SetValueFormat(OptionFormat.Players);
     }
 
     public override void Init()
@@ -78,15 +83,16 @@ public class Silencer : RoleBase
 
     public override bool OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
-        if (SilenceMode.GetValue() == 1 || ForSilencer.Count >= 1) return true;
+        if (SilenceMode.GetValue() >= 1) return true;
 
         return killer.CheckDoubleTrigger(target, () =>
         {
-            ForSilencer.Add(target.PlayerId);
+            ForSilencer = [target.PlayerId];
             Utils.SendRPC(CustomRPC.SyncRoleData, killer.PlayerId, 1, target.PlayerId);
+            Utils.NotifyRoles(SpecifySeer: killer, SpecifyTarget: target);
             killer.SetKillCooldown(3f);
 
-            if (killer.IsLocalPlayer())
+            if (killer.AmOwner)
             {
                 LocalPlayerTotalSilences++;
                 if (LocalPlayerTotalSilences >= 5) Achievements.Type.Censorship.Complete();
@@ -99,12 +105,12 @@ public class Silencer : RoleBase
 
     public override bool OnShapeshift(PlayerControl shapeshifter, PlayerControl target, bool shapeshifting)
     {
-        if (SilenceMode.GetValue() == 1 && ForSilencer.Count == 0 && shapeshifter.PlayerId != target.PlayerId)
+        if (SilenceMode.GetValue() == 1&& shapeshifter.PlayerId != target.PlayerId)
         {
-            ForSilencer.Add(target.PlayerId);
+            ForSilencer = [target.PlayerId];
             Utils.SendRPC(CustomRPC.SyncRoleData, shapeshifter.PlayerId, 1, target.PlayerId);
 
-            if (shapeshifter.IsLocalPlayer())
+            if (shapeshifter.AmOwner)
             {
                 LocalPlayerTotalSilences++;
                 if (LocalPlayerTotalSilences >= 5) Achievements.Type.Censorship.Complete();
@@ -119,7 +125,7 @@ public class Silencer : RoleBase
 
     public override bool OnVanish(PlayerControl pc)
     {
-        if (SilenceMode.GetValue() == 2 && ForSilencer.Count == 0)
+        if (SilenceMode.GetValue() == 2)
         {
             var pos = pc.Pos();
             var killRange = NormalGameOptionsV10.KillDistances[Mathf.Clamp(Main.NormalOptions.KillDistance, 0, 2)];
@@ -127,10 +133,11 @@ public class Silencer : RoleBase
             PlayerControl target = nearPlayers.Length == 0 ? null : nearPlayers.MinBy(x => x.distance).pc;
             if (target == null) return false;
             
-            ForSilencer.Add(target.PlayerId);
+            ForSilencer = [target.PlayerId];
             Utils.SendRPC(CustomRPC.SyncRoleData, pc.PlayerId, 1, target.PlayerId);
+            Utils.NotifyRoles(SpecifySeer: pc, SpecifyTarget: target);
 
-            if (pc.IsLocalPlayer())
+            if (pc.AmOwner)
             {
                 LocalPlayerTotalSilences++;
                 if (LocalPlayerTotalSilences >= 5) Achievements.Type.Censorship.Complete();
@@ -148,7 +155,7 @@ public class Silencer : RoleBase
         switch (reader.ReadPackedInt32())
         {
             case 1:
-                ForSilencer.Add(reader.ReadByte());
+                ForSilencer = [reader.ReadByte()];
                 break;
             case 2:
                 ForSilencer = [];
@@ -158,8 +165,8 @@ public class Silencer : RoleBase
 
     public override void AfterMeetingTasks()
     {
+        if (ForSilencer.Count == 0) return;
         ForSilencer.Clear();
-        if (PlayerIdList.Count == 0) return;
-        Utils.SendRPC(CustomRPC.SyncRoleData, PlayerIdList[0], 2);
+        PlayerIdList.ForEach(x => Utils.SendRPC(CustomRPC.SyncRoleData, x, 2));
     }
 }

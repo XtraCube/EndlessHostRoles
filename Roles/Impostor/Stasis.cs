@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
@@ -16,6 +17,7 @@ public class Stasis : RoleBase
     private static OptionItem AffectsOtherImpostors;
     private static OptionItem CanVent;
     private static OptionItem KillCooldown;
+    private static OptionItem CanSabotage;
 
     private bool UsingAbility;
 
@@ -30,7 +32,8 @@ public class Stasis : RoleBase
             .AutoSetupOption(ref AbilityDuration, 10, new IntegerValueRule(1, 60, 1), OptionFormat.Seconds)
             .AutoSetupOption(ref AffectsOtherImpostors, true)
             .AutoSetupOption(ref CanVent, false)
-            .AutoSetupOption(ref KillCooldown, 30f, new FloatValueRule(0f, 180f, 1f), OptionFormat.Seconds);
+            .AutoSetupOption(ref KillCooldown, 30f, new FloatValueRule(0f, 180f, 1f), OptionFormat.Seconds)
+            .AutoSetupOption(ref CanSabotage, false);
     }
 
     public override void Init()
@@ -59,6 +62,11 @@ public class Stasis : RoleBase
     public override void SetKillCooldown(byte id)
     {
         Main.AllPlayerKillCooldown[id] = KillCooldown.GetFloat();
+    }
+
+    public override bool CanUseSabotage(PlayerControl pc)
+    {
+        return CanSabotage.GetBool();
     }
 
     public override void ApplyGameOptions(IGameOptions opt, byte playerId)
@@ -129,12 +137,16 @@ public class Stasis : RoleBase
 
             for (var i = 0; i < time; i++)
             {
-                imps.NotifyPlayers($"<#00ffa5>{Translator.GetString("Stasis.TimeFrozenNotify")}</color> <#888888>-</color> {time - i}", overrideAll: true);
+                try { imps.NotifyPlayers($"<#00ffa5>{Translator.GetString("Stasis.TimeFrozenNotify")}</color> <#888888>-</color> <#ffffff>{time - i}</color>", overrideAll: true); }
+                catch (Exception e) { Utils.ThrowException(e); }
+                
                 yield return new WaitForSeconds(1f);
             }
 
             UsingAbility = false;
-            imps.NotifyPlayers(Translator.GetString("Stasis.TimeFreezeEndNotify"), overrideAll: true);
+
+            try { imps.NotifyPlayers(Translator.GetString("Stasis.TimeFreezeEndNotify"), overrideAll: true); }
+            catch (Exception e) { Utils.ThrowException(e); }
 
             ReportDeadBodyPatch.CanReport.SetAllValues(true);
             Main.AllPlayerSpeed.SetAllValues(Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod));

@@ -1,4 +1,5 @@
 ﻿using AmongUs.GameOptions;
+using EHR.Modules;
 
 namespace EHR.Neutral;
 
@@ -79,6 +80,7 @@ public class Magistrate : RoleBase
 
     private static void UseAbility(PlayerControl pc)
     {
+        pc.RPCPlayCustomSound("Line");
         pc.RpcRemoveAbilityUse();
         CallCourtNextMeeting = true;
     }

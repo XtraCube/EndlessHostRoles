@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using EHR.Modules;
+using EHR.Patches;
 using HarmonyLib;
 using Rewired;
 using TMPro;
@@ -24,18 +26,36 @@ internal static class ControllerManagerUpdatePatch
     {
         try
         {
-            if (GameStates.IsLobby && (HudManager.Instance.Chat == null || !HudManager.Instance.Chat.IsOpenOrOpening))
+            if (HudManager.InstanceExists)
             {
-                if (Input.GetKeyDown(KeyCode.Tab)) OptionShower.Next();
-
-                for (var i = 0; i < 9; i++)
+                if (PlayerControl.LocalPlayer != null)
                 {
-                    if (OrGetKeysDown(KeyCode.Alpha1 + i, KeyCode.Keypad1 + i) && OptionShower.Pages.Count >= i + 1)
-                        OptionShower.CurrentPage = i;
-                }
+                    if (Input.GetKeyDown(KeyCode.LeftControl))
+                    {
+                        if ((!AmongUsClient.Instance.IsGameStarted || !GameStates.IsOnlineGame) && PlayerControl.LocalPlayer.CanMove)
+                            PlayerControl.LocalPlayer.Collider.offset = new(0f, 127f);
+                    }
 
-                if (KeysDown(KeyCode.Return) && GameSettingMenu.Instance != null && GameSettingMenu.Instance.isActiveAndEnabled)
-                    GameSettingMenuPatch.SearchForOptionsAction?.Invoke();
+                    if (Math.Abs(PlayerControl.LocalPlayer.Collider.offset.y - 127f) < 0.1f)
+                    {
+                        if (!Input.GetKey(KeyCode.LeftControl) || (AmongUsClient.Instance.IsGameStarted && GameStates.IsOnlineGame))
+                            PlayerControl.LocalPlayer.Collider.offset = new(0f, -0.3636f);
+                    }
+                }
+            
+                if (GameStates.IsLobby && (HudManager.Instance.Chat == null || !HudManager.Instance.Chat.IsOpenOrOpening))
+                {
+                    if (Input.GetKeyDown(KeyCode.Tab)) OptionShower.Next();
+
+                    for (var i = 0; i < 9; i++)
+                    {
+                        if (OrGetKeysDown(KeyCode.Alpha1 + i, KeyCode.Keypad1 + i) && OptionShower.Pages.Count >= i + 1)
+                            OptionShower.CurrentPage = i;
+                    }
+
+                    if (KeysDown(KeyCode.Return) && GameSettingMenu.Instance != null && GameSettingMenu.Instance.isActiveAndEnabled)
+                        GameSettingMenuPatch.SearchForOptionsAction?.Invoke();
+                }
             }
 
             if (KeysDown(KeyCode.LeftShift, KeyCode.LeftControl, KeyCode.X))
@@ -106,7 +126,10 @@ internal static class ControllerManagerUpdatePatch
             if (KeysDown(KeyCode.Return, KeyCode.M, KeyCode.LeftShift) && GameStates.IsInGame)
             {
                 if (GameStates.IsMeeting)
+                {
+                    MeetingHudRpcClosePatch.AllowClose = true;
                     MeetingHud.Instance.RpcClose();
+                }
                 else
                     PlayerControl.LocalPlayer.NoCheckStartMeeting(null, true);
             }
@@ -117,10 +140,16 @@ internal static class ControllerManagerUpdatePatch
                 GameStartManager.Instance.countDownTimer = 0;
             }
 
-            if (Input.GetKeyDown(KeyCode.C) && GameStates.IsCountDown && GameStates.IsLobby)
+            if (Input.GetKeyDown(KeyCode.C) && GameStates.IsCountDown && GameStates.IsLobby && !HudManager.Instance.Chat.IsOpenOrOpening)
             {
                 GameStartManager.Instance.ResetStartState();
                 Logger.SendInGame(GetString("CancelStartCountDown"));
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return) && GameStates.IsLobby && GameStartManager.InstanceExists && Options.EnterKeyToStartGame.GetBool() && GameStartManager.Instance.startState == GameStartManager.StartingStates.NotStarting && !HudManager.Instance.Chat.IsOpenOrOpening && !OnGameJoinedPatch.JoiningGame && GameSettingMenu.Instance == null)
+            {
+                Logger.Info("ENTER pressed: Starting game by host", "KeyCommand");
+                GameStartManager.Instance.BeginGame();
             }
 
             if (KeysDown(KeyCode.N, KeyCode.LeftShift, KeyCode.LeftControl))
@@ -183,7 +212,7 @@ internal static class ControllerManagerUpdatePatch
                 Main.PlayerStates[PlayerControl.LocalPlayer.PlayerId].deathReason = PlayerState.DeathReason.etc;
                 PlayerControl.LocalPlayer.RpcExileV2();
                 Main.PlayerStates[PlayerControl.LocalPlayer.PlayerId].SetDead();
-                Utils.AfterPlayerDeathTasks(PlayerControl.LocalPlayer);
+                Utils.AfterPlayerDeathTasks(PlayerControl.LocalPlayer, GameStates.IsMeeting);
                 Utils.SendMessage(GetString("HostKillSelfByCommand"), title: $"<color=#ff0000>{GetString("DefaultSystemMessageTitle")}</color>");
             }
 

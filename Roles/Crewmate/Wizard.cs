@@ -124,7 +124,7 @@ public class Wizard : RoleBase
 
     public override bool CanUseKillButton(PlayerControl pc)
     {
-        return pc.IsAlive();
+        return pc.IsAlive() && !TaskMode;
     }
 
     public override void SetKillCooldown(byte id)
@@ -230,7 +230,7 @@ public class Wizard : RoleBase
 
     public override void OnFixedUpdate(PlayerControl pc)
     {
-        if (!GameStates.IsInTask || ExileController.Instance) return;
+        if (!Main.IntroDestroyed || !GameStates.IsInTask || ExileController.Instance || AntiBlackout.SkipTasks) return;
 
         if (Count++ < 40) return;
 
@@ -241,15 +241,18 @@ public class Wizard : RoleBase
             case true when (pc.GetAbilityUseLimit() >= 1 || pc.GetTaskState().IsTaskFinished) && pc.IsAlive():
                 pc.RpcChangeRoleBasis(CustomRoles.Wizard);
                 TaskMode = false;
+                Utils.SendRPC(CustomRPC.SyncRoleData, pc.PlayerId, 4, TaskMode);
                 break;
             case false when !pc.IsAlive():
-                pc.RpcSetRoleDesync(RoleTypes.CrewmateGhost, pc.OwnerId);
+                pc.RpcSetRoleGlobal(RoleTypes.CrewmateGhost);
                 TaskMode = true;
+                Utils.SendRPC(CustomRPC.SyncRoleData, pc.PlayerId, 4, TaskMode);
                 break;
             case false when pc.GetAbilityUseLimit() < 1 && pc.IsAlive():
-                pc.RpcChangeRoleBasis(CustomRoles.CrewmateEHR);
+                pc.RpcSetRoleGlobal(RoleTypes.Crewmate, setRoleMap: true);
                 pc.Notify(Translator.GetString("OutOfAbilityUsesDoMoreTasks"));
                 TaskMode = true;
+                Utils.SendRPC(CustomRPC.SyncRoleData, pc.PlayerId, 4, TaskMode);
                 break;
         }
     }
@@ -274,6 +277,9 @@ public class Wizard : RoleBase
                 else
                     buffs[SelectedBuff] = value;
 
+                break;
+            case 4:
+                TaskMode = reader.ReadBoolean();
                 break;
         }
     }

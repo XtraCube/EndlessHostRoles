@@ -183,9 +183,7 @@ public class RoomRusher : RoleBase
     {
         if (!Main.IntroDestroyed || !GameStates.IsInTask || ExileController.Instance || !pc.IsAlive()) return;
 
-        PlainShipRoom room = pc.GetPlainShipRoom();
-
-        if (!pc.inMovingPlat && !pc.inVent && room != null && room.RoomId == RoomGoal)
+        if (!pc.inMovingPlat && !pc.inVent && pc.IsInRoom(RoomGoal))
         {
             Logger.Info($"{pc.GetRealName()} entered the correct room", "Room Rusher");
             StartNewRound();
@@ -206,7 +204,7 @@ public class RoomRusher : RoleBase
             if (Won) StartNewRound(dontCount: true);
             else pc.Suicide();
 
-            if (pc.IsLocalPlayer())
+            if (pc.AmOwner)
                 Achievements.Type.OutOfTime.Complete();
         }
     }
@@ -239,7 +237,7 @@ public class RoomRusher : RoleBase
 
     public override string GetSuffix(PlayerControl seer, PlayerControl target, bool hud = false, bool meeting = false)
     {
-        if (seer.PlayerId != RoomRusherId || seer.PlayerId != target.PlayerId || meeting || hud || !seer.IsAlive()) return string.Empty;
+        if (seer.PlayerId != RoomRusherId || seer.PlayerId != target.PlayerId || (seer.IsModdedClient() && !hud) || meeting || !seer.IsAlive()) return string.Empty;
 
         StringBuilder sb = new();
         bool done = Won;

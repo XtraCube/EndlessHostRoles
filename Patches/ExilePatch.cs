@@ -19,8 +19,9 @@ internal static class ExileControllerWrapUpPatch
 
     public static void WrapUpPostfix(NetworkedPlayerInfo exiled)
     {
-        var decidedWinner = false;
         if (!AmongUsClient.Instance.AmHost) return;
+        
+        var decidedWinner = false;
 
         if (!Collector.CollectorWin(false) && exiled != null)
         {
@@ -69,8 +70,6 @@ internal static class ExileControllerWrapUpPatch
 
             if (Executioner.CheckExileTarget(exiled)) decidedWinner = true;
 
-            if (Lawyer.CheckExileTarget(exiled /*, DecidedWinner*/)) decidedWinner = false;
-
             if (CustomWinnerHolder.WinnerTeam != CustomWinner.Terrorist)
                 Main.PlayerStates[exiled.PlayerId].SetDead();
         }
@@ -79,7 +78,7 @@ internal static class ExileControllerWrapUpPatch
 
         Witch.RemoveSpelledPlayer();
 
-        NiceSwapper.OnExileFinish();
+        Swapper.OnExileFinish();
 
         foreach (PlayerControl pc in Main.AllPlayerControls)
         {
@@ -90,7 +89,7 @@ internal static class ExileControllerWrapUpPatch
             }
 
             pc.ResetKillCooldown(false);
-            pc.RpcResetAbilityCooldown();
+            if (!Utils.ShouldNotApplyAbilityCooldownAfterMeeting(pc)) pc.RpcResetAbilityCooldown();
             PetsHelper.RpcRemovePet(pc);
         }
 
@@ -102,16 +101,24 @@ internal static class ExileControllerWrapUpPatch
 
         FallFromLadder.Reset();
         Utils.CountAlivePlayers(true);
+        
+        if (decidedWinner)
+        {
+            GameEndChecker.ShouldNotCheck = false;
+            GameEndChecker.CheckCustomEndCriteria();
+        }
 
         if (exiled == null) return;
-        byte id = exiled.PlayerId;
+        PlayerControl exiledPlayer = exiled.Object;
 
         LateTask.New(() =>
         {
-            if (GameStates.IsEnded) return;
-            PlayerControl player = id.GetPlayer();
-            if (player != null) Utils.AfterPlayerDeathTasks(player, true);
-        }, 2.5f, "AfterPlayerDeathTasks For Exiled Player");
+            if (!GameStates.IsEnded && exiledPlayer != null)
+            {
+                exiledPlayer.RpcExileV2();
+                Utils.AfterPlayerDeathTasks(exiledPlayer, true);
+            }
+        }, 3.5f, "AfterPlayerDeathTasks For Exiled Player");
     }
 
     public static void WrapUpFinalizer()
@@ -146,7 +153,7 @@ internal static class ExileControllerWrapUpPatch
             string finalText = ejectionNotify ? "<#ffffff>" + CheckForEndVotingPatch.EjectionText.Trim() : text;
             if (Options.EnableGameTimeLimit.GetBool()) finalText += $"\n<#888888>{Options.GameTimeLimit.GetInt() - Main.GameTimer:N0}s {Translator.GetString("RemainingText.Suffix")}";
 
-            if (!string.IsNullOrEmpty(finalText))
+            if (!string.IsNullOrWhiteSpace(finalText))
                 Main.AllAlivePlayerControls.NotifyPlayers(finalText, 13f);
         }
 
@@ -159,7 +166,11 @@ internal static class ExileControllerWrapUpPatch
 
     public static void AfterMeetingTasks()
     {
-        if (GameStates.IsEnded) return;
+        if (CustomWinnerHolder.WinnerTeam != CustomWinner.Default || GameStates.IsEnded)
+        {
+            Stopwatch.Reset();
+            return;
+        }
 
         Main.AfterMeetingDeathPlayers.Keys.ToValidPlayers().Do(x => x.RpcExileV2());
 
@@ -188,6 +199,8 @@ internal static class ExileControllerWrapUpPatch
         Utils.CheckAndSetVentInteractions();
 
         Main.Instance.StartCoroutine(Utils.NotifyEveryoneAsync(speed: 5));
+        
+        Stopwatch.Reset();
     }
 
     [HarmonyPatch(typeof(ExileController), nameof(ExileController.WrapUp))]
@@ -226,7 +239,7 @@ internal static class ExileControllerWrapUpPatch
 }
 
 [HarmonyPatch(typeof(PbExileController), nameof(PbExileController.PlayerSpin))]
-internal class PolusExileHatFixPatch
+internal static class PolusExileHatFixPatch
 {
     public static void Prefix(PbExileController __instance)
     {

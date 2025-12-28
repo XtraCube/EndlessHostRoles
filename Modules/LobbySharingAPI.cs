@@ -23,7 +23,7 @@ public static class LobbySharingAPI
         if (gameId == 32) return;
 
         string roomCode = GameCode.IntToGameName(gameId);
-        if (roomCode == LastRoomCode || roomCode.IsNullOrWhiteSpace() || string.IsNullOrEmpty(roomCode)) return;
+        if (roomCode == LastRoomCode || string.IsNullOrWhiteSpace(roomCode)) return;
         LastRoomCode = roomCode;
 
         int modLanguage = Options.ModLanguage.GetValue();
@@ -32,18 +32,19 @@ public static class LobbySharingAPI
         string serverName = Utils.GetRegionName();
         string hostName = Main.AllPlayerNames[PlayerControl.LocalPlayer.PlayerId].RemoveHtmlTags();
         string map = Options.RandomMapsMode.GetBool() ? "Random" : SubmergedCompatibility.Loaded && Main.NormalOptions.MapId == 6 ? "Submerged" : Main.CurrentMap.ToString();
-        string gameMode = Options.EnableAutoGMRotation.GetBool() ? "Rotating" : Translator.GetString(Options.CurrentGameMode.ToString(), SupportedLangs.English).ToUpper();
+        string gameMode = Options.EnableAutoGMRotation.GetBool() ? "Rotating" : Translator.GetString(Options.CurrentGameMode.ToString(), SupportedLangs.English).RemoveHtmlTags().ToUpper();
+        string hostHashedPuid = Options.SendHashedPuidToUseLinkedAccount.GetBool() ? PlayerControl.LocalPlayer.GetClient().GetHashedPuid() : string.Empty;
         const string version = $"EHR v{Main.PluginDisplayVersion}";
-        Main.Instance.StartCoroutine(SendLobbyCreatedRequest(roomCode, serverName, language, version, gameId, hostName, map, gameMode));
+        Main.Instance.StartCoroutine(SendLobbyCreatedRequest(roomCode, serverName, language, version, gameId, hostName, map, gameMode, hostHashedPuid));
     }
 
-    private static IEnumerator SendLobbyCreatedRequest(string roomCode, string serverName, string language, string version, int gameId, string hostName, string map, string gameMode)
+    private static IEnumerator SendLobbyCreatedRequest(string roomCode, string serverName, string language, string version, int gameId, string hostName, string map, string gameMode, string hostHashedPuid)
     {
         long timeSinceLastRequest = Utils.TimeStamp - LastRequestTimeStamp;
         if (timeSinceLastRequest < BufferTime) yield return new WaitForSeconds(BufferTime);
         LastRequestTimeStamp = Utils.TimeStamp;
 
-        var jsonData = $"{{\"roomCode\":\"{roomCode}\",\"serverName\":\"{serverName}\",\"language\":\"{language}\",\"version\":\"{version}\",\"gameId\":\"{gameId}\",\"hostName\":\"{hostName}\",\"map\":\"{map}\",\"gameMode\":\"{gameMode}\"}}";
+        var jsonData = $"{{\"roomCode\":\"{roomCode}\",\"serverName\":\"{serverName}\",\"language\":\"{language}\",\"version\":\"{version}\",\"gameId\":\"{gameId}\",\"hostName\":\"{hostName}\",\"map\":\"{map}\",\"gameMode\":\"{gameMode}\",\"hostHashedPuid\":\"{hostHashedPuid}\"}}";
         byte[] jsonToSend = new UTF8Encoding().GetBytes(jsonData);
 
         var request = new UnityWebRequest("https://gurge44.pythonanywhere.com/lobby_created", "POST")
@@ -53,7 +54,7 @@ public static class LobbySharingAPI
         };
 
         request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("User-Agent", $"{Main.ModName} v{Main.PluginVersion}");
+        request.SetRequestHeader("User-Agent", $"{Main.ModName} v{Main.PluginVersion} - {hostName}");
         yield return request.SendWebRequest();
 
         LastRequestTimeStamp = Utils.TimeStamp;
@@ -83,11 +84,11 @@ public static class LobbySharingAPI
     {
         if (!Options.PostLobbyCodeToEHRWebsite.GetBool() || !AmongUsClient.Instance.AmHost) return;
 
-        if (GameCode.IntToGameName(AmongUsClient.Instance.GameId) != LastRoomCode)
+        if (status != LobbyStatus.Closed && GameCode.IntToGameName(AmongUsClient.Instance.GameId) != LastRoomCode)
         {
             status = LobbyStatus.Closed;
             StartMessageEdit();
-            LateTask.New(NotifyLobbyCreated, BufferTime);
+            LateTask.New(NotifyLobbyCreated, BufferTime * 2);
             return;
         }
 
@@ -104,7 +105,7 @@ public static class LobbySharingAPI
 
     private static IEnumerator SendLobbyStatusChangedRequest(string roomCode, string newStatus, int players, string map, string gameMode)
     {
-        if (string.IsNullOrEmpty(Token)) yield break;
+        if (string.IsNullOrWhiteSpace(Token)) yield break;
 
         long timeSinceLastRequest = Utils.TimeStamp - LastRequestTimeStamp;
         if (timeSinceLastRequest < BufferTime) yield return new WaitForSeconds(BufferTime);
@@ -145,11 +146,17 @@ public enum LobbyStatus
     Closed
 }
 
-[HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.ExitGame))]
+[HarmonyPatch(typeof(InnerNetClient), nameof(InnerNetClient.DisconnectInternal))]
 internal static class ExitGamePatch
 {
-    public static void Prefix()
+    public static void Prefix(InnerNetClient __instance)
     {
+        if (__instance is not AmongUsClient) return;
+        
+        Logger.Msg("Exiting game", "ExitGamePatch.Prefix");
+        
+        Main.RealOptionsData?.Restore(GameOptionsManager.Instance.CurrentGameOptions);
+        
         if (SetUpRoleTextPatch.IsInIntro)
         {
             SetUpRoleTextPatch.IsInIntro = false;
@@ -157,8 +164,10 @@ internal static class ExitGamePatch
         }
     }
 
-    public static void Postfix()
+    public static void Postfix(InnerNetClient __instance)
     {
+        if (__instance is not AmongUsClient) return;
+        
         LobbySharingAPI.NotifyLobbyStatusChanged(LobbyStatus.Closed);
 
         GameEndChecker.LoadingEndScreen = false;

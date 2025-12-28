@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +28,7 @@ public static class BedWars
     private static float TNTRange = 3f;
     private static float TrapTriggerRange = 3f;
     private static float HealPoolRange = 2.5f;
-    private static float ShopAndItemGeneratorRange = 0.75f;
+    private static float ShopAndItemGeneratorRange = 1f;
     private static float BedBreakAndProtectRange = 1f;
     private static float IronArmorDamageDivision = 1.25f;
     private static float DiamondArmorDamageDivision = 2f;
@@ -38,6 +38,8 @@ public static class BedWars
     private static float WoodenSwordDamageMultiplier = 2f;
     private static float IronSwordDamageMultiplier = 4f;
     private static float DiamondSwordDamageMultiplier = 7f;
+    private static bool SuddenDeath;
+    private static int AllBedsBrokenAfterTime = 300;
 
     private static OptionItem InventorySlotsOption;
     private static OptionItem SpeedPotionDurationOption;
@@ -66,6 +68,8 @@ public static class BedWars
     private static OptionItem WoodenSwordDamageMultiplierOption;
     private static OptionItem IronSwordDamageMultiplierOption;
     private static OptionItem DiamondSwordDamageMultiplierOption;
+    private static OptionItem SuddenDeathOption;
+    private static OptionItem AllBedsBrokenAfterTimeOption;
 
     public static (Color Color, string Team) WinnerData = (Color.white, "No one wins");
 
@@ -159,7 +163,7 @@ public static class BedWars
             .SetColor(color)
             .SetGameMode(gameMode);
 
-        ShopAndItemGeneratorRangeOption = new FloatOptionItem(id++, "BedWars.ShopAndItemGeneratorRangeOption", new(0.25f, 10f, 0.25f), 0.75f, tab)
+        ShopAndItemGeneratorRangeOption = new FloatOptionItem(id++, "BedWars.ShopAndItemGeneratorRangeOption", new(0.25f, 10f, 0.25f), 1f, tab)
             .SetValueFormat(OptionFormat.Multiplier)
             .SetColor(color)
             .SetGameMode(gameMode);
@@ -204,8 +208,17 @@ public static class BedWars
             .SetColor(color)
             .SetGameMode(gameMode);
 
-        DiamondSwordDamageMultiplierOption = new FloatOptionItem(id, "BedWars.DiamondSwordDamageMultiplierOption", new(1f, 10f, 0.1f), 7f, tab)
+        DiamondSwordDamageMultiplierOption = new FloatOptionItem(id++, "BedWars.DiamondSwordDamageMultiplierOption", new(1f, 10f, 0.1f), 7f, tab)
             .SetValueFormat(OptionFormat.Multiplier)
+            .SetColor(color)
+            .SetGameMode(gameMode);
+
+        SuddenDeathOption = new BooleanOptionItem(id++, "BedWars.SuddenDeathOption", false, tab)
+            .SetColor(color)
+            .SetGameMode(gameMode);
+
+        AllBedsBrokenAfterTimeOption = new IntegerOptionItem(id, "BedWars.AllBedsBrokenAfterTimeOption", new(10, 900, 10), 300, tab)
+            .SetValueFormat(OptionFormat.Seconds)
             .SetColor(color)
             .SetGameMode(gameMode);
     }
@@ -276,6 +289,15 @@ public static class BedWars
         }
 
         return false;
+    }
+
+    public static void OnDisconnect(PlayerControl pc)
+    {
+        Data.Remove(pc.PlayerId);
+        InShop.Remove(pc.PlayerId);
+        Suffix.Remove(pc.PlayerId);
+        Trapped.Remove(pc.PlayerId);
+        Reviving.Remove(pc.PlayerId);
     }
 
     private static void SendRPC()
@@ -392,6 +414,8 @@ public static class BedWars
         WoodenSwordDamageMultiplier = WoodenSwordDamageMultiplierOption.GetFloat();
         IronSwordDamageMultiplier = IronSwordDamageMultiplierOption.GetFloat();
         DiamondSwordDamageMultiplier = DiamondSwordDamageMultiplierOption.GetFloat();
+        SuddenDeath = SuddenDeathOption.GetBool();
+        AllBedsBrokenAfterTime = AllBedsBrokenAfterTimeOption.GetInt();
     }
 
     public static IEnumerator OnGameStart()
@@ -576,13 +600,19 @@ public static class BedWars
 
         public static void Postfix(PlayerControl __instance)
         {
-            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || Options.CurrentGameMode != CustomGameMode.BedWars || !Main.IntroDestroyed || GameStates.IsEnded || __instance == null || __instance.PlayerId >= 254 || Utils.GameStartTimeStamp + 25 > Utils.TimeStamp) return;
-
-            if (__instance.IsHost()) ItemGenerators.ForEach(x => x.Update());
-
-            if (!Data.TryGetValue(__instance.PlayerId, out PlayerData data)) return;
+            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || Options.CurrentGameMode != CustomGameMode.BedWars || !Main.IntroDestroyed || GameStates.IsEnded || __instance == null || __instance.PlayerId >= 254 || IntroCutsceneDestroyPatch.IntroDestroyTS + 10 > Utils.TimeStamp) return;
 
             long now = Utils.TimeStamp;
+
+            if (__instance.AmOwner)
+            {
+                ItemGenerators.ForEach(x => x.Update());
+
+                if (SuddenDeath && now >= GracePeriodEnd + AllBedsBrokenAfterTime)
+                    AllNetObjects.Values.DoIf(x => !x.Bed.IsBroken, x => x.Bed.Broken());
+            }
+
+            if (!Data.TryGetValue(__instance.PlayerId, out PlayerData data)) return;
 
             if (!LastUpdate.TryGetValue(__instance.PlayerId, out long lastUpdate) || lastUpdate != now)
             {
@@ -612,6 +642,7 @@ public static class BedWars
 
                     if (!allowed)
                     {
+                        RPC.PlaySoundRPC(__instance.PlayerId, Sounds.ImpDiscovered);
                         __instance.Notify(Translator.GetString("Bedwars.YouCannotLeaveRoomInGracePeriod"));
                         __instance.TP(data.Base.SpawnPosition);
                     }
@@ -622,7 +653,7 @@ public static class BedWars
                     shop.ExitShop(__instance);
                     InShop.Remove(__instance.PlayerId);
                     Logger.Info($"{__instance.GetRealName()} exited {shop.GetType().Name}", "BedWars");
-                    if (__instance.IsLocalPlayer()) Utils.DirtyName.Add(PlayerControl.LocalPlayer.PlayerId);
+                    if (__instance.AmOwner) Utils.DirtyName.Add(PlayerControl.LocalPlayer.PlayerId);
                 }
 
                 if (!InShop.ContainsKey(__instance.PlayerId))
@@ -634,7 +665,7 @@ public static class BedWars
                         InShop[__instance.PlayerId] = nearestShop.shop;
                         nearestShop.shop.EnterShop(__instance);
                         Logger.Info($"{__instance.GetRealName()} entered {nearestShop.shop.GetType().Name}", "BedWars");
-                        if (__instance.IsLocalPlayer()) Utils.DirtyName.Add(PlayerControl.LocalPlayer.PlayerId);
+                        if (__instance.AmOwner) Utils.DirtyName.Add(PlayerControl.LocalPlayer.PlayerId);
                     }
                 }
 
@@ -673,6 +704,7 @@ public static class BedWars
                         Logger.Info($"{enemy.GetRealName()} triggered trap for {data.Team} team", "BedWars");
                         upgrades.Remove(Upgrade.Trap);
 
+                        enemy.RPCPlayCustomSound("FlashBang");
                         Trapped.Add(enemy.PlayerId);
                         Main.AllPlayerSpeed[enemy.PlayerId] -= TrappedSpeedDecrease;
                         enemy.MarkDirtySettings();
@@ -680,6 +712,7 @@ public static class BedWars
                         LateTask.New(() =>
                         {
                             if (GameStates.IsEnded || !GameStates.InGame || GameStates.IsLobby || enemy == null) return;
+                            RPC.PlaySoundRPC(enemy.PlayerId, Sounds.TaskComplete);
                             Trapped.Remove(enemy.PlayerId);
                             Main.AllPlayerSpeed[enemy.PlayerId] = Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod);
                             enemy.MarkDirtySettings();
@@ -690,6 +723,7 @@ public static class BedWars
                             PlayerControl player = id.GetPlayer();
                             if (player == null || !player.IsAlive() || otherData.Team != data.Team) continue;
 
+                            RPC.PlaySoundRPC(player.PlayerId, Sounds.SabotageSound);
                             player.Notify(string.Format(Translator.GetString("Bedwars.TrapTriggered"), enemy.PlayerId.ColoredPlayerName()));
                         }
                     }
@@ -1044,6 +1078,7 @@ public static class BedWars
         public virtual void EnterShop(PlayerControl pc)
         {
             if (pc == null || !pc.IsAlive()) return;
+            RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskUpdateSound);
             SelectionIndex.TryAdd(pc.PlayerId, 0);
         }
 
@@ -1115,6 +1150,7 @@ public static class BedWars
                 if (itemCategory is ItemCategory.Armor or ItemCategory.Weapon || data.Inventory.Adjust(selectedItem))
                     data.Inventory.Adjust(cost.Resource, -cost.Count);
 
+                RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskComplete);
                 Logger.Info($"{pc.GetRealName()} purchased {selectedItem} for {cost.Count} {cost.Resource}", "BedWars");
             }
         }
@@ -1133,6 +1169,7 @@ public static class BedWars
         private void EnterCategory(PlayerControl pc)
         {
             if (pc == null || !pc.IsAlive()) return;
+            RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskUpdateSound);
             CategoryIndex.TryAdd(pc.PlayerId, 0);
             SelectionIndex.TryAdd(pc.PlayerId, 0);
             Category[pc.PlayerId] = Categories[CategoryIndex[pc.PlayerId]];
@@ -1141,6 +1178,7 @@ public static class BedWars
         public override void EnterShop(PlayerControl pc)
         {
             if (pc == null || !pc.IsAlive()) return;
+            RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskUpdateSound);
             SelectionIndex.TryAdd(pc.PlayerId, 0);
             CategoryIndex.TryAdd(pc.PlayerId, 0);
         }
@@ -1215,6 +1253,7 @@ public static class BedWars
                 if (!Upgrades.TryGetValue(data.Team, out HashSet<Upgrade> upgrades)) Upgrades[data.Team] = upgrades = [];
                 if (upgrades.Add(selectedUpgrade)) data.Inventory.Adjust(Item.Diamond, -cost);
 
+                RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskComplete);
                 Logger.Info($"{pc.GetRealName()} purchased {selectedUpgrade} for {cost} {Item.Diamond}", "BedWars");
             }
         }
@@ -1554,6 +1593,7 @@ public static class BedWars
 
                     if (selected.Value >= req)
                     {
+                        RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskUpdateSound);
                         data.Inventory.Adjust(selected.Key, -req);
                         bed.Value.Bed.Layers.Add(selected.Key);
                         bed.Value.Bed.UpdateStatus();
@@ -1564,9 +1604,11 @@ public static class BedWars
                     switch (selected.Key)
                     {
                         case Item.GoldenApple:
+                            pc.RPCPlayCustomSound("Bet");
                             data.Health = MaxHealth;
                             break;
                         case Item.TNT:
+                            pc.RPCPlayCustomSound("Line");
                             _ = new TNT(pos);
                             break;
                         case Item.InvisibilityPotion:
@@ -1747,6 +1789,8 @@ public static class BedWars
                 var str = string.Empty;
                 const int progressDisplayParts = 10;
 
+                RPC.PlaySoundRPC(pc.PlayerId, Sounds.TaskUpdateSound);
+
                 while (timer > 0f)
                 {
                     timer -= Time.deltaTime;
@@ -1764,6 +1808,8 @@ public static class BedWars
                     if (!pc.IsAlive() || Vector2.Distance(pc.Pos(), Position) > BedBreakAndProtectRange)
                     {
                         Breaking.Remove(pc.PlayerId);
+                        NameNotifyManager.Notifies.Remove(pc.PlayerId);
+                        Utils.NotifyRoles(SpecifySeer: pc, SpecifyTarget: pc);
                         yield break;
                     }
                 }
@@ -1778,7 +1824,7 @@ public static class BedWars
             }
         }
 
-        private void Broken()
+        public void Broken()
         {
             BedWarsTeam team = Team;
 
@@ -1790,6 +1836,7 @@ public static class BedWars
                 pc.Notify(data.Team == team ? Translator.GetString("Bedwars.BedStatus.Broken") : string.Format(Translator.GetString("Bedwars.BedStatus.EnemyBroken"), team.GetName()));
             }
 
+            CustomSoundsManager.RPCPlayCustomSoundAll("Gunfire");
             Logger.Info($"Bed of team {team.GetName()} at position {Position} is broken", "BedWars");
             Despawn();
             IsBroken = true;
@@ -1807,6 +1854,7 @@ public static class BedWars
 
     public static void OnTNTExplode(Vector2 position)
     {
+        CustomSoundsManager.RPCPlayCustomSoundAll("Boom");
         Logger.Info($"TNT exploded at position {position}", "BedWars");
 
         foreach ((byte id, PlayerData data) in Data)

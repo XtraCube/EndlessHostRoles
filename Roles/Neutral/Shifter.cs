@@ -52,7 +52,6 @@ public class Shifter : RoleBase
         PlayerControl pc = playerId.GetPlayer();
         if (pc == null) return;
 
-        pc.AddAbilityCD();
         pc.ResetKillCooldown();
         pc.SyncSettings();
         pc.SetKillCooldown();
@@ -84,8 +83,6 @@ public class Shifter : RoleBase
 
         CustomRoles targetRole = target.GetCustomRole();
 
-        Utils.RemovePlayerFromPreviousRoleData(target);
-
         killer.RpcSetCustomRole(targetRole);
         killer.RpcChangeRoleBasis(targetRole);
 
@@ -94,7 +91,6 @@ public class Shifter : RoleBase
         TaskState taskState = target.GetTaskState();
         if (taskState.HasTasks) Main.PlayerStates[killer.PlayerId].TaskState = taskState;
 
-        killer.RemoveAbilityCD();
         killer.SyncSettings();
 
         // ------------------------------------------------------------------------------------------
@@ -113,7 +109,7 @@ public class Shifter : RoleBase
 
         WasShifter.Add(killer.PlayerId);
 
-        if (killer.IsLocalPlayer() || target.IsLocalPlayer())
+        if (killer.AmOwner || target.AmOwner)
         {
             ShifterInteractionsCount++;
             if (ShifterInteractionsCount >= 3) Achievements.Type.TheresThisGameMyDadTaughtMeItsCalledSwitch.Complete();

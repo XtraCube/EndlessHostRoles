@@ -130,7 +130,7 @@ internal static class EffectExtenstions
                     pc.MarkDirtySettings();
                     NotifyAboutRNG(pc);
 
-                    if (pc.IsLocalPlayer())
+                    if (pc.AmOwner)
                         Achievements.Type.TooCold.CompleteAfterGameEnd();
                 }
 
@@ -350,7 +350,7 @@ internal static class EffectExtenstions
                     if (allPc.Length == 0) break;
 
                     PlayerControl target = allPc.RandomElement();
-                    BallLightning.CheckBallLightningMurder(killer, target, true);
+                    Impostor.Lightning.CheckLightningMurder(killer, target, true);
                     NotifyAboutRNG(target);
                 }
 
@@ -795,8 +795,14 @@ internal class Randomizer : RoleBase
         catch (Exception ex) { Logger.Exception(ex, "Randomizer"); }
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

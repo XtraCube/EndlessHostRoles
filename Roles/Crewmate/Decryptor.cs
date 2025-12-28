@@ -107,7 +107,12 @@ public class Decryptor : RoleBase
 
     private void RevealLetter()
     {
-        Dictionary<byte, char> nextLetters = AllRoleNames.ToDictionary(x => x.Key, x => x.Value.Except(KnownCharacters[x.Key]).RandomElement());
+        Dictionary<byte, char> nextLetters = AllRoleNames.ToDictionary(x => x.Key, x =>
+        {
+            List<char> list = x.Value.ToList();
+            KnownCharacters[x.Key].ForEach(kc => list.Remove(kc));
+            return list.RandomElement();
+        });
 
         KnownCharacters.Do(x =>
         {
@@ -152,5 +157,17 @@ public class Decryptor : RoleBase
             true when !seer.IsModdedClient() || hud => string.Format(Translator.GetString("Decryptor.Suffix"), TaskNum.GetInt() - TasksCompleted),
             _ => string.Empty
         };
+    }
+
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
+    {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
+        keepGameGoing = GuessMode.GetValue() == 2;
+        countsAs = 1;
     }
 }

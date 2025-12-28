@@ -106,7 +106,37 @@ public static class Achievements
         WhyJustWhy, // As Dictator, vote out the Jester
         CommonEnemyNo1, // Win as any NK
         CoordinatedAttack, // As Jester, Executioner or Innocent, win with any of the other 2 roles
-        ItsJustAPrankBro // As Bomber, Kill half the lobby in 1 bomb
+        ItsJustAPrankBro, // As Bomber, Kill half the lobby in 1 bomb
+        DrivingTestFailed, // Propel someone as the Car
+        MasterOfTheStones, // Get all infinity stones as Thanos
+        FastestRunner, // Win in Deathrace gamemode
+        CloseCall, // Survive russian roulette with 5 bullets as Roulette Grandeur
+        IKnowYourNames, // Get 3 peoples name guessed as Note Killer
+        ThisAintSquidGames, // Win in Mingle game mode
+        ItsGamblingTime, // As Sheriff, shoot a killer 10 seconds into the game
+        FriendlyFire, // Accidentally blow up your impostor partner as Sapper/Bomber/Fireworker
+        MyBad, // As Tree, kill everyone in ur radius by falling
+        MindReader, // As Perceiver, get all killers in your ability radius
+        OhNo, // Kill the Bait as your first kill
+        Why, // As Pawn, choose vanilla Crewmate after doing your tasks
+        GetMuted, // As Banshee, make everyone not have a chat button in a meeting
+        BadEncounter, // As Veteran, get killed while alerted (pestilence,pelican, bypass abilities, etc)
+        DestinysChoice, // Die to the Wyrd's fate countdown
+        YouUnderestimatedMe, // Get shielded by the Medic then kill them
+        Abstain, // Don't vote any player for the entire game
+        Collapse, // With Fragile, get ambushed by the Ambusher
+        YouCopiedMyWholeFlow, // As Pelican, have your body scavenged
+        Bloodthirsty, // As Juggernaut or Arrogance, reach your minimum kill cooldown
+        Lumberjack, // As Weapon Master, kill the Tree with your Axe
+        Massacre, // As Chronomancer, kill 4 or more people at once in a Slaughter
+        PayUp, // Kill a player as Clerk
+        AlarmClock, // Lose Sleepy from Glow getting near you
+        Eavesdropper, // Hear 3 or more messages with Listener in a single meeting
+        YouCopycat, // Have a Rift Maker go through your portal as Portal Maker
+        Easypeasy, // Correctly guess God as Decryptor
+        YourZoneIsMine, // Win in King Of The Zones game mode
+        Checkmate, // Change your role as Pawn, win as your new role
+        HeyRabek // Make H2SO4 as the Chemist
     }
 
     private static readonly string SaveFilePath = $"{Main.DataPath}/EHR_DATA/Achievements.json";

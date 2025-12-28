@@ -137,9 +137,11 @@ public static class Translator
 
         if (Main.ForceOwnLanguage.Value) langId = GetUserTrueLang();
 
+        int modLanguageId = 0;
+
         if (Options.IsLoaded)
         {
-            int modLanguageId = Options.ModLanguage.GetValue();
+            modLanguageId = Options.ModLanguage.GetValue();
             if (modLanguageId != 0) langId = (SupportedLangs)(modLanguageId + 100 - 1);
         }
 
@@ -150,13 +152,16 @@ public static class Translator
             foreach (KeyValuePair<string, string> rd in replacementDic)
                 str = str.Replace(rd.Key, rd.Value);
         }
+        
+        if (modLanguageId == 1) // Hungarian (none of the fonts support ő/ű and innersloth doesn't care, thankfully at least German has ö/ü)
+            str = str.Replace("ő", "ö", StringComparison.CurrentCultureIgnoreCase).Replace("ű", "ü", StringComparison.CurrentCultureIgnoreCase);
 
         return str;
     }
 
     public static string GetString(string str, SupportedLangs langId)
     {
-        var res = $"<INVALID:{str}>";
+        var res = $"*{str}";
 
         try
         {
@@ -284,10 +289,7 @@ public static class Translator
 
     private static void CreateTemplateFile()
     {
-        var sb = new StringBuilder();
-        foreach (KeyValuePair<string, Dictionary<int, string>> title in TranslateMaps) sb.Append($"{title.Key}:\n");
-
-        File.WriteAllText($"{Main.DataPath}/{LanguageFolderName}/template.dat", sb.ToString());
+        File.WriteAllText($"{Main.DataPath}/{LanguageFolderName}/template.dat", string.Join('\n', TranslateMaps.Keys.Select(x => $"{x}:")));
     }
 
     public static void ExportCustomTranslation()

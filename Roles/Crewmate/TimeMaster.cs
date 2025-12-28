@@ -93,7 +93,7 @@ internal class TimeMaster : RoleBase
 
         Main.Instance.StartCoroutine(Rewind());
         
-        if (pc.IsLocalPlayer())
+        if (pc.AmOwner)
             Achievements.Type.APerfectTimeToRewindIt.Complete();
     }
 
@@ -105,7 +105,7 @@ internal class TimeMaster : RoleBase
 
         Main.Instance.StartCoroutine(Rewind());
         
-        if (pc.IsLocalPlayer())
+        if (pc.AmOwner)
             Achievements.Type.APerfectTimeToRewindIt.Complete();
     }
 
@@ -180,7 +180,7 @@ internal class TimeMaster : RoleBase
         long now = Utils.TimeStamp;
         if (BackTrack.ContainsKey(now)) return;
 
-        BackTrack[now] = Main.AllAlivePlayerControls.ToDictionary(x => x.PlayerId, x => x.Pos());
+        BackTrack[now] = Main.AllAlivePlayerControls.Where(x => !x.inVent && !x.onLadder && !x.inMovingPlat).ToDictionary(x => x.PlayerId, x => x.Pos());
 
         if (TimeMasterCanUseVitals.GetBool()) return;
 
@@ -233,8 +233,14 @@ internal class TimeMaster : RoleBase
         return !IsThisRole(pc) || pc.Is(CustomRoles.Nimble) || pc.GetClosestVent()?.Id == ventId;
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = false;
         countsAs = 1;
         int length = TimeMasterRewindTimeLength.GetInt();

@@ -34,7 +34,7 @@ public class Witch : RoleBase
 
     private bool IsHM;
     private List<byte> SpelledPlayer = [];
-
+    private byte WitchId;
     private bool SpellMode;
 
     public override bool IsEnable => PlayerIdList.Count > 0;
@@ -67,6 +67,7 @@ public class Witch : RoleBase
         PlayerIdList.Add(playerId);
         SpellMode = false;
         SpelledPlayer = [];
+        WitchId = playerId;
 
         IsHM = Main.PlayerStates[playerId].MainRole == CustomRoles.HexMaster;
         if (!IsHM) playerId.SetAbilityUseLimit(MaxSpellsPerRound.GetInt());
@@ -312,7 +313,7 @@ public class Witch : RoleBase
 
     public override string GetSuffix(PlayerControl seer, PlayerControl target, bool hud = false, bool meeting = false)
     {
-        if (seer == null || meeting || seer.PlayerId != target.PlayerId || !seer.Is(CustomRoles.Witch) || (seer.IsModdedClient() && !hud)) return string.Empty;
+        if (seer.PlayerId != WitchId || seer.PlayerId != target.PlayerId || (seer.IsModdedClient() && !hud) || meeting) return string.Empty;
 
         var str = new StringBuilder();
 
@@ -339,8 +340,11 @@ public class Witch : RoleBase
 
     public override void SetButtonTexts(HudManager hud, byte id)
     {
-        if (SpellMode && NowSwitchTrigger is not SwitchTrigger.DoubleTrigger and not SwitchTrigger.Vanish)
-            hud.KillButton.OverrideText(GetString("WitchSpellButtonText"));
+        if (SpellMode && NowSwitchTrigger != SwitchTrigger.DoubleTrigger)
+        {
+            ActionButton button = (NowSwitchTrigger == SwitchTrigger.Vanish ? hud.AbilityButton : hud.KillButton);
+            button.OverrideText(IsHM ? GetString("HexButtonText") : GetString("WitchSpellButtonText"));
+        }
         else
             hud.KillButton.OverrideText(GetString("KillButtonText"));
     }

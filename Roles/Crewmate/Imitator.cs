@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EHR.Modules;
+using EHR.Neutral;
 using Hazel;
 using UnityEngine;
 
@@ -46,8 +47,8 @@ public class Imitator : RoleBase
             {
                 Main.AbilityUseLimit.Remove(pc.PlayerId);
                 Utils.SendRPC(CustomRPC.RemoveAbilityUseLimit, pc.PlayerId);
-                pc.RpcChangeRoleBasis(role);
                 pc.RpcSetCustomRole(role);
+                pc.RpcChangeRoleBasis(role);
             }
         }
     }
@@ -63,28 +64,31 @@ public class Imitator : RoleBase
     {
         int playerId = reader.ReadByte();
         var command = $"/imitate {playerId}";
-        ChatCommands.ImitateCommand(pc, command, command.Split(' '));
+        ChatCommands.ImitateCommand(pc, "Command.Imitate", command, command.Split(' '));
     }
 
     private static void ImitatorOnClick(byte playerId /*, MeetingHud __instance*/)
     {
         Logger.Msg($"Click: ID {playerId}", "Imitator UI");
         PlayerControl pc = Utils.GetPlayerById(playerId);
-        if (pc == null || pc.IsAlive() || !GameStates.IsVoting) return;
+        if (pc == null || pc.IsAlive() || !GameStates.IsVoting || Starspawn.IsDayBreak) return;
 
         if (AmongUsClient.Instance.AmHost)
         {
             var command = $"/imitate {playerId}";
-            ChatCommands.ImitateCommand(PlayerControl.LocalPlayer, command, command.Split(' '));
+            ChatCommands.ImitateCommand(PlayerControl.LocalPlayer, "Command.Imitate", command, command.Split(' '));
+
+            if (ImitatingRole.ContainsKey(PlayerControl.LocalPlayer.PlayerId))
+            {
+                foreach (PlayerVoteArea pva in MeetingHud.Instance.playerStates)
+                {
+                    Transform button = pva.transform.FindChild("ImitatorButton");
+                    if (button != null) Object.Destroy(button.gameObject);
+                }
+            }
         }
         else
             SendRPC(playerId);
-
-        foreach (PlayerVoteArea pva in MeetingHud.Instance.playerStates)
-        {
-            Transform button = pva.transform.FindChild("ImitatorButton");
-            if (button != null) Object.Destroy(button.gameObject);
-        }
     }
 
     private static void CreateImitatorButton(MeetingHud __instance)
@@ -99,7 +103,7 @@ public class Imitator : RoleBase
             targetBox.name = "ImitatorButton";
             targetBox.transform.localPosition = new(-0.35f, 0.03f, -1.31f);
             var renderer = targetBox.GetComponent<SpriteRenderer>();
-            renderer.sprite = CustomButton.Get("TargetIcon");
+            renderer.sprite = Utils.LoadSprite("EHR.Resources.Images.Skills.TargetIcon.png", 130f);
             var button = targetBox.GetComponent<PassiveButton>();
             button.OnClick.RemoveAllListeners();
             button.OnClick.AddListener((Action)(() => ImitatorOnClick(pva.TargetPlayerId)));
@@ -116,8 +120,14 @@ public class Imitator : RoleBase
         }
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

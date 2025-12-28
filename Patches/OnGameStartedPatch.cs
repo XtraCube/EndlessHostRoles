@@ -24,7 +24,6 @@ using static EHR.Translator;
 using DateTime = Il2CppSystem.DateTime;
 using Exception = System.Exception;
 
-
 namespace EHR;
 
 [HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.CoStartGame))]
@@ -181,11 +180,16 @@ internal static class ChangeRoleSettings
                 ErrorText.Instance.AddError(ErrorCode.UnsupportedMap);
             }
 
-            Utils.GameStartTimeStamp = Utils.TimeStamp;
-
             Main.GameEndDueToTimer = false;
 
-            try { Main.AllRoleClasses.Do(x => x.Init()); }
+            try
+            {
+                Main.AllRoleClasses.ForEach(x =>
+                {
+                    try { x.Init(); }
+                    catch (Exception e) { Utils.ThrowException(e); }
+                });
+            }
             catch (Exception e) { Utils.ThrowException(e); }
 
             Main.PlayerStates = [];
@@ -219,8 +223,8 @@ internal static class ChangeRoleSettings
             Main.MadmateNum = 0;
 
             Mayor.MayorUsedButtonCount = [];
-            Paranoia.ParaUsedButtonCount = [];
-            Mario.MarioVentCount = [];
+            Paranoid.ParaUsedButtonCount = [];
+            Vector.VectorVentCount = [];
             Cleaner.CleanerBodies = [];
             Virus.InfectedBodies = [];
             Workaholic.WorkaholicAlive = [];
@@ -230,17 +234,17 @@ internal static class ChangeRoleSettings
             SecurityGuard.BlockSabo = [];
             Ventguard.BlockedVents = [];
             Grenadier.MadGrenadierBlinding = [];
-            OverKiller.OverDeadPlayerList = [];
+            Butcher.ButcherDeadPlayerList = [];
             Warlock.WarlockTimer = [];
             Arsonist.IsDoused = [];
             Revolutionist.IsDraw = [];
-            Farseer.IsRevealed = [];
+            Investigator.IsRevealed = [];
             Arsonist.ArsonistTimer = [];
             Revolutionist.RevolutionistTimer = [];
             Revolutionist.RevolutionistStart = [];
             Revolutionist.RevolutionistLastTime = [];
             Revolutionist.RevolutionistCountdown = [];
-            Farseer.FarseerTimer = [];
+            Investigator.InvestigatorTimer = [];
             Warlock.CursedPlayers = [];
             Nemesis.NemesisRevenged = [];
             Warlock.IsCurseAndKill = [];
@@ -415,7 +419,7 @@ internal static class ChangeRoleSettings
             {
                 SoloPVP.Init();
                 FreeForAll.Init();
-                MoveAndStop.Init();
+                StopAndGo.Init();
                 HotPotato.Init();
                 CustomHnS.Init();
                 Speedrun.Init();
@@ -553,7 +557,7 @@ internal static class StartGameHostPatch
 
             if (loadingBarLogo)
             {
-                loadingBarLogo.sprite = Utils.LoadSprite("EHR.Resources.Images.EHR-Icon.png", 600f);
+                loadingBarLogo.sprite = Utils.LoadSprite("EHR.Resources.Images.EHR-Icon.png", 390f);
                 loadingBarLogo.SetNativeSize();
             }
 
@@ -681,6 +685,8 @@ internal static class StartGameHostPatch
     private static IEnumerator AssignRoles()
     {
         if (AmongUsClient.Instance.IsGameOver || GameStates.IsLobby || GameEndChecker.Ended) yield break;
+        
+        Options.AutoSetFactionMinMaxSettings();
 
         RpcSetRoleReplacer.Initialize();
 
@@ -856,7 +862,7 @@ internal static class StartGameHostPatch
                         PlayerControl seer = Utils.GetPlayerById(seerId);
                         if (seer == null) continue;
 
-                        target.RpcSetRoleDesync(RoleTypes.Impostor, seer.OwnerId);
+                        target.RpcSetRoleDesync(RoleTypes.Impostor, seer.OwnerId, setRoleMap: true);
                     }
                 }
             }
@@ -867,6 +873,8 @@ internal static class StartGameHostPatch
         {
             foreach (PlayerControl pc in Main.AllPlayerControls)
             {
+                if (!Main.PlayerStates.ContainsKey(pc.PlayerId)) Main.PlayerStates[pc.PlayerId] = new PlayerState(pc.PlayerId);
+                
                 if (Main.PlayerStates[pc.PlayerId].MainRole != CustomRoles.NotAssigned) continue;
 
                 CustomRoles role = Enum.TryParse($"{pc.Data.Role.Role}EHR", out CustomRoles parsedRole) ? parsedRole : CustomRoles.NotAssigned;
@@ -878,6 +886,8 @@ internal static class StartGameHostPatch
             foreach (KeyValuePair<byte, CustomRoles> kv in RoleResult)
             {
                 if (kv.Value.IsDesyncRole() || IsBasisChangingPlayer(kv.Key, CustomRoles.Bloodlust)) continue;
+
+                if (!Main.PlayerStates.ContainsKey(kv.Key)) Main.PlayerStates[kv.Key] = new PlayerState(kv.Key);
 
                 Main.PlayerStates[kv.Key].SetMainRole(kv.Value);
             }
@@ -955,6 +965,9 @@ internal static class StartGameHostPatch
 
                 if (state.SubRoles.Contains(CustomRoles.BananaMan))
                     Utils.RpcChangeSkin(state.Player, new());
+                
+                if (state.SubRoles.Contains(CustomRoles.Venom))
+                    state.SubRoles.FindAll(x => x.IncompatibleWithVenom()).ForEach(state.RemoveSubRole);
             }
 
             foreach (KeyValuePair<byte, PlayerState> pair in Main.PlayerStates)
@@ -972,7 +985,7 @@ internal static class StartGameHostPatch
                 if (sb.Length > 0)
                 {
                     sb.Remove(sb.Length - 2, 2);
-                    Logger.Info($"{Main.AllPlayerNames[pair.Key]} has sub roles: {sb}", "SelectRolesPatch");
+                    Logger.Info($"{Main.AllPlayerNames.GetValueOrDefault(pair.Key, "Someone")} has sub roles: {sb}", "SelectRolesPatch");
                 }
             }
 
@@ -1010,7 +1023,7 @@ internal static class StartGameHostPatch
             }
             catch (Exception e) { Utils.ThrowException(e); }
 
-            LateTask.New(CustomTeamManager.InitializeCustomTeamPlayers, 7f, log: false);
+            LateTask.New(CustomTeamManager.InitializeCustomTeamPlayers, 4f, log: false);
 
             if (overrideLovers) Logger.Msg(Main.LoversPlayers.Join(x => x?.GetRealName()), "Lovers");
 
@@ -1039,6 +1052,9 @@ internal static class StartGameHostPatch
                 case CustomGameMode.Deathrace:
                     Deathrace.Init();
                     goto default;
+                case CustomGameMode.Snowdown:
+                    Snowdown.Init();
+                    goto default;
                 default:
                     if (Options.IntegrateNaturalDisasters.GetBool()) goto case CustomGameMode.NaturalDisasters;
                     break;
@@ -1063,14 +1079,14 @@ internal static class StartGameHostPatch
                 case CustomGameMode.Standard:
                     GameEndChecker.SetPredicateToNormal();
                     break;
-                case CustomGameMode.SoloKombat:
-                    GameEndChecker.SetPredicateToSoloKombat();
+                case CustomGameMode.SoloPVP:
+                    GameEndChecker.SetPredicateToSoloPVP();
                     break;
                 case CustomGameMode.FFA:
                     GameEndChecker.SetPredicateToFFA();
                     break;
-                case CustomGameMode.MoveAndStop:
-                    GameEndChecker.SetPredicateToMoveAndStop();
+                case CustomGameMode.StopAndGo:
+                    GameEndChecker.SetPredicateToStopAndGo();
                     break;
                 case CustomGameMode.HotPotato:
                     GameEndChecker.SetPredicateToHotPotato();
@@ -1107,6 +1123,9 @@ internal static class StartGameHostPatch
                     break;
                 case CustomGameMode.Mingle:
                     GameEndChecker.SetPredicateToMingle();
+                    break;
+                case CustomGameMode.Snowdown:
+                    GameEndChecker.SetPredicateToSnowdown();
                     break;
             }
 
@@ -1238,7 +1257,7 @@ internal static class StartGameHostPatch
                 {
                     try
                     {
-                        if (seer.PlayerId == target.PlayerId || target.IsLocalPlayer()) continue;
+                        if (seer.PlayerId == target.PlayerId || target.AmOwner) continue;
 
                         if (rolesMap.TryGetValue((seer.PlayerId, target.PlayerId), out (RoleTypes, CustomRoles) roleMap))
                         {
@@ -1448,6 +1467,9 @@ internal static class StartGameHostPatch
                                     _ => roleType
                                 };
                             }
+
+                            if (Options.EveryoneCanVent.GetBool() && (roleType == RoleTypes.Crewmate || (Options.OverrideOtherCrewBasedRoles.GetBool() && roleType is RoleTypes.Scientist or RoleTypes.Detective or RoleTypes.Noisemaker or RoleTypes.Tracker)))
+                                roleType = RoleTypes.Engineer;
 
                             StoragedData[playerId] = roleType;
                             doneIds.Add(playerId);

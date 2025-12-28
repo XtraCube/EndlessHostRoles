@@ -17,7 +17,7 @@ public class Astral : RoleBase
     private static OptionItem AbilityChargesWhenFinishedTasks;
 
     private byte AstralId;
-    private long BackTS;
+    public long BackTS;
     private long LastNotifyTS;
 
     public override bool IsEnable => On;
@@ -72,27 +72,12 @@ public class Astral : RoleBase
         if (pc.GetAbilityUseLimit() < 1f || ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting) return;
         pc.RpcRemoveAbilityUse();
 
-        pc.Exiled();
-        CustomRpcSender.Create("Astral", (SendOption)1).AutoStartRpc(pc.NetId, 4).EndRpc().SendMessage();
-        Main.Instance.StartCoroutine(CoRoutine());
-        pc.MarkDirtySettings();
-
         BackTS = Utils.TimeStamp + AbilityDuration.GetInt() + 1;
         Utils.SendRPC(CustomRPC.SyncRoleData, AstralId, BackTS);
-        return;
 
-        System.Collections.IEnumerator CoRoutine()
-        {
-            yield return new WaitForSeconds(0.2f);
-            if (ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting) yield break;
-            pc.RpcSetRoleDesync(RoleTypes.GuardianAngel, pc.OwnerId);
-            yield return new WaitForSeconds(0.2f);
-            if (ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting) yield break;
-            pc.RpcResetAbilityCooldown();
-            yield return new WaitForSeconds(0.2f);
-            if (ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting) yield break;
-            pc.SetChatVisible(false);
-        }
+        pc.RpcSetRoleGlobal(RoleTypes.GuardianAngel);
+        pc.MarkDirtySettings();
+        LateTask.New(pc.RpcResetAbilityCooldown, 0.2f, log: false);
     }
 
     void BecomeAliveAgain(PlayerControl pc, bool onMeeting = false)
@@ -101,7 +86,7 @@ public class Astral : RoleBase
         Utils.SendRPC(CustomRPC.SyncRoleData, AstralId, BackTS);
 
         GhostRolesManager.RemoveGhostRole(pc.PlayerId);
-        pc.RpcChangeRoleBasis(CustomRoles.Astral);
+        pc.RpcSetRoleGlobal(Options.UsePets.GetBool() ? RoleTypes.Crewmate : RoleTypes.Engineer);
         Camouflage.RpcSetSkin(pc);
 
         if (onMeeting) return;
@@ -146,6 +131,7 @@ public class Astral : RoleBase
     public override void OnReportDeadBody()
     {
         if (BackTS != 0) BecomeAliveAgain(AstralId.GetPlayer(), true);
+        ChatManager.ClearChat(AstralId.GetPlayer());
     }
 
     public void ReceiveRPC(MessageReader reader)

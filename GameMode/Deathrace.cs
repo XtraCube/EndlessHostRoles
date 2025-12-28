@@ -1,10 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
 using EHR.Modules;
-using Hazel;
-using InnerNet;
 using UnityEngine;
 
 namespace EHR;
@@ -16,7 +14,6 @@ public static class Deathrace
     public static Dictionary<byte, PlayerData> Data = [];
     public static long LastPowerUpSpawn;
     public static List<DeathracePowerUp> SpawnedPowerUps = [];
-    
     public static bool GameGoing;
     
     // Settings
@@ -48,12 +45,15 @@ public static class Deathrace
         [MapNames.MiraHQ] = [SystemTypes.MedBay, /* Vent */ SystemTypes.Balcony, SystemTypes.Cafeteria, SystemTypes.Office, /* Vent */ SystemTypes.Laboratory, SystemTypes.Decontamination, SystemTypes.LockerRoom],
         [MapNames.Polus] = [SystemTypes.Electrical, SystemTypes.LifeSupp, SystemTypes.Admin, SystemTypes.Specimens, SystemTypes.Laboratory],
         [MapNames.Airship] = [SystemTypes.Engine, SystemTypes.Armory, SystemTypes.Kitchen, SystemTypes.HallOfPortraits, SystemTypes.Security, SystemTypes.Electrical, SystemTypes.Medical, SystemTypes.CargoBay, SystemTypes.Lounge, SystemTypes.Records, SystemTypes.Showers, SystemTypes.MainHall],
-        [MapNames.Fungle] = [SystemTypes.Cafeteria, (SystemTypes)100 /* Coordinate check point (Left side of Cafeteria > Splash Zone passthrough) */, SystemTypes.RecRoom, SystemTypes.Greenhouse, SystemTypes.UpperEngine, /* Vent */ SystemTypes.Storage]
+        [MapNames.Fungle] = [SystemTypes.Cafeteria, (SystemTypes)100, SystemTypes.RecRoom, SystemTypes.Greenhouse, SystemTypes.UpperEngine, /* Vent */ SystemTypes.Storage],
+        [(MapNames)6] = [(SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperCentral, SystemTypes.Cafeteria, (SystemTypes)101, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperCentral, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperLobby, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerLobby, SystemTypes.Storage, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerCentral, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.Filtration, SystemTypes.Electrical, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerCentral, SystemTypes.Decontamination2, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.Ballast, SystemTypes.Decontamination3, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerLobby, (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperLobby, (SystemTypes)102]
     };
 
     public static readonly Dictionary<int, Vector2> CoordinateChecks = new()
     {
-        [100] = new Vector2(-22f, 1.82f)
+        [100] = new Vector2(-22f, 1.82f), // (Fungle) Left side of Cafeteria <-> Splash Zone passthrough
+        [101] = new Vector2(-8.15f, 19.12f), // (Submerged) Upper Deck: Central <-> Cafeteria hallway
+        [102] = new Vector2(10.43f, 14.74f) // (Submerged) Upper Deck: Lobby <-> Central hallway, right side
     };
 
     public static readonly Dictionary<MapNames, Dictionary<SystemTypes, List<int>>> UsableVentIDs = new()
@@ -101,7 +101,8 @@ public static class Deathrace
         [MapNames.MiraHQ] = [new(12.41f, -1.41f), new(12.46f, 6.87f), new(4.29f, 0.89f), new(10.81f, 12.09f), new(10.81f, 10.32f), new(7.89f, 10.32f), new(17.8f, 20.41f), new(16.08f, 9.96f), new(25.5f, 2.32f), new(28.24f, 4.59f), new(28.24f, 2.51f), new(28.24f, 0f), new(28.24f, -1.93f), new(19.48f, -1.93f), new(16.75f, 0.76f)],
         [MapNames.Polus] = [new(9.64f, -7.36f), new(7.5f, -12.88f), new(1.93f, -9.19f), new(3.51f, -16.22f), new(3.2f, -21.54f), new(8.6f, -17.71f), new(18.93f, -24.49f), new(20.09f, -25.15f), new(34f, -10.24f), new(40.28f, -7.46f), new(26.69f, -6.88f), new(22.33f, -6.55f), new(14.45f, -12.48f), new(14.57f, -16.95f)],
         [MapNames.Airship] = [new(12.87f, -3.46f), new(14.82f, 3.29f), new(12.32f, 2.13f), new(9.81f, 3.57f), new(5.79f, 3.39f), new(7.02f, -3.37f), new(-0.73f, 3.21f), new(-4.11f, 1.4f), new(-14.84f, -1.15f), new(-14.06f, -5.13f), new(-14.45f, -8.35f), new(-12.17f, -9.37f), new(-2.6f, -8.97f), new(10.3f, -16f), new(10.3f, -15.1f), new(5.41f, -14.6f), new(19.29f, -3.97f), new(18.14f, -3.97f), new(25.25f, -8.55f), new(29f, -1.5f), new(37.14f, -3.34f), new(38f, -3.34f), new(38.36f, 0f), new(30.51f, 1.81f), new(33.69f, 7.34f), new(32.26f, 7.34f), new(30.78f, 7.34f), new(29.21f, 7.34f), new(19.91f, 12.09f), new(17.46f, 9.12f), new(23.99f, -1.02f), new(26f, 0.41f), new(20.82f, 2.53f), new(22f, 2.53f)],
-        [MapNames.Fungle] = [new(-16.9f, -2.21f), new(-17f, -4.67f), new(-10f, 0f), new(-0.9f, -8.95f), new(-5.32f, -11.89f), new(7f, -14.64f), new(15.15f, -16.06f), new(19.34f, -11.67f), new(11.34f, -7.08f), new(14.7f, -6f), new(14.34f, 0.41f), new(13.5f, 4f), new(22.61f, 3.35f), new(25.22f, 11.33f), new(2.34f, 4.23f), new(0f, 1.19f), new(-8.16f, 1.42f), new(-12.89f, 2.14f), new(-17.62f, 2.45f), new(-21.34f, -3.22f)]
+        [MapNames.Fungle] = [new(-16.9f, -2.21f), new(-17f, -4.67f), new(-10f, 0f), new(-0.9f, -8.95f), new(-5.32f, -11.89f), new(7f, -14.64f), new(15.15f, -16.06f), new(19.34f, -11.67f), new(11.34f, -7.08f), new(14.7f, -6f), new(14.34f, 0.41f), new(13.5f, 4f), new(22.61f, 3.35f), new(25.22f, 11.33f), new(2.34f, 4.23f), new(0f, 1.19f), new(-8.16f, 1.42f), new(-12.89f, 2.14f), new(-17.62f, 2.45f), new(-21.34f, -3.22f)],
+        [(MapNames)6] = [new(5.08f, 24.88f), new(0.59f, 28f), new(-4.82f, 28.59f), new(-11.12f, 25.48f), new(-8.4f, 28.51f), new(-9.5f, 17.58f), new(1.32f, 16f), new(4.72f, 7.56f), new(5f, -33.61f), new(-0.77f, -35.73f), new(7.69f, -25.07f), new(12.29f, -29.15f), new(-9.93f, -29.11f), new(-9.45f, -41.63f)]
     };
 
     static Deathrace()
@@ -142,13 +143,13 @@ public static class Deathrace
             .SetGameMode(gameMode)
             .SetValueFormat(OptionFormat.Seconds);
         
-        PowerUpEffectDurationOption = new IntegerOptionItem(id++, "Deathrace.PowerUpEffectDurationOption", new(1, 60, 1), 3, tab)
+        PowerUpEffectDurationOption = new IntegerOptionItem(id++, "Deathrace.PowerUpEffectDurationOption", new(1, 60, 1), 5, tab)
             .SetParent(SpawnPowerUpsOption)
             .SetColor(color)
             .SetGameMode(gameMode)
             .SetValueFormat(OptionFormat.Seconds);
         
-        PowerUpEffectRangeOption = new FloatOptionItem(id++, "Deathrace.PowerUpEffectRangeOption", new(0.25f, 10f, 0.25f), 4f, tab)
+        PowerUpEffectRangeOption = new FloatOptionItem(id++, "Deathrace.PowerUpEffectRangeOption", new(0.25f, 10f, 0.25f), 5f, tab)
             .SetParent(SpawnPowerUpsOption)
             .SetColor(color)
             .SetGameMode(gameMode)
@@ -166,7 +167,7 @@ public static class Deathrace
             .SetGameMode(gameMode)
             .SetValueFormat(OptionFormat.Multiplier);
         
-        PowerUpPickupRangeOption = new FloatOptionItem(id, "Deathrace.PowerUpPickupRangeOption", new(0.1f, 5f, 0.1f), 0.8f, tab)
+        PowerUpPickupRangeOption = new FloatOptionItem(id, "Deathrace.PowerUpPickupRangeOption", new(0.1f, 5f, 0.1f), 1f, tab)
             .SetParent(SpawnPowerUpsOption)
             .SetColor(color)
             .SetGameMode(gameMode)
@@ -239,6 +240,9 @@ public static class Deathrace
                 yield return new WaitForSeconds(4f);
                 NameNotifyManager.Reset();
             }
+            
+            if (Main.CurrentMap == MapNames.Airship)
+                players.MassTP(new RandomSpawn.AirshipSpawnMap().Positions[Clockwise ? Track[^1] : Track[0]]);
         }
         else if (Main.CurrentMap == MapNames.Airship)
         {
@@ -273,12 +277,11 @@ public static class Deathrace
         if (!GameGoing || seer.PlayerId != target.PlayerId || (seer.IsHost() && !hud) || !Data.TryGetValue(seer.PlayerId, out var data)) return string.Empty;
 
         StringBuilder sb = new("<#ffffff>");
-        PlainShipRoom room = seer.GetPlainShipRoom();
         
         sb.AppendLine($"<#888888>{string.Format(Translator.GetString("Deathrace.Lap"), data.Lap + 1, LapsToWin)}</color>");
 
-        if (room != null && room.RoomId == data.LastRoom)
-            sb.Append($"<u>{Translator.GetString(room.RoomId.ToString())}</u> ");
+        if (seer.IsInRoom(data.LastRoom))
+            sb.Append($"<u>{Translator.GetString(data.LastRoom.ToString())}</u> ");
         
         int index = Track.IndexOf(data.LastRoom);
         bool coordinateCheck = CoordinateChecks.TryGetValue((int)data.NextRoom, out var coordinates);
@@ -365,13 +368,16 @@ public static class Deathrace
         if (!SpawnPowerUps || !Data.TryGetValue(killer.PlayerId, out var data) || data.PowerUps.Count == 0) return;
         PowerUp powerUp = data.PowerUps[0];
         if (powerUp != PowerUp.Taser) return;
+        killer.RPCPlayCustomSound("Line");
         data.PowerUps.RemoveAt(0);
         Main.AllPlayerSpeed[target.PlayerId] = Main.MinSpeed;
+        target.RPCPlayCustomSound("Bite");
         target.MarkDirtySettings();
         LateTask.New(() =>
         {
             if (target == null) return;
             Main.AllPlayerSpeed[target.PlayerId] = Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod);
+            RPC.PlaySoundRPC(target.PlayerId, Sounds.TaskComplete);
             target.MarkDirtySettings();
         }, PowerUpEffectDuration, $"Taser Revert ({Main.AllPlayerNames.GetValueOrDefault(killer.PlayerId, $"ID {killer.PlayerId}")} => {Main.AllPlayerNames.GetValueOrDefault(target.PlayerId, $"ID {target.PlayerId}")})");
     }
@@ -386,6 +392,7 @@ public static class Deathrace
     {
         if (!SpawnPowerUps || !Data.TryGetValue(pc.PlayerId, out var data) || data.PowerUps.Count == 0) return;
         PowerUp powerUp = data.PowerUps[0];
+        pc.RPCPlayCustomSound("Line");
         data.PowerUps.RemoveAt(0);
         PlayerControl[] playersInRange = Utils.GetPlayersInRadius(PowerUpEffectRange, pc.Pos()).Without(pc).ToArray();
 
@@ -393,9 +400,13 @@ public static class Deathrace
         {
             case PowerUp.Smoke:
             {
+                playersInRange = playersInRange.Where(x => !Mathf.Approximately(Main.AllPlayerSpeed[x.PlayerId], Main.MinSpeed)).ToArray();
+                
                 foreach (PlayerControl player in playersInRange)
                 {
-                    Main.AllPlayerSpeed[player.PlayerId] -= SmokeSpeedReduction;
+                    if (Main.AllPlayerSpeed[player.PlayerId] < 0f) Main.AllPlayerSpeed[player.PlayerId] += SmokeSpeedReduction;
+                    else Main.AllPlayerSpeed[player.PlayerId] -= SmokeSpeedReduction;
+                    
                     player.MarkDirtySettings();
                 }
                 
@@ -404,7 +415,10 @@ public static class Deathrace
                     foreach (PlayerControl player in playersInRange)
                     {
                         if (player == null) continue;
-                        Main.AllPlayerSpeed[player.PlayerId] += SmokeSpeedReduction;
+                        
+                        if (Main.AllPlayerSpeed[player.PlayerId] < 0f) Main.AllPlayerSpeed[player.PlayerId] -= SmokeSpeedReduction;
+                        else Main.AllPlayerSpeed[player.PlayerId] += SmokeSpeedReduction;
+                        
                         player.MarkDirtySettings();
                     }
                 }, PowerUpEffectDuration, $"Smoke Revert ({Main.AllPlayerNames.GetValueOrDefault(pc.PlayerId, $"ID {pc.PlayerId}")})");
@@ -412,13 +426,15 @@ public static class Deathrace
             }
             case PowerUp.EnergyDrink:
             {
-                Main.AllPlayerSpeed[pc.PlayerId] += EnergyDrinkSpeedIncreasement;
+                if (Main.AllPlayerSpeed[pc.PlayerId] < 0f) Main.AllPlayerSpeed[pc.PlayerId] -= EnergyDrinkSpeedIncreasement;
+                else Main.AllPlayerSpeed[pc.PlayerId] += EnergyDrinkSpeedIncreasement;
                 pc.MarkDirtySettings();
                 
                 LateTask.New(() =>
                 {
-                    if (pc == null || Mathf.Approximately(Main.AllPlayerSpeed[pc.PlayerId], Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod))) return;
-                    Main.AllPlayerSpeed[pc.PlayerId] -= EnergyDrinkSpeedIncreasement;
+                    if (pc == null || Mathf.Approximately(Main.AllPlayerSpeed[pc.PlayerId], Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod)) || Mathf.Approximately(Main.AllPlayerSpeed[pc.PlayerId], Main.MinSpeed)) return;
+                    if (Main.AllPlayerSpeed[pc.PlayerId] < 0f) Main.AllPlayerSpeed[pc.PlayerId] += EnergyDrinkSpeedIncreasement;
+                    else Main.AllPlayerSpeed[pc.PlayerId] -= EnergyDrinkSpeedIncreasement;
                     pc.MarkDirtySettings();
                 }, PowerUpEffectDuration, $"Energy Drink Revert ({Main.AllPlayerNames.GetValueOrDefault(pc.PlayerId, $"ID {pc.PlayerId}")})");
                 break;
@@ -429,6 +445,7 @@ public static class Deathrace
                 {
                     if (!Main.PlayerStates.TryGetValue(player.PlayerId, out var state)) return;
                     state.IsBlackOut = true;
+                    player.RPCPlayCustomSound("FlashBang");
                     player.MarkDirtySettings();
                 }
                 
@@ -438,6 +455,7 @@ public static class Deathrace
                     {
                         if (player == null || !Main.PlayerStates.TryGetValue(player.PlayerId, out var state) || !state.IsBlackOut) continue;
                         state.IsBlackOut = false;
+                        RPC.PlaySoundRPC(player.PlayerId, Sounds.TaskComplete);
                         player.MarkDirtySettings();
                     }
                 }, PowerUpEffectDuration, $"Grenade Revert ({Main.AllPlayerNames.GetValueOrDefault(pc.PlayerId, $"ID {pc.PlayerId}")})");
@@ -448,6 +466,7 @@ public static class Deathrace
                 foreach (PlayerControl player in playersInRange)
                 {
                     Main.AllPlayerSpeed[player.PlayerId] *= -1;
+                    RPC.PlaySoundRPC(player.PlayerId, Sounds.SabotageSound);
                     player.MarkDirtySettings();
                 }
                 
@@ -455,8 +474,9 @@ public static class Deathrace
                 {
                     foreach (PlayerControl player in playersInRange)
                     {
-                        if (player == null || Main.AllPlayerSpeed[player.PlayerId] > 0f) continue;
+                        if (player == null || Main.AllPlayerSpeed[player.PlayerId] >= 0f) continue;
                         Main.AllPlayerSpeed[player.PlayerId] *= -1;
+                        RPC.PlaySoundRPC(player.PlayerId, Sounds.TaskComplete);
                         player.MarkDirtySettings();
                     }
                 }, PowerUpEffectDuration, $"Ice Revert ({Main.AllPlayerNames.GetValueOrDefault(pc.PlayerId, $"ID {pc.PlayerId}")})");
@@ -495,6 +515,7 @@ public static class Deathrace
 
                 if (SpawnedPowerUps.FindFirst(x => Vector2.Distance(data.Player.Pos(), x.Position) <= PowerUpPickupRange, out var powerUp))
                 {
+                    RPC.PlaySoundRPC(id, Sounds.TaskUpdateSound);
                     data.PowerUps.Add(powerUp.PowerUp);
                     SpawnedPowerUps.Remove(powerUp);
                     powerUp.Despawn();
@@ -504,7 +525,11 @@ public static class Deathrace
                 bool coordinateCheck = CoordinateChecks.TryGetValue((int)data.NextRoom, out var coordinates);
                 if (room != null && room.RoomId is SystemTypes.Hallway or SystemTypes.Outside or SystemTypes.Decontamination2 or SystemTypes.Decontamination3) room = null;
 
-                if ((room == null && !coordinateCheck) || (room != null && room.RoomId == data.LastRoom)) continue;
+                if ((room == null && !coordinateCheck) || (room != null && room.RoomId == data.LastRoom))
+                {
+                    CheckAndNotify(data);
+                    continue;
+                }
 
                 if (coordinateCheck ? Vector2.Distance(coordinates, data.Player.Pos()) < 2f : room.RoomId == data.NextRoom)
                 {
@@ -515,6 +540,7 @@ public static class Deathrace
                     if (endOfTrack)
                     {
                         data.Lap++;
+                        RPC.PlaySoundRPC(id, Sounds.TaskComplete);
                         Utils.SendRPC(CustomRPC.DeathraceSync, id, data.Lap);
                         
                         if (data.Lap >= LapsToWin)
@@ -542,8 +568,9 @@ public static class Deathrace
                     else
                     {
                         data.NextRoom = Clockwise ? Track[index + 1] : Track[index - 1];
+                        RPC.PlaySoundRPC(id, Sounds.TaskUpdateSound);
                     }
-                    
+
                     Logger.Info($"{Main.AllPlayerNames.GetValueOrDefault(id, $"ID {id}")} entered {data.LastRoom}, next is {data.NextRoom}", "Deathrace");
                 }
                 else if (!coordinateCheck && InitialSpawnRoom[Main.CurrentMap] != room.RoomId)
@@ -555,16 +582,21 @@ public static class Deathrace
                 
                 if (data.Player.AmOwner) continue;
 
-                string suffix = GetSuffix(data.Player, data.Player, false);
-
-                if (data.LastSuffix != suffix)
-                {
-                    Utils.NotifyRoles(SpecifySeer: data.Player, SpecifyTarget: data.Player);
-                    data.LastSuffix = suffix;
-                }
+                CheckAndNotify(data);
             }
 
             Data.Remove(removeId);
+        }
+
+        private static void CheckAndNotify(PlayerData data)
+        {
+            string suffix = GetSuffix(data.Player, data.Player, false);
+
+            if (data.LastSuffix != suffix)
+            {
+                Utils.NotifyRoles(SpecifySeer: data.Player, SpecifyTarget: data.Player);
+                data.LastSuffix = suffix;
+            }
         }
     }
 

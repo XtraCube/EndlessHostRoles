@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AmongUs.GameOptions;
+using EHR.Modules;
 
 namespace EHR.Crewmate;
 
@@ -67,7 +68,7 @@ public class Sheriff : RoleBase
     {
         foreach (CustomRoles neutral in Enum.GetValues<CustomRoles>())
         {
-            if (neutral.IsNeutral() && neutral is not CustomRoles.Konan and not CustomRoles.Pestilence and not CustomRoles.GM and not CustomRoles.Convict && !neutral.IsForOtherGameMode())
+            if (neutral.IsNeutral() && neutral is not CustomRoles.Pestilence and not CustomRoles.GM and not CustomRoles.Convict && !neutral.IsForOtherGameMode())
             {
                 SetUpKillTargetOption(neutral, id, true, CanKillNeutralsMode);
                 id++;
@@ -103,7 +104,7 @@ public class Sheriff : RoleBase
 
     public override void SetKillCooldown(byte id)
     {
-        Main.AllPlayerKillCooldown[id] = CanUseKillButton(Utils.GetPlayerById(id)) ? KillCooldown.GetFloat() : 15f;
+        Main.AllPlayerKillCooldown[id] = KillCooldown.GetFloat();
     }
 
     public override void ApplyGameOptions(IGameOptions opt, byte playerId)
@@ -125,7 +126,7 @@ public class Sheriff : RoleBase
 
     public override bool OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
-        if (CanBeKilledBySheriff(target) || (killer.Is(CustomRoles.Recruit) && SidekickSheriffCanGoBerserk.GetBool()) || (SetNonCrewCanKill.GetBool() && (killer.IsMadmate() || killer.IsConverted()) && ((target.IsImpostor() && NonCrewCanKillImp.GetBool()) || (target.IsCrewmate() && NonCrewCanKillCrew.GetBool()) || (target.GetCustomRole().IsNeutral() && NonCrewCanKillNeutral.GetBool()))))
+        if (CanBeKilledBySheriff(target) || (SetNonCrewCanKill.GetBool() && (killer.IsMadmate() || killer.IsConverted()) && ((target.IsImpostor() && NonCrewCanKillImp.GetBool()) || (target.IsCrewmate() && NonCrewCanKillCrew.GetBool()) || (target.GetCustomRole().IsNeutral() && NonCrewCanKillNeutral.GetBool()))))
         {
             SetKillCooldown(killer.PlayerId);
             return true;
@@ -139,6 +140,9 @@ public class Sheriff : RoleBase
     {
         killer.RpcRemoveAbilityUse();
         Logger.Info($"{killer.GetNameWithRole().RemoveHtmlTags()} : Number of kills left: {killer.GetAbilityUseLimit()}", "Sheriff");
+        
+        if (killer.AmOwner && Utils.TimeStamp - IntroCutsceneDestroyPatch.IntroDestroyTS < 25)
+            Achievements.Type.ItsGamblingTime.Complete();
     }
 
     private static bool CanBeKilledBySheriff(PlayerControl player)
@@ -156,7 +160,6 @@ public class Sheriff : RoleBase
                 CustomRoles.Madmate => CanKillMadmate.GetBool(),
                 CustomRoles.Charmed => CanKillCharmed.GetBool(),
                 CustomRoles.Lovers => CanKillLovers.GetBool(),
-                CustomRoles.Recruit => CanKillSidekicks.GetBool(),
                 CustomRoles.Contagious => CanKillContagious.GetBool(),
                 CustomRoles.Rascal => true,
                 _ => false
@@ -182,8 +185,14 @@ public class Sheriff : RoleBase
         return ShowShotLimit.GetBool() ? base.GetProgressText(playerId, comms) : Utils.GetTaskCount(playerId, comms);
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }

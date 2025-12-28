@@ -20,7 +20,7 @@ public class Venerer : RoleBase
     private static OptionItem FreezeRadius;
 
     private int Stage;
-    private bool ChangedSkin;
+    public bool ChangedSkin;
     private byte VenererId;
 
     public override void SetupCustomOption()
@@ -92,14 +92,16 @@ public class Venerer : RoleBase
         {
             case 1:
                 var outfit = Camouflage.PlayerSkins[pc.PlayerId];
-                Utils.RpcChangeSkin(pc, new NetworkedPlayerInfo.PlayerOutfit().Set("", 15, "", "", "", "", ""));
+                Utils.RpcChangeSkin(pc, new NetworkedPlayerInfo.PlayerOutfit().Set(Main.AllPlayerNames.GetValueOrDefault(VenererId, pc.GetRealName()), 15, "", "", "", "", ""));
                 ChangedSkin = true;
+                Utils.NotifyRoles(SpecifyTarget: pc);
                 LateTask.New(() =>
                 {
-                    if (!ChangedSkin || pc == null || !pc.IsAlive()) return;
+                    if (!ChangedSkin || pc == null || !pc.IsAlive() || Camouflage.IsCamouflage) return;
                     Utils.RpcChangeSkin(pc, outfit);
                     ChangedSkin = false;
-                    Utils.NotifyRoles(SpecifySeer: pc, SpecifyTarget: pc);
+                    Utils.NotifyRoles(SpecifyTarget: pc);
+                    pc.RpcResetAbilityCooldown();
                 }, AbilityDuration.GetInt(), log: false);
                 break;
             case 2:

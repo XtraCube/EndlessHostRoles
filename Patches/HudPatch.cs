@@ -13,7 +13,6 @@ using TMPro;
 using UnityEngine;
 using static EHR.Translator;
 
-
 namespace EHR.Patches;
 
 //[HarmonyPatch(typeof(HudManager), nameof(HudManager.Update))]
@@ -44,18 +43,6 @@ internal static class HudManagerPatch
 
             PlayerControl player = PlayerControl.LocalPlayer;
             if (player == null) return;
-
-            if (Input.GetKeyDown(KeyCode.LeftControl))
-            {
-                if ((!AmongUsClient.Instance.IsGameStarted || !GameStates.IsOnlineGame) && player.CanMove)
-                    player.Collider.offset = new(0f, 127f);
-            }
-
-            if (Math.Abs(player.Collider.offset.y - 127f) < 0.1f)
-            {
-                if (!Input.GetKey(KeyCode.LeftControl) || (AmongUsClient.Instance.IsGameStarted && GameStates.IsOnlineGame))
-                    player.Collider.offset = new(0f, -0.3636f);
-            }
 
             if (__instance == null) return;
 
@@ -228,13 +215,13 @@ internal static class HudManagerPatch
                     __instance.AbilityButton?.OverrideText(GetString($"AbilityButtonText.{roleTypes}"));
                     __instance.SecondaryAbilityButton?.OverrideText(GetString($"SecondaryAbilityButtonText.{roleTypes}"));
 
-                    PlayerState state = Main.PlayerStates[player.PlayerId];
+                    if (!Main.PlayerStates.TryGetValue(player.PlayerId, out var state)) return;
 
                     state.Role.SetButtonTexts(__instance, player.PlayerId);
 
                     switch (role)
                     {
-                        case CustomRoles.Farseer:
+                        case CustomRoles.Investigator:
                         case CustomRoles.Escort:
                         case CustomRoles.Gaulois:
                         case CustomRoles.Sheriff:
@@ -250,7 +237,7 @@ internal static class HudManagerPatch
                         case CustomRoles.Medic:
                             usedButton?.OverrideText(GetString("MedicalerButtonText"));
                             break;
-                        case CustomRoles.KB_Normal:
+                        case CustomRoles.SoloPVP_Player:
                         case CustomRoles.BedWarsPlayer:
                             __instance.KillButton?.OverrideText(GetString("DemonButtonText"));
                             break;
@@ -261,11 +248,14 @@ internal static class HudManagerPatch
                             __instance.AbilityButton?.OverrideText(GetString("CTF_ButtonText"));
                             break;
                         case CustomRoles.RRPlayer when __instance.AbilityButton != null && RoomRush.VentLimit.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out int ventLimit):
-                            __instance.AbilityButton.SetUsesRemaining(ventLimit);
+                            __instance.AbilityButton?.SetUsesRemaining(ventLimit);
+                            break;
+                        case CustomRoles.SnowdownPlayer:
+                            __instance.AbilityButton?.OverrideText(GetString("SnowdownButtonText"));
                             break;
                     }
 
-                    if (role.PetActivatedAbility() && Options.CurrentGameMode == CustomGameMode.Standard && player.GetRoleTypes() != RoleTypes.Engineer && !role.OnlySpawnsWithPets() && !role.AlwaysUsesPhantomBase() && !player.GetCustomSubRoles().Any(StartGameHostPatch.BasisChangingAddons.ContainsKey) && role is not CustomRoles.Changeling and not CustomRoles.Ninja and not CustomRoles.Duality && (!role.SimpleAbilityTrigger() || !Options.UsePhantomBasis.GetBool() || !(player.IsNeutralKiller() && Options.UsePhantomBasisForNKs.GetBool())) && !(Options.UseMeetingShapeshift.GetBool() && player.UsesMeetingShapeshift()))
+                    if (role.PetActivatedAbility() && Options.CurrentGameMode == CustomGameMode.Standard && player.GetRoleTypes() != RoleTypes.Engineer && !role.OnlySpawnsWithPets() && !role.AlwaysUsesPhantomBase() && !player.GetCustomSubRoles().Any(StartGameHostPatch.BasisChangingAddons.ContainsKey) && role is not CustomRoles.Changeling and not CustomRoles.Ninja and not CustomRoles.Duality and not CustomRoles.Witch and not CustomRoles.Silencer && (!role.SimpleAbilityTrigger() || !Options.UsePhantomBasis.GetBool() || !(player.IsNeutralKiller() && Options.UsePhantomBasisForNKs.GetBool())) && !(Options.UseMeetingShapeshift.GetBool() && player.UsesMeetingShapeshift()) && !role.ToString().EndsWith("EHR") && !role.IsVanilla())
                         __instance.AbilityButton?.Hide();
 
                     if (LowerInfoText == null)
@@ -281,13 +271,14 @@ internal static class HudManagerPatch
 
                     LowerInfoText.text = Options.CurrentGameMode switch
                     {
-                        CustomGameMode.SoloKombat => SoloPVP.GetHudText(),
-                        CustomGameMode.FFA when player.IsHost() => FreeForAll.GetHudText(),
-                        CustomGameMode.MoveAndStop when player.IsHost() => MoveAndStop.HUDText,
-                        CustomGameMode.HotPotato when player.IsHost() => HotPotato.GetSuffixText(player.PlayerId),
+                        CustomGameMode.SoloPVP => SoloPVP.GetHudText(),
+                        CustomGameMode.FFA => FreeForAll.GetHudText(),
+                        CustomGameMode.StopAndGo => StopAndGo.GetHudText(),
+                        CustomGameMode.HotPotato => HotPotato.GetSuffixText(player.PlayerId, true),
                         CustomGameMode.HideAndSeek when player.IsHost() => CustomHnS.GetSuffixText(player, player, true),
                         CustomGameMode.NaturalDisasters => NaturalDisasters.SuffixText(),
                         CustomGameMode.Deathrace => Deathrace.GetSuffix(player, player, true),
+                        CustomGameMode.Snowdown => Snowdown.GetHudText(),
                         CustomGameMode.Standard => state.Role.GetSuffix(player, player, true, GameStates.IsMeeting) + GetAddonSuffixes(),
                         _ => string.Empty
                     };
@@ -302,7 +293,7 @@ internal static class HudManagerPatch
                             CustomRoles.Deadlined => Deadlined.GetSuffix(player, true),
                             CustomRoles.Introvert => Introvert.GetSelfSuffix(player),
                             _ => string.Empty
-                        }).Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToArray();
+                        }).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
 
                         return suffixes.Length > 0
                             ? $"\n{string.Join('\n', suffixes)}"
@@ -334,7 +325,7 @@ internal static class HudManagerPatch
                     if ((!AmongUsClient.Instance.IsGameStarted && AmongUsClient.Instance.NetworkMode != NetworkModes.FreePlay) || GameStates.IsMeeting)
                         LowerInfoText.enabled = false;
 
-                    bool allowedRole = role is CustomRoles.Necromancer or CustomRoles.Deathknight or CustomRoles.Refugee or CustomRoles.Sidekick;
+                    bool allowedRole = role is CustomRoles.Necromancer or CustomRoles.Deathknight or CustomRoles.Renegade or CustomRoles.Sidekick;
 
                     if (player.CanUseKillButton() && (allowedRole || !usesPetInsteadOfKill))
                     {
@@ -354,9 +345,9 @@ internal static class HudManagerPatch
                     player.Data.Role.CanVent = player.CanUseVent();
 
                     if ((usesPetInsteadOfKill && player.Is(CustomRoles.Nimble) && player.GetRoleTypes() == RoleTypes.Engineer) || player.Is(CustomRoles.GM))
-                        __instance.AbilityButton.SetEnabled();
+                        __instance.AbilityButton?.SetEnabled();
 
-                    __instance.SabotageButton.ToggleVisible(player.GetRoleTypes() is RoleTypes.ImpostorGhost or RoleTypes.Impostor or RoleTypes.Phantom or RoleTypes.Shapeshifter);
+                    __instance.SabotageButton?.ToggleVisible(player.GetRoleTypes() is RoleTypes.ImpostorGhost or RoleTypes.Impostor or RoleTypes.Phantom or RoleTypes.Shapeshifter or RoleTypes.Viper);
 
                     float abilityUseLimit = player.GetAbilityUseLimit();
 
@@ -365,15 +356,15 @@ internal static class HudManagerPatch
                         ActionButton button;
                         Type type = state.Role.GetType();
 
-                        if (type.GetMethod("OnVote").DeclaringType == type || role is CustomRoles.Adrenaline or CustomRoles.Battery or CustomRoles.Dad or CustomRoles.Grappler or CustomRoles.Inquirer or CustomRoles.Judge or CustomRoles.Mechanic or CustomRoles.Mediumshiper or CustomRoles.NiceSwapper or CustomRoles.ParityCop or CustomRoles.Spy or CustomRoles.Councillor or CustomRoles.CursedWolf or CustomRoles.Forger or CustomRoles.Generator or CustomRoles.Ventriloquist or CustomRoles.Bargainer or CustomRoles.Technician or CustomRoles.Virus)
+                        if (type.GetMethod("OnVote").DeclaringType == type || role is CustomRoles.Adrenaline or CustomRoles.Battery or CustomRoles.Dad or CustomRoles.Grappler or CustomRoles.Inquirer or CustomRoles.Judge or CustomRoles.Mechanic or CustomRoles.Medium or CustomRoles.Swapper or CustomRoles.Inspector or CustomRoles.Spy or CustomRoles.Councillor or CustomRoles.CursedWolf or CustomRoles.Forger or CustomRoles.Generator or CustomRoles.Ventriloquist or CustomRoles.Bargainer or CustomRoles.Technician or CustomRoles.Virus)
                             button = null;
                         else if (role is CustomRoles.Coroner or CustomRoles.Occultist or CustomRoles.Vulture)
                             button = __instance.ReportButton;
                         else if (role is CustomRoles.Venter or CustomRoles.Patroller || (role == CustomRoles.Nonplus && !Options.UsePets.GetBool()))
                             button = __instance.ImpostorVentButton;
-                        else if ((role.IsCrewmate() && role.IsDesyncRole() && !usesPetInsteadOfKill) || role is CustomRoles.Dreamweaver or CustomRoles.Enchanter or CustomRoles.VoodooMaster or CustomRoles.Blackmailer or CustomRoles.Cantankerous or CustomRoles.Consort or CustomRoles.Consigliere or CustomRoles.Framer or CustomRoles.Gangster or CustomRoles.Kamikaze or CustomRoles.Auditor or CustomRoles.Backstabber or CustomRoles.Cherokious or CustomRoles.Cultist or CustomRoles.Curser or CustomRoles.Gaslighter or CustomRoles.Investor or CustomRoles.Jackal or CustomRoles.PlagueDoctor or CustomRoles.Pursuer or CustomRoles.Spiritcaller or CustomRoles.Starspawn)
+                        else if ((role.IsCrewmate() && role.IsDesyncRole() && !usesPetInsteadOfKill) || role is CustomRoles.Dreamweaver or CustomRoles.Enchanter or CustomRoles.VoodooMaster or CustomRoles.Blackmailer or CustomRoles.Cantankerous or CustomRoles.Consort or CustomRoles.Consigliere or CustomRoles.Framer or CustomRoles.Gangster or CustomRoles.Kamikaze or CustomRoles.Auditor or CustomRoles.Backstabber or CustomRoles.Cherokious or CustomRoles.Cultist or CustomRoles.Curser or CustomRoles.Gaslighter or CustomRoles.Investor or CustomRoles.Jackal or CustomRoles.Infection or CustomRoles.Pursuer or CustomRoles.Spiritcaller or CustomRoles.Starspawn)
                             button = __instance.KillButton;
-                        else if ((Options.UsePhantomBasis.GetBool() && (!role.IsNK() || Options.UsePhantomBasisForNKs.GetBool()) && role.SimpleAbilityTrigger()) || (player.GetRoleTypes() is RoleTypes.Engineer or RoleTypes.Shapeshifter or RoleTypes.Phantom && !player.Is(CustomRoles.Nimble) && player.GetCustomRole() is not (CustomRoles.Mechanic or CustomRoles.Monitor)))
+                        else if ((Options.UsePhantomBasis.GetBool() && (!role.IsNK() || Options.UsePhantomBasisForNKs.GetBool()) && role.SimpleAbilityTrigger()) || (player.GetRoleTypes() is RoleTypes.Engineer or RoleTypes.Shapeshifter or RoleTypes.Phantom && !player.Is(CustomRoles.Nimble) && player.GetCustomRole() is not (CustomRoles.Mechanic or CustomRoles.Telecommunication)))
                             button = __instance.AbilityButton;
                         else if ((Options.UsePets.GetBool() && role.PetActivatedAbility()) || usesPetInsteadOfKill)
                             button = __instance.PetButton;
@@ -588,6 +579,14 @@ internal static class SetHudActivePatch
 
         switch (Options.CurrentGameMode)
         {
+            case CustomGameMode.Snowdown:
+                __instance.AbilityButton?.ToggleVisible(true);
+                __instance.ReportButton?.ToggleVisible(false);
+                __instance.KillButton?.ToggleVisible(true);
+                __instance.ImpostorVentButton?.ToggleVisible(true);
+                __instance.SabotageButton?.ToggleVisible(true);
+                __instance.PetButton?.ToggleVisible(true);
+                return;
             case CustomGameMode.BedWars:
                 __instance.AbilityButton?.ToggleVisible(true);
                 __instance.ReportButton?.ToggleVisible(false);
@@ -597,8 +596,8 @@ internal static class SetHudActivePatch
                 return;
             case CustomGameMode.Quiz:
                 __instance.KillButton.ToggleVisible(Quiz.AllowKills);
-                goto case CustomGameMode.MoveAndStop;
-            case CustomGameMode.MoveAndStop:
+                goto case CustomGameMode.StopAndGo;
+            case CustomGameMode.StopAndGo:
             case CustomGameMode.HotPotato:
             case CustomGameMode.Speedrun:
             case CustomGameMode.TheMindGame:
@@ -629,7 +628,7 @@ internal static class SetHudActivePatch
                 __instance.ReportButton?.ToggleVisible(false);
                 __instance.SabotageButton?.ToggleVisible(false);
                 return;
-            case CustomGameMode.SoloKombat:
+            case CustomGameMode.SoloPVP:
                 __instance.ImpostorVentButton?.ToggleVisible(SoloPVP.CanVent);
                 __instance.KillButton?.ToggleVisible(true);
                 __instance.SabotageButton?.ToggleVisible(false);
@@ -646,21 +645,22 @@ internal static class SetHudActivePatch
         {
             case CustomRoles.Sheriff:
             case CustomRoles.Arsonist:
-            case CustomRoles.SwordsMan:
+            case CustomRoles.Vigilante:
             case CustomRoles.Deputy:
+            case CustomRoles.Bestower:
             case CustomRoles.Monarch:
             case CustomRoles.Pelican:
             case CustomRoles.Hater:
             case CustomRoles.Medic:
             case CustomRoles.Demon:
             case CustomRoles.Stalker:
-            case CustomRoles.Farseer:
+            case CustomRoles.Investigator:
             case CustomRoles.Crusader:
                 __instance.SabotageButton?.ToggleVisible(false);
                 __instance.ImpostorVentButton?.ToggleVisible(false);
                 break;
 
-            case CustomRoles.KB_Normal:
+            case CustomRoles.SoloPVP_Player:
                 __instance.SabotageButton?.ToggleVisible(false);
                 __instance.AbilityButton?.ToggleVisible(false);
                 __instance.ReportButton?.ToggleVisible(false);
@@ -669,7 +669,7 @@ internal static class SetHudActivePatch
                 __instance.AbilityButton?.ToggleVisible(true);
                 break;
             case CustomRoles.Parasite:
-            case CustomRoles.Refugee:
+            case CustomRoles.Renegade:
             case CustomRoles.Magician:
                 __instance.SabotageButton?.ToggleVisible(true);
                 break;
@@ -680,7 +680,7 @@ internal static class SetHudActivePatch
 
         __instance.KillButton?.ToggleVisible(player.CanUseKillButton());
         __instance.ImpostorVentButton?.ToggleVisible(player.CanUseImpostorVentButton());
-        __instance.SabotageButton?.ToggleVisible(player.GetRoleTypes() is RoleTypes.ImpostorGhost or RoleTypes.Impostor or RoleTypes.Phantom or RoleTypes.Shapeshifter);
+        __instance.SabotageButton?.ToggleVisible(player.GetRoleTypes() is RoleTypes.ImpostorGhost or RoleTypes.Impostor or RoleTypes.Phantom or RoleTypes.Shapeshifter or RoleTypes.Viper);
 
         if (Options.UseMeetingShapeshift.GetBool() && PlayerControl.LocalPlayer.UsesMeetingShapeshift() && GameStates.IsMeeting)
         {
@@ -710,7 +710,7 @@ internal static class HudManagerStartPatch
         }
     }
 
-    public static IEnumerator CoResizeUI()
+    private static IEnumerator CoResizeUI()
     {
         while (!HudManager.Instance)
             yield return null;
@@ -719,7 +719,7 @@ internal static class HudManagerStartPatch
         ResizeUI(Main.UIScaleFactor.Value);
     }
 
-    public static void ResizeUI(float scaleFactor)
+    private static void ResizeUI(float scaleFactor)
     {
         foreach (AspectPosition aspect in HudManager.Instance.transform.FindChild("Buttons").GetComponentsInChildren<AspectPosition>(true))
         {
@@ -786,7 +786,7 @@ internal static class MapBehaviourShowPatch
         }
         else if (opts.Mode is MapOptions.Modes.Normal or MapOptions.Modes.Sabotage)
         {
-            if (player.Is(CustomRoleTypes.Impostor) || player.CanUseSabotage() || player.Is(CustomRoles.Glitch) || player.Is(CustomRoles.WeaponMaster) || player.Is(CustomRoles.Magician) || player.Is(CustomRoles.Parasite) || player.Is(CustomRoles.Refugee) || (player.Is(CustomRoles.Jackal) && Jackal.CanSabotage.GetBool()) || (player.Is(CustomRoles.Traitor) && Traitor.CanSabotage.GetBool()))
+            if (player.Is(CustomRoleTypes.Impostor) || player.CanUseSabotage() || player.Is(CustomRoles.Glitch) || player.Is(CustomRoles.WeaponMaster) || player.Is(CustomRoles.Magician) || player.Is(CustomRoles.Parasite) || player.Is(CustomRoles.Renegade) || (player.Is(CustomRoles.Jackal) && Jackal.CanSabotage.GetBool()) || (player.Is(CustomRoles.Traitor) && Traitor.CanSabotage.GetBool()))
                 opts.Mode = MapOptions.Modes.Sabotage;
             else
                 opts.Mode = MapOptions.Modes.Normal;
@@ -973,8 +973,9 @@ internal static class TaskPanelBehaviourPatch
         string panelName = GetString(Options.CurrentGameMode != CustomGameMode.Standard ? "GameInfo" : "RoleInfo");
         if (tabText.text != panelName) tabText.text = panelName;
 
+        bool taskingGm = Utils.IsTaskingGameMode();
+        
         float y = ogPanel.taskText.textBounds.size.y + 1;
-        bool taskingGm = Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.MoveAndStop or CustomGameMode.HideAndSeek or CustomGameMode.Speedrun;
         float defaultPos = taskingGm ? 2f : 0.6f;
         Vector3 targetClosed = new Vector3(ogPanel.closedPosition.x, taskingGm && ogPanel.open ? y + 0.2f : defaultPos, ogPanel.closedPosition.z);
         Vector3 targetOpen   = new Vector3(ogPanel.openPosition.x,   taskingGm && ogPanel.open ? y        : defaultPos, ogPanel.openPosition.z);
@@ -1024,7 +1025,7 @@ internal static class TaskPanelBehaviourPatch
                 finalText += $"\r\n\r\n</color><size=90%>{GetString("PressF1ShowMainRoleDes")}";
                 break;
             }
-            case CustomGameMode.SoloKombat:
+            case CustomGameMode.SoloPVP:
             {
                 PlayerControl lpc = PlayerControl.LocalPlayer;
 
@@ -1034,7 +1035,7 @@ internal static class TaskPanelBehaviourPatch
                 finalText += $"\r\n{GetString("PVP.RCO")}: {SoloPVP.PlayerHPReco[lpc.PlayerId]:N1}";
                 finalText += "\r\n";
 
-                finalText += Main.PlayerStates.Keys.OrderBy(SoloPVP.GetRankFromScore).Aggregate("<size=80%>", (s, x) => $"{s}\r\n{SoloPVP.GetRankFromScore(x)}. {x.ColoredPlayerName()} - {string.Format(GetString("KillCount").TrimStart(' '), SoloPVP.KBScore.GetValueOrDefault(x, 0))}");
+                finalText += Main.PlayerStates.Keys.OrderBy(SoloPVP.GetRankFromScore).Aggregate("<size=80%>", (s, x) => $"{s}\r\n{SoloPVP.GetRankFromScore(x)}. {x.ColoredPlayerName()} - {string.Format(GetString("KillCount").TrimStart(' '), SoloPVP.PlayerScore.GetValueOrDefault(x, 0))}");
 
                 finalText += "</size>";
                 break;
@@ -1046,7 +1047,7 @@ internal static class TaskPanelBehaviourPatch
                 break;
             }
 
-            case CustomGameMode.MoveAndStop:
+            case CustomGameMode.StopAndGo:
             {
                 Dictionary<byte, string> SummaryText3 = [];
 
@@ -1060,7 +1061,7 @@ internal static class TaskPanelBehaviourPatch
                 }
 
                 List<(int, byte)> list3 = [];
-                foreach (byte id in Main.PlayerStates.Keys) list3.Add((MoveAndStop.GetRankFromScore(id), id));
+                foreach (byte id in Main.PlayerStates.Keys) list3.Add((StopAndGo.GetRankFromScore(id), id));
 
                 list3.Sort();
                 list3 = [.. list3.OrderBy(x => !Utils.GetPlayerById(x.Item2).IsAlive())];
@@ -1167,10 +1168,10 @@ internal static class TaskPanelBehaviourPatch
     {
         if (__instance.gameObject.name != "RolePanel")
         {
-            if (Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.MoveAndStop or CustomGameMode.HideAndSeek or CustomGameMode.Speedrun)
+            if (Utils.IsTaskingGameMode())
             {
                 var tabText = __instance.tab.transform.FindChild("TabText_TMP").GetComponent<TextMeshPro>();
-                bool fakeTasks = Options.CurrentGameMode == CustomGameMode.Standard && !Utils.HasTasks(PlayerControl.LocalPlayer.Data, forRecompute: false);
+                bool fakeTasks = Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.HideAndSeek && !Utils.HasTasks(PlayerControl.LocalPlayer.Data, forRecompute: false);
                 string sideText = TranslationController.Instance.GetString(fakeTasks ? StringNames.FakeTasks : StringNames.Tasks);
                 if (fakeTasks) sideText = Utils.ColorString(Utils.GetRoleColor(CustomRoles.ImpostorEHR), sideText.TrimEnd(':'));
                 tabText.SetText($"{sideText}{Utils.GetTaskCount(PlayerControl.LocalPlayer.PlayerId, Utils.IsActive(SystemTypes.Comms))}");
@@ -1239,7 +1240,7 @@ internal static class TaskPanelBehaviourPatch
         NetworkedPlayerInfo data = PlayerControl.LocalPlayer.Data;
         if (data && data.Role) taskList = taskList.Replace($"\n{data.Role.NiceName} {TranslationController.Instance.GetString(StringNames.RoleHint)}\n{data.Role.BlurbMed}", string.Empty);
 
-        if (Options.CurrentGameMode is not (CustomGameMode.Standard or CustomGameMode.MoveAndStop or CustomGameMode.HideAndSeek or CustomGameMode.Speedrun))
+        if (!Utils.IsTaskingGameMode())
             taskList = GetString("None");
 
         __instance.taskText.text = taskList;
@@ -1255,10 +1256,8 @@ internal static class DialogueBoxShowPatch
     public static bool Prefix(DialogueBox __instance, [HarmonyArgument(0)] string dialogue)
     {
         __instance.target.text = dialogue;
-
         if (Minigame.Instance) Minigame.Instance.Close();
         if (Minigame.Instance) Minigame.Instance.Close();
-
         __instance.gameObject.SetActive(true);
         return false;
     }

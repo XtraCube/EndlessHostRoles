@@ -18,17 +18,14 @@ public class Judge : RoleBase
     private static OptionItem TrialLimitPerMeeting;
     private static OptionItem TrialLimitPerGame;
     private static OptionItem AbilityUseLimit;
-
-    private static OptionItem TryHideMsg;
     private static OptionItem CanTrialMadmate;
-
     private static OptionItem CanTrialConverted;
-
     private static OptionItem CanTrialCrewKilling;
     private static OptionItem CanTrialNeutralB;
-    private static OptionItem CanTrialNeutralK;
     private static OptionItem CanTrialNeutralE;
+    private static OptionItem CanTrialNeutralK;
     private static OptionItem CanTrialCoven;
+    private static OptionItem TryHideMsg;
     public static OptionItem JudgeAbilityUseGainWithEachTaskCompleted;
     public static OptionItem AbilityChargesWhenFinishedTasks;
 
@@ -170,7 +167,7 @@ public class Judge : RoleBase
 
                         judgeSuicide = true;
                     }
-                    else if (pc.Is(CustomRoles.Madmate) || pc.Is(CustomRoles.Charmed) || pc.Is(CustomRoles.Recruit) || pc.Is(CustomRoles.Contagious) || target.Is(CustomRoles.Rascal) || target.Is(CustomRoles.Madmate) && CanTrialMadmate.GetBool() || target.IsConverted() && CanTrialConverted.GetBool() || target.IsNeutralKiller() && CanTrialNeutralK.GetBool())
+                    else if (pc.Is(CustomRoles.Madmate) || pc.Is(CustomRoles.Charmed) || pc.Is(CustomRoles.Contagious) || target.Is(CustomRoles.Rascal) || target.Is(CustomRoles.Madmate) && CanTrialMadmate.GetBool() || target.IsConverted() && CanTrialConverted.GetBool() || target.IsNeutralKiller() && CanTrialNeutralK.GetBool())
                         judgeSuicide = false;
                     else if (target.Is(CustomRoles.Pestilence) || target.Is(CustomRoles.Trickster))
                         judgeSuicide = true;
@@ -290,7 +287,7 @@ public class Judge : RoleBase
     {
         Logger.Msg($"Click: ID {playerId}", "Judge UI");
         PlayerControl pc = Utils.GetPlayerById(playerId);
-        if (pc == null || !pc.IsAlive() || !GameStates.IsVoting) return;
+        if (pc == null || !pc.IsAlive() || !GameStates.IsVoting || Starspawn.IsDayBreak) return;
 
         if (AmongUsClient.Instance.AmHost)
             TrialMsg(PlayerControl.LocalPlayer, $"/tl {playerId}", true);
@@ -327,10 +324,15 @@ public class Judge : RoleBase
         }
     }
 
-    public override void ManipulateGameEndCheckCrew(out bool keepGameGoing, out int countsAs)
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
     {
+        if (playerState.IsDead)
+        {
+            base.ManipulateGameEndCheckCrew(playerState, out keepGameGoing, out countsAs);
+            return;
+        }
+
         keepGameGoing = true;
         countsAs = 1;
     }
-
 }

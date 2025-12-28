@@ -686,9 +686,8 @@ public static class TheMindGame
             {
                 Group group = Groups[pc.PlayerId];
                 SystemTypes groupRoom = GroupRooms[group];
-                PlainShipRoom room = pc.GetPlainShipRoom();
 
-                if (room == null || room.RoomId != groupRoom)
+                if (!pc.IsInRoom(groupRoom))
                     pc.TP(RandomSpawn.SpawnMap.GetSpawnMap().Positions[groupRoom]);
             }
 
@@ -784,7 +783,7 @@ public static class TheMindGame
                             byte id = FindTargetIdFromText();
                             if (id == byte.MaxValue) break;
 
-                            if (!pc.IsLocalPlayer()) ChatManager.SendPreviousMessagesToAll();
+                            if (!pc.AmOwner) ChatManager.SendPreviousMessagesToAll();
 
                             if (id == WinningBriefcaseHolderId)
                             {

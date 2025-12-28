@@ -181,7 +181,7 @@ public static class MushroomMixupSabotageSystemPatch
             LateTask.New(() =>
             {
                 // After MushroomMixup sabotage, shapeshift cooldown sets to 0
-                Main.AllAlivePlayerControls.DoIf(x => x.GetRoleTypes() != RoleTypes.Engineer, x => x.RpcResetAbilityCooldown());
+                Main.AllAlivePlayerControls.DoIf(x => x.GetRoleTypes() == RoleTypes.Shapeshifter, x => x.RpcResetAbilityCooldown());
 
                 ReportDeadBodyPatch.CanReport.SetAllValues(true);
             }, 1.2f, "Reset Ability Cooldown Arter Mushroom Mixup");
@@ -372,7 +372,7 @@ public static class SabotageSystemTypeRepairDamagePatch
     public static bool Prefix(SabotageSystemType __instance, [HarmonyArgument(0)] PlayerControl player, [HarmonyArgument(1)] MessageReader msgReader)
     {
         Instance = __instance;
-        if (Options.CurrentGameMode != CustomGameMode.Standard || __instance.Timer > 0f) return false;
+        if (Options.CurrentGameMode is not (CustomGameMode.Standard or CustomGameMode.Snowdown) || __instance.Timer > 0f) return false;
 
         SystemTypes systemTypes;
         {
@@ -446,6 +446,10 @@ public static class SabotageSystemTypeRepairDamagePatch
             }
         }
 
+        if (Stasis.IsTimeFrozen) return false;
+
+        if (Pelican.IsEaten(player.PlayerId)) return false;
+
         if (__instance != null && systemTypes == SystemTypes.Electrical && Main.PlayerStates.Values.FindFirst(x => !x.IsDead && x.MainRole == CustomRoles.Battery && x.Player != null && x.Player.GetAbilityUseLimit() >= 1f, out var batteryState))
         {
             batteryState.Player.RpcRemoveAbilityUse();
@@ -457,7 +461,7 @@ public static class SabotageSystemTypeRepairDamagePatch
 
         if (SecurityGuard.BlockSabo.Count > 0) return false;
 
-        if (Doorjammer.BlockSabotagesFromJammedRooms.GetBool())
+        if (Doorjammer.BlockSabotagesFromJammedRooms.GetBool() && Doorjammer.JammedRooms.Count > 0)
         {
             var room = player.GetPlainShipRoom();
             
@@ -488,7 +492,7 @@ public static class SabotageSystemTypeRepairDamagePatch
             CustomRoles.Jackal when Jackal.CanSabotage.GetBool() => true,
             CustomRoles.Sidekick when Jackal.CanSabotageSK.GetBool() => true,
             CustomRoles.Traitor when Traitor.CanSabotage.GetBool() => true,
-            CustomRoles.Parasite or CustomRoles.Refugee when player.IsAlive() => true,
+            CustomRoles.Parasite or CustomRoles.Renegade when player.IsAlive() => true,
             _ => Main.PlayerStates[player.PlayerId].Role.CanUseSabotage(player) && Main.PlayerStates[player.PlayerId].Role.OnSabotage(player)
         };
 
@@ -498,10 +502,28 @@ public static class SabotageSystemTypeRepairDamagePatch
             allow = false;
         }
 
-        if (allow && QuizMaster.On) QuizMaster.Data.NumSabotages++;
+        if (allow)
+        {
+            if (QuizMaster.On) QuizMaster.Data.NumSabotages++;
 
-        if (allow && Main.CurrentMap == MapNames.Skeld)
-            LateTask.New(DoorsReset.OpenAllDoors, 1f, "Opening All Doors On Sabotage (Skeld)");
+            if (Main.CurrentMap == MapNames.Skeld)
+                LateTask.New(DoorsReset.OpenAllDoors, 1f, "Opening All Doors On Sabotage (Skeld)");
+
+            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            {
+                if (pc.Is(CustomRoles.Sensor) && pc.GetAbilityUseLimit() >= 1f)
+                {
+                    pc.RpcRemoveAbilityUse();
+                    TargetArrow.Add(pc.PlayerId, player.PlayerId);
+                    Utils.NotifyRoles(SpecifySeer: pc, SpecifyTarget: pc);
+                    LateTask.New(() =>
+                    {
+                        TargetArrow.Remove(pc.PlayerId, player.PlayerId);
+                        Utils.NotifyRoles(SpecifySeer: pc, SpecifyTarget: pc);
+                    }, Sensor.ArrowDuration.GetInt(), "Sensor Arrow");
+                }
+            }
+        }
 
         return allow;
     }

@@ -6,6 +6,7 @@ using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR.AddOns.Common;
 using EHR.Modules;
 using EHR.Neutral;
+using EHR.Patches;
 using HarmonyLib;
 using Hazel;
 using Il2CppSystem.Collections.Generic;
@@ -17,7 +18,7 @@ namespace EHR;
 // Patch for non-host modded clients to ensure that the intro cutscene is shown correctly
 // and GameStates.InGame is set to true
 #if ANDROID
-[HarmonyPatch(typeof(IntroCutscene), nameof(IntroCutscene))]
+[HarmonyPatch(typeof(IntroCutscene), nameof(IntroCutscene.ShowRole))]
 static class ShowRoleMoveNextPatchAndroid
 {
     public static void Postfix(IntroCutscene __instance)
@@ -165,11 +166,11 @@ internal static class SetUpRoleTextPatch
 
         switch (Options.CurrentGameMode)
         {
-            case CustomGameMode.SoloKombat:
+            case CustomGameMode.SoloPVP:
             {
                 Color color = ColorUtility.TryParseHtmlString("#f55252", out Color c) ? c : new(255, 255, 255, 255);
                 __instance.YouAreText.transform.gameObject.SetActive(false);
-                __instance.RoleText.text = GetString("SoloKombat");
+                __instance.RoleText.text = GetString("SoloPVP");
                 __instance.RoleText.color = Utils.GetRoleColor(lp.GetCustomRole());
                 __instance.RoleBlurbText.color = color;
                 __instance.RoleBlurbText.text = lp.GetRoleInfo();
@@ -185,11 +186,11 @@ internal static class SetUpRoleTextPatch
                 __instance.RoleBlurbText.text = GetString("KillerInfo");
                 break;
             }
-            case CustomGameMode.MoveAndStop:
+            case CustomGameMode.StopAndGo:
             {
                 Color color = ColorUtility.TryParseHtmlString("#00ffa5", out Color c) ? c : new(255, 255, 255, 255);
                 __instance.YouAreText.transform.gameObject.SetActive(false);
-                __instance.RoleText.text = GetString("MoveAndStop");
+                __instance.RoleText.text = GetString("StopAndGo");
                 __instance.RoleText.color = color;
                 __instance.RoleBlurbText.color = color;
                 __instance.RoleBlurbText.text = GetString("TaskerInfo");
@@ -305,6 +306,16 @@ internal static class SetUpRoleTextPatch
                 __instance.RoleBlurbText.text = GetString("MinglePlayerInfo");
                 break;
             }
+            case CustomGameMode.Snowdown:
+            {
+                Color color = Utils.GetRoleColor(CustomRoles.SnowdownPlayer);
+                __instance.YouAreText.transform.gameObject.SetActive(false);
+                __instance.RoleText.text = GetString("SnowdownPlayer");
+                __instance.RoleText.color = color;
+                __instance.RoleBlurbText.color = color;
+                __instance.RoleBlurbText.text = GetString("SnowdownPlayerInfo");
+                break;
+            }
             default:
             {
                 CustomRoles role = lp.GetCustomRole();
@@ -339,6 +350,8 @@ internal static class SetUpRoleTextPatch
                 lp.SetName(Main.AllPlayerNames[lp.PlayerId]);
             }, 1f, "Reset Name For Modded Client");
         }
+        
+        ShowHostMeetingPatch.ShowRole_Postfix();
     }
 
     private static IEnumerator LogGameInfo()
@@ -606,7 +619,7 @@ internal static class BeginCrewmatePatch
                         }
                     }
 
-                    if (Main.LoversPlayers.Count == 2 && Main.LoversPlayers.Exists(x => x.IsLocalPlayer()))
+                    if (Main.LoversPlayers.Count == 2 && Main.LoversPlayers.Exists(x => x.AmOwner))
                     {
                         __instance.TeamTitle.color = __instance.BackgroundBar.material.color = Utils.GetRoleColor(CustomRoles.Lovers);
                         byte otherLoverId = Main.LoversPlayers.First(x => x.PlayerId != PlayerControl.LocalPlayer.PlayerId).PlayerId;
@@ -633,33 +646,40 @@ internal static class BeginCrewmatePatch
 
                 CustomRoles.Dictator or
                     CustomRoles.Mayor or
-                    CustomRoles.NiceSwapper
+                    CustomRoles.Swapper
                     => HudManager.Instance.Chat.messageSound,
 
                 CustomRoles.AntiAdminer or
-                    CustomRoles.Monitor
+                    CustomRoles.Sensor or
+                    CustomRoles.Telecommunication
                     => HudManager.Instance.Chat.warningSound,
 
-                CustomRoles.GM or
-                    CustomRoles.Snitch or
+                CustomRoles.Snitch or
                     CustomRoles.Speedrunner or
                     CustomRoles.Workaholic
                     => HudManager.Instance.TaskCompleteSound,
 
-                CustomRoles.Helper or
+                CustomRoles.Bestower or
+                    CustomRoles.Helper or
                     CustomRoles.TaskManager
                     => HudManager.Instance.TaskUpdateSound,
 
-                CustomRoles.Inhibitor or
+                CustomRoles.ClockBlocker or
+                    CustomRoles.TimeThief
+                    => HudManager.Instance.LobbyTimerExtensionUI.lobbyTimerPopUpSound,
+
+                CustomRoles.Doorjammer or
+                    CustomRoles.Inhibitor or
                     CustomRoles.Mechanic or
+                    CustomRoles.Provocateur or
                     CustomRoles.Saboteur or
                     CustomRoles.SecurityGuard or
-                    CustomRoles.Provocateur
+                    CustomRoles.Technician
                     => ShipStatus.Instance.SabotageSound,
 
                 CustomRoles.KillingMachine or
                     CustomRoles.NiceGuesser or
-                    CustomRoles.SwordsMan or
+                    CustomRoles.Vigilante or
                     CustomRoles.Veteran
                     => PlayerControl.LocalPlayer.KillSfx,
 
@@ -675,12 +695,13 @@ internal static class BeginCrewmatePatch
 
                 CustomRoles.MeetingManager or
                     CustomRoles.NiceEraser or
-                    CustomRoles.ParityCop or
+                    CustomRoles.Inspector or
                     CustomRoles.President or
                     CustomRoles.TimeManager
                     => MeetingHud.Instance.VoteLockinSound,
 
-                CustomRoles.Demolitionist or
+                CustomRoles.Altruist or
+                    CustomRoles.Demolitionist or
                     CustomRoles.Disperser or
                     CustomRoles.Grenadier or
                     CustomRoles.Miner or
@@ -702,13 +723,14 @@ internal static class BeginCrewmatePatch
                     => GetIntroSound(RoleTypes.Crewmate),
 
                 CustomRoles.Curser or
-                    CustomRoles.Nightmare
+                    CustomRoles.Nightmare or
+                    CustomRoles.Thief
                     => GetIntroSound(RoleTypes.Impostor),
 
                 CustomRoles.Astral or
                     CustomRoles.Beacon or
-                    CustomRoles.DovesOfNeace or
-                    CustomRoles.Mediumshiper or
+                    CustomRoles.Pacifist or
+                    CustomRoles.Medium or
                     CustomRoles.Observer or
                     CustomRoles.Spiritcaller or
                     CustomRoles.Spiritualist or
@@ -717,6 +739,9 @@ internal static class BeginCrewmatePatch
 
                 CustomRoles.Engineer or
                     CustomRoles.EngineerEHR or
+                    CustomRoles.Adventurer or
+                    CustomRoles.Alchemist or
+                    CustomRoles.CameraMan or
                     CustomRoles.Clerk or
                     CustomRoles.Dealer or
                     CustomRoles.Detour or
@@ -735,9 +760,12 @@ internal static class BeginCrewmatePatch
 
                 CustomRoles.Tracker
                     or CustomRoles.TrackerEHR
-                    or CustomRoles.Coroner
                     or CustomRoles.Captain
+                    or CustomRoles.Catcher
+                    or CustomRoles.Coroner
+                    or CustomRoles.Druid
                     or CustomRoles.EvilTracker
+                    or CustomRoles.Hacker
                     or CustomRoles.Scout
                     or CustomRoles.Lookout
                     => GetIntroSound(RoleTypes.Tracker),
@@ -748,6 +776,7 @@ internal static class BeginCrewmatePatch
                     or CustomRoles.Demon
                     or CustomRoles.Pelican
                     or CustomRoles.Scavenger
+                    or CustomRoles.Spider
                     or CustomRoles.Vampire
                     or CustomRoles.Vulture
                     or CustomRoles.Wasp
@@ -756,9 +785,9 @@ internal static class BeginCrewmatePatch
                 CustomRoles.Detective
                     or CustomRoles.DetectiveEHR
                     or CustomRoles.Analyst
-                    or CustomRoles.Divinator
+                    or CustomRoles.FortuneTeller
                     or CustomRoles.Enigma
-                    or CustomRoles.Farseer
+                    or CustomRoles.Investigator
                     or CustomRoles.Forensic
                     or CustomRoles.Insight
                     or CustomRoles.Inquisitor
@@ -766,6 +795,7 @@ internal static class BeginCrewmatePatch
                     or CustomRoles.Leery
                     or CustomRoles.Mortician
                     or CustomRoles.Oracle
+                     or CustomRoles.Witness
                     => GetIntroSound(RoleTypes.Detective),
 
                 CustomRoles.Noisemaker
@@ -775,13 +805,16 @@ internal static class BeginCrewmatePatch
                     or CustomRoles.Specter
                     or CustomRoles.SuperStar
                     or CustomRoles.Sunnyboy
+                    or CustomRoles.Vacuum
                     => GetIntroSound(RoleTypes.Noisemaker),
 
                 CustomRoles.Phantom
                     or CustomRoles.PhantomEHR
                     or CustomRoles.Ambusher
+                    or CustomRoles.Exclusionary
                     or CustomRoles.Stalker
-                    or CustomRoles.ImperiusCurse
+                    or CustomRoles.SoulCatcher
+                    or CustomRoles.SoulCollector
                     or CustomRoles.SoulHunter
                     => GetIntroSound(RoleTypes.Phantom),
 
@@ -789,6 +822,7 @@ internal static class BeginCrewmatePatch
                     or CustomRoles.ShapeshifterEHR
                     or CustomRoles.Gambler
                     or CustomRoles.Mastermind
+                    or CustomRoles.Morphling
                     or CustomRoles.Randomizer
                     or CustomRoles.Shiftguard
                     or CustomRoles.Wizard
@@ -806,8 +840,8 @@ internal static class BeginCrewmatePatch
         if (PlayerControl.LocalPlayer.Is(CustomRoles.GM))
         {
             __instance.TeamTitle.text = Utils.GetRoleName(role);
-            __instance.TeamTitle.color = Utils.GetRoleColor(role);
-            __instance.BackgroundBar.material.color = Utils.GetRoleColor(role);
+            __instance.TeamTitle.color = __instance.BackgroundBar.material.color = Utils.GetRoleColor(role);
+            PlayerControl.LocalPlayer.Data.Role.IntroSound = HudManager.Instance.TaskCompleteSound;
             __instance.ImpostorText.gameObject.SetActive(true);
             __instance.ImpostorText.text = GetString("SubText.GM");
         }
@@ -844,15 +878,13 @@ internal static class BeginCrewmatePatch
 
         switch (Options.CurrentGameMode)
         {
-            case CustomGameMode.SoloKombat:
+            case CustomGameMode.SoloPVP:
             {
-                Color color = ColorUtility.TryParseHtmlString("#f55252", out Color c) ? c : new(255, 255, 255, 255);
-                __instance.TeamTitle.text = Utils.GetRoleName(role);
-                __instance.TeamTitle.color = Utils.GetRoleColor(role);
-                __instance.ImpostorText.gameObject.SetActive(true);
-                __instance.ImpostorText.text = GetString("ModeSoloKombat");
-                __instance.BackgroundBar.material.color = color;
+                __instance.TeamTitle.text = GetString("SoloPVP_Player");
+                __instance.TeamTitle.color = __instance.BackgroundBar.material.color = new Color32(245, 82, 82, byte.MaxValue);
                 PlayerControl.LocalPlayer.Data.Role.IntroSound = DestroyableSingleton<HnSImpostorScreamSfx>.Instance.HnSOtherImpostorTransformSfx;
+                __instance.ImpostorText.gameObject.SetActive(true);
+                __instance.ImpostorText.text = GetString("SoloPVP_PlayerInfo");
                 break;
             }
             case CustomGameMode.FFA:
@@ -865,9 +897,9 @@ internal static class BeginCrewmatePatch
                 __instance.ImpostorText.text = GetString("KillerInfo");
                 break;
             }
-            case CustomGameMode.MoveAndStop:
+            case CustomGameMode.StopAndGo:
             {
-                __instance.TeamTitle.text = GetString("MoveAndStop");
+                __instance.TeamTitle.text = GetString("StopAndGo");
                 __instance.TeamTitle.color = __instance.BackgroundBar.material.color = new Color32(0, 255, 165, byte.MaxValue);
                 PlayerControl.LocalPlayer.Data.Role.IntroSound = GetIntroSound(RoleTypes.Shapeshifter);
                 __instance.ImpostorText.gameObject.SetActive(true);
@@ -982,6 +1014,15 @@ internal static class BeginCrewmatePatch
                 __instance.ImpostorText.text = GetString("MinglePlayerInfo");
                 break;
             }
+            case CustomGameMode.Snowdown:
+            {
+                __instance.TeamTitle.text = GetString("SnowdownPlayer");
+                __instance.TeamTitle.color = __instance.BackgroundBar.material.color = Utils.GetRoleColor(CustomRoles.SnowdownPlayer);
+                PlayerControl.LocalPlayer.Data.Role.IntroSound = GetIntroSound(RoleTypes.Detective);
+                __instance.ImpostorText.gameObject.SetActive(true);
+                __instance.ImpostorText.text = GetString("SnowdownPlayerInfo");
+                break;
+            }
         }
 
         return;
@@ -1014,7 +1055,7 @@ internal static class BeginImpostorPatch
         {
             foreach (var pc in Main.AllPlayerControls)
             {
-                if (pc.IsMadmate() && !pc.IsLocalPlayer())
+                if (pc.IsMadmate() && !pc.AmOwner)
                     yourTeam.Add(pc);
             }
         }
@@ -1028,7 +1069,7 @@ internal static class BeginImpostorPatch
             {
                 foreach (var pc in Main.AllPlayerControls)
                 {
-                    if (pc.IsImpostor() && !pc.IsLocalPlayer())
+                    if (pc.IsImpostor() && !pc.AmOwner)
                         yourTeam.Add(pc);
                 }
             }
@@ -1037,7 +1078,7 @@ internal static class BeginImpostorPatch
             {
                 foreach (var pc in Main.AllPlayerControls)
                 {
-                    if (pc.IsMadmate() && !pc.IsLocalPlayer())
+                    if (pc.IsMadmate() && !pc.AmOwner)
                         yourTeam.Add(pc);
                 }
             }
@@ -1084,36 +1125,32 @@ internal static class BeginImpostorPatch
 internal static class IntroCutsceneDestroyPatch
 {
     public static bool PreventKill;
+    public static long IntroDestroyTS;
+    
     public static void Postfix( /*IntroCutscene __instance*/)
     {
         if (!GameStates.IsInGame) return;
 
+        IntroDestroyTS = Utils.TimeStamp;
+
         Main.IntroDestroyed = true;
         PreventKill = true;
-        LateTask.New(() => PreventKill = false, 5f, "PreventKillReset");
+        LateTask.New(() => PreventKill = false, 10f, "PreventKillReset");
 
         // Set roleAssigned as false for overriding roles for modded players
         // for vanilla clients we use "Data.Disconnected"
         Main.AllPlayerControls.Do(x => x.roleAssigned = false);
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
-
-        Utils.NumSnapToCallsThisRound = aapc.Length;
-
         if (AmongUsClient.Instance.AmHost)
         {
+            Main.AllPlayerControls.DoIf(x => x.Is(CustomRoles.NotAssigned) && ((x.AmOwner && Main.GM.Value) || ChatCommands.Spectators.Contains(x.PlayerId)), x => x.RpcSetCustomRole(CustomRoles.GM));
+            
+            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+
+            Utils.NumSnapToCallsThisRound = aapc.Length;
+            
             if (Main.NormalOptions.MapId != 4)
             {
-                foreach (PlayerControl pc in aapc)
-                {
-                    pc.RpcResetAbilityCooldown();
-
-                    if (pc.GetCustomRole().UsesPetInsteadOfKill())
-                        pc.AddAbilityCD(10);
-                    else
-                        pc.AddAbilityCD(false);
-                }
-
                 if (Options.CurrentGameMode == CustomGameMode.Standard)
                 {
                     if (Options.FixFirstKillCooldown.GetBool())
@@ -1155,8 +1192,17 @@ internal static class IntroCutsceneDestroyPatch
 
                 LateTask.New(() =>
                 {
-                    lp.RpcResetAbilityCooldown();
                     lp.SetKillCooldown(10f);
+                    
+                    foreach (PlayerControl pc in aapc)
+                    {
+                        pc.RpcResetAbilityCooldown();
+
+                        if (pc.GetCustomRole().UsesPetInsteadOfKill())
+                            pc.AddAbilityCD(10);
+                        else
+                            pc.AddAbilityCD(false);
+                    }
                 }, 0.8f, log: false);
 
                 StartGameHostPatch.RpcSetRoleReplacer.SetActualSelfRolesAfterOverride();
@@ -1174,7 +1220,7 @@ internal static class IntroCutsceneDestroyPatch
                 }
             }, 0.1f, log: false);
 
-            if (Options.UsePets.GetBool() && Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.HideAndSeek or CustomGameMode.CaptureTheFlag or CustomGameMode.BedWars)
+            if (Options.UsePets.GetBool() && Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.HideAndSeek or CustomGameMode.CaptureTheFlag or CustomGameMode.BedWars or CustomGameMode.Snowdown)
             {
                 void GrantPetForEveryone()
                 {
@@ -1276,8 +1322,8 @@ internal static class IntroCutsceneDestroyPatch
                 case CustomGameMode.Quiz:
                     Main.Instance.StartCoroutine(Quiz.OnGameStart());
                     break;
-                case CustomGameMode.MoveAndStop:
-                    MoveAndStop.OnGameStart();
+                case CustomGameMode.StopAndGo:
+                    StopAndGo.OnGameStart();
                     break;
                 case CustomGameMode.TheMindGame:
                     Main.Instance.StartCoroutine(TheMindGame.OnGameStart());
@@ -1297,6 +1343,9 @@ internal static class IntroCutsceneDestroyPatch
                 case CustomGameMode.Mingle:
                     Main.Instance.StartCoroutine(Mingle.GameStart());
                     break;
+                case CustomGameMode.Snowdown:
+                    Snowdown.GameStart();
+                    break;
             }
 
             Utils.CheckAndSetVentInteractions();
@@ -1310,6 +1359,9 @@ internal static class IntroCutsceneDestroyPatch
         {
             foreach (PlayerControl player in Main.AllPlayerControls)
                 Main.PlayerStates[player.PlayerId].InitTask(player);
+            
+            if (Options.CurrentGameMode == CustomGameMode.Snowdown)
+                Snowdown.GameStart();
         }
 
         Logger.Info("OnDestroy", "IntroCutscene");
@@ -1319,15 +1371,7 @@ internal static class IntroCutsceneDestroyPatch
             Main.GameTimer = 0f;
             
             if (AmongUsClient.Instance.AmHost && SubmergedCompatibility.IsSubmerged())
-            {
-                foreach (PlayerControl pc in Main.AllAlivePlayerControls)
-                {
-                    PlainShipRoom room = pc.GetPlainShipRoom();
-
-                    if (room == null || room.RoomId is not ((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerCentral or (SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperCentral))
-                        pc.TP(new Vector2(3.32f, -26.57f));
-                }
-            }
+                Main.AllAlivePlayerControls.DoIf(x => !x.IsInRoom((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerCentral) && !x.IsInRoom((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperCentral), x => x.TP(new Vector2(3.32f, -26.57f)));
             
             if (!HudManager.InstanceExists) return;
 
@@ -1340,12 +1384,13 @@ internal static class IntroCutsceneDestroyPatch
                 hud.ImpostorVentButton.graphic.sprite,
                 hud.SabotageButton.graphic.sprite,
                 hud.PetButton.graphic.sprite,
-                hud.ReportButton.graphic.sprite
+                hud.ReportButton.graphic.sprite,
+                hud.SecondaryAbilityButton.graphic.sprite
             ];
             
             hud.SetRolePanelOpen(true);
             
-            if (Options.CurrentGameMode == CustomGameMode.Standard && !Utils.HasTasks(PlayerControl.LocalPlayer.Data, forRecompute: false))
+            if (Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.HideAndSeek && !Utils.HasTasks(PlayerControl.LocalPlayer.Data, forRecompute: false))
                 hud.TaskPanel.open = false;
             
             if (!AmongUsClient.Instance.AmHost || !Lovers.PrivateChat.GetBool()) return;
@@ -1359,4 +1404,5 @@ internal static class IntroCutsceneDestroyPatch
                 PlayerControl.LocalPlayer.NetTransform.SnapTo(new(15.5f, 0.0f), (ushort)(PlayerControl.LocalPlayer.NetTransform.lastSequenceId + 8));
         }, 4f, "Airship Spawn FailSafe");
     }
+
 }

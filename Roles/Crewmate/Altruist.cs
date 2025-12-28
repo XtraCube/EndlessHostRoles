@@ -68,7 +68,12 @@ public class Altruist : RoleBase
 
     public override bool CheckReportDeadBody(PlayerControl reporter, NetworkedPlayerInfo target, PlayerControl killer)
     {
-        if (!RevivingMode || target.Disconnected || target.Object.IsAlive() || target.Object.Is(CustomRoles.Unreportable)) return true;
+        if (!RevivingMode || target.Disconnected || target.Object.IsAlive() || target.Object.Is(CustomRoles.Disregarded)) return true;
+
+        RevivingMode = false;
+        ReviveTarget = target.PlayerId;
+        ReviveStartTS = Utils.TimeStamp;
+        ReviveTargetPos = reporter.Pos();
 
         PlayerState state = Main.PlayerStates[reporter.PlayerId];
         state.deathReason = PlayerState.DeathReason.Sacrifice;
@@ -76,11 +81,6 @@ public class Altruist : RoleBase
         state.SetDead();
         reporter.RpcExileV2();
         Utils.AfterPlayerDeathTasks(reporter);
-
-        RevivingMode = false;
-        ReviveTarget = target.PlayerId;
-        ReviveStartTS = Utils.TimeStamp;
-        ReviveTargetPos = reporter.Pos();
 
         return false;
     }
@@ -116,7 +116,7 @@ public class Altruist : RoleBase
         ReviveStartTS = 0;
         ReviveTargetPos = Vector2.zero;
 
-        if (pc.IsLocalPlayer() && rtg != null && (rtg.IsImpostor() || rtg.IsNeutralKiller() || rtg.IsConverted()))
+        if (pc.AmOwner && rtg != null && (rtg.IsImpostor() || rtg.IsNeutralKiller() || rtg.IsConverted()))
             Achievements.Type.IWishIReported.Complete();
     }
 
@@ -157,7 +157,7 @@ public class Altruist : RoleBase
 
     public override string GetSuffix(PlayerControl seer, PlayerControl target, bool hud = false, bool meeting = false)
     {
-        if (seer.PlayerId != target.PlayerId || seer.PlayerId != AlturistId || meeting || hud) return string.Empty;
+        if (seer.PlayerId != target.PlayerId || seer.PlayerId != AlturistId || (seer.IsModdedClient() && !hud) || meeting) return string.Empty;
         if (ReviveStartTS != 0) return string.Format(Translator.GetString("AltruistSuffixRevive"), ReviveTime.GetInt() - (Utils.TimeStamp - ReviveStartTS));
         return string.Format(Translator.GetString("AltruistSuffix"), Translator.GetString(RevivingMode ? "AltruistReviveMode" : "AltruistReportMode"));
     }
@@ -165,5 +165,11 @@ public class Altruist : RoleBase
     public override bool CanUseVent(PlayerControl pc, int ventId)
     {
         return !IsThisRole(pc) || pc.Is(CustomRoles.Nimble) || pc.GetClosestVent()?.Id == ventId;
+    }
+
+    public override void ManipulateGameEndCheckCrew(PlayerState playerState, out bool keepGameGoing, out int countsAs)
+    {
+        keepGameGoing = ReviveStartTS != 0;
+        countsAs = 1;
     }
 }

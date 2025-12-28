@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
+using EHR.Modules;
 using EHR.Patches;
 using Hazel;
 
@@ -14,7 +15,7 @@ public static class AntiBlackout
 
     // Optimally, there's 1 living impostor and at least 2 living crewmates in everyone's POV.
     // We force this to prevent black screens after meetings.
-    public static void SetOptimalRoleTypesToPreventBlackScreen()
+    public static void SetOptimalRoleTypes()
     {
         // If there are only 2 or fewer players in the game in total, there's nothing we can do.
         if (CustomWinnerHolder.WinnerTeam != CustomWinner.Default || PlayerControl.AllPlayerControls.Count <= 2) return;
@@ -49,14 +50,14 @@ public static class AntiBlackout
 
         dummyImp.RpcSetRoleGlobal(RoleTypes.Impostor);
         players.Without(dummyImp).Where(x => x.GetRoleMap().RoleType != RoleTypes.Detective).Do(x => x.RpcSetRoleGlobal(RoleTypes.Crewmate));
+        
+        Main.AllPlayerControls.DoIf(x => !x.IsAlive() && x.Data != null && x.Data.IsDead, x => x.RpcSetRoleGlobal(GhostRolesManager.AssignedGhostRoles.TryGetValue(x.PlayerId, out var ghostRole) ? ghostRole.Instance.RoleTypes : RoleTypes.CrewmateGhost));
     }
 
     // After the ejection screen, we revert the role types to their actual values.
     public static void RevertToActualRoleTypes()
     {
-        if (CustomWinnerHolder.WinnerTeam != CustomWinner.Default) return;
-
-        if (CachedRoleMap.Count == 0)
+        if (CachedRoleMap.Count == 0 || CustomWinnerHolder.WinnerTeam != CustomWinner.Default || GameStates.IsEnded)
         {
             SkipTasks = false;
             ExileControllerWrapUpPatch.AfterMeetingTasks();
@@ -89,7 +90,7 @@ public static class AntiBlackout
                 if (seer == null || target == null) continue;
 
                 if (target.IsAlive()) target.RpcSetRoleDesync(roleType, seer.OwnerId);
-                else target.RpcSetRoleDesync(target.HasGhostRole() ? RoleTypes.GuardianAngel : roleType is RoleTypes.Impostor or RoleTypes.Shapeshifter or RoleTypes.Phantom ? RoleTypes.ImpostorGhost : RoleTypes.CrewmateGhost, seer.OwnerId);
+                else target.RpcSetRoleDesync(GhostRolesManager.AssignedGhostRoles.TryGetValue(targetId, out var ghostRole) ? ghostRole.Instance.RoleTypes : seerId == targetId && !(target.Is(CustomRoleTypes.Impostor) && Options.DeadImpCantSabotage.GetBool()) && Main.PlayerStates.TryGetValue(targetId, out var state) && state.Role.CanUseSabotage(target) ? RoleTypes.ImpostorGhost : RoleTypes.CrewmateGhost, seer.OwnerId);
             }
             catch (Exception e) { Utils.ThrowException(e); }
         }
@@ -100,7 +101,6 @@ public static class AntiBlackout
 
         LateTask.New(() =>
         {
-            ExileControllerWrapUpPatch.Stopwatch.Stop();
             var elapsedSeconds = (int)ExileControllerWrapUpPatch.Stopwatch.Elapsed.TotalSeconds;
             
             foreach (PlayerControl pc in Main.AllPlayerControls)
@@ -110,7 +110,8 @@ public static class AntiBlackout
                     if (pc.IsAlive())
                     {
                         // Due to the role base change, we need to reset the cooldowns for abilities.
-                        pc.RpcResetAbilityCooldown();
+                        if (!Utils.ShouldNotApplyAbilityCooldownAfterMeeting(pc))
+                            pc.RpcResetAbilityCooldown();
 
                         if (Main.AllPlayerKillCooldown.TryGetValue(pc.PlayerId, out float kcd))
                         {
@@ -126,14 +127,13 @@ public static class AntiBlackout
                         pc.Exiled();
                         MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(pc.NetId, 4, SendOption.Reliable);
                         AmongUsClient.Instance.FinishRpcImmediately(writer);
-                        if (pc.HasDesyncRole()) pc.FixBlackScreen();
-                        if (pc.HasGhostRole()) pc.RpcResetAbilityCooldown();
+                        
+                        if (GhostRolesManager.AssignedGhostRoles.TryGetValue(pc.PlayerId, out var ghostRole) && ghostRole.Instance.RoleTypes == RoleTypes.GuardianAngel)
+                            pc.RpcResetAbilityCooldown();
                     }
                 }
                 catch (Exception e) { Utils.ThrowException(e); }
             }
-            
-            ExileControllerWrapUpPatch.Stopwatch.Reset();
 
             // Only execute AfterMeetingTasks after everything is reset.
             LateTask.New(() =>

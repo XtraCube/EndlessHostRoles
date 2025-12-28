@@ -8,6 +8,8 @@ public class CopyCat : RoleBase
 {
     private const int Id = 666420;
     public static List<CopyCat> Instances = [];
+    public static List<byte> PlayerIdList = [];
+    private static bool Resetting;
 
     private static OptionItem KillCooldown;
     private static OptionItem CanKill;
@@ -38,8 +40,7 @@ public class CopyCat : RoleBase
             .SetParent(CustomRoleSpawnChances[CustomRoles.CopyCat]);
         
         CopyCrewVarEvenIfDisabled = new BooleanOptionItem(Id + 15, "CopyCrewVarEvenIfDisabled", true, TabGroup.CrewmateRoles)
-            .SetParent(CopyCrewVar)
-            .SetParent(CustomRoleSpawnChances[CustomRoles.CopyCat]);
+            .SetParent(CopyCrewVar);
 
         MiscopyLimitOpt = new IntegerOptionItem(Id + 12, "CopyCatMiscopyLimit", new(0, 14, 1), 2, TabGroup.CrewmateRoles)
             .SetParent(CanKill)
@@ -53,13 +54,17 @@ public class CopyCat : RoleBase
 
     public override void Init()
     {
+        if (Resetting) return;
         Instances = [];
+        PlayerIdList = [];
         CurrentKillCooldown = AdjustedDefaultKillCooldown;
     }
 
     public override void Add(byte playerId)
     {
+        if (Resetting) return;
         Instances.Add(this);
+        PlayerIdList.Add(playerId);
         CopyCatPC = Utils.GetPlayerById(playerId);
         CurrentKillCooldown = KillCooldown.GetFloat();
         int limit = MiscopyLimitOpt.GetInt();
@@ -90,7 +95,11 @@ public class CopyCat : RoleBase
     public static void ResetRoles()
     {
         if (!ResetToCopyCatEachRound.GetBool()) return;
-        Instances.Do(x => x.ResetRole());
+        
+        Resetting = true;
+
+        try { Instances.Do(x => x.ResetRole()); }
+        finally { Resetting = false; }
     }
 
     public override bool OnCheckMurder(PlayerControl pc, PlayerControl tpc)
@@ -104,25 +113,25 @@ public class CopyCat : RoleBase
                 CustomRoles.Swooper or CustomRoles.Wraith => CustomRoles.Chameleon,
                 CustomRoles.Stealth or CustomRoles.Nonplus => CustomRoles.Grenadier,
                 CustomRoles.TimeThief => CustomRoles.TimeManager,
-                CustomRoles.Consigliere or CustomRoles.Ritualist or CustomRoles.PotionMaster => CustomRoles.Farseer,
-                CustomRoles.AntiAdminer => CustomRoles.Monitor,
+                CustomRoles.Consigliere or CustomRoles.Ritualist or CustomRoles.PotionMaster => CustomRoles.Investigator,
+                CustomRoles.AntiAdminer => new[] {CustomRoles.Sensor, CustomRoles.Telecommunication}.RandomElement(),
                 CustomRoles.CursedWolf or CustomRoles.Jinx or CustomRoles.Goddess => CustomRoles.Veteran,
                 CustomRoles.EvilTracker => new[] {CustomRoles.Scout, CustomRoles.TrackerEHR}.RandomElement(),
                 CustomRoles.Mercenary => CustomRoles.Addict,
                 CustomRoles.Miner => CustomRoles.Mole,
-                CustomRoles.Escapee or CustomRoles.Enderman => CustomRoles.Tunneler,
+                CustomRoles.Escapist or CustomRoles.Enderman => CustomRoles.Tunneler,
                 CustomRoles.Twister => CustomRoles.TimeMaster,
                 CustomRoles.Disperser => CustomRoles.Transporter,
-                CustomRoles.Eraser => CustomRoles.NiceEraser,
+                CustomRoles.EvilEraser => CustomRoles.NiceEraser,
                 CustomRoles.Visionary => CustomRoles.Oracle,
                 CustomRoles.Workaholic or CustomRoles.Pawn => CustomRoles.Snitch,
-                CustomRoles.Sunnyboy => new[] {CustomRoles.Doctor, CustomRoles.ScientistEHR}.RandomElement(),
+                CustomRoles.Sunnyboy or CustomRoles.Fabricator => new[] {CustomRoles.Doctor, CustomRoles.ScientistEHR}.RandomElement(),
                 CustomRoles.Vindicator or CustomRoles.Pickpocket => CustomRoles.Mayor,
                 CustomRoles.Councillor or CustomRoles.Magistrate => CustomRoles.Judge,
-                CustomRoles.EvilGuesser or CustomRoles.Doomsayer or CustomRoles.Augur => CustomRoles.NiceGuesser,
+                CustomRoles.EvilGuesser or CustomRoles.Doomsayer or CustomRoles.NecroGuesser or CustomRoles.Augur => CustomRoles.NiceGuesser,
                 CustomRoles.Vengeance => CustomRoles.Adrenaline,
                 CustomRoles.Occultist => CustomRoles.Altruist,
-                CustomRoles.Dealer => CustomRoles.Merchant,
+                CustomRoles.Dealer or CustomRoles.Catalyst => CustomRoles.Merchant,
                 CustomRoles.Romantic => CustomRoles.Aid,
                 CustomRoles.Chemist => CustomRoles.Alchemist,
                 CustomRoles.Bomber or CustomRoles.Nuker => CustomRoles.Tree,
@@ -132,22 +141,25 @@ public class CopyCat : RoleBase
                 CustomRoles.BloodKnight or CustomRoles.Wildling => CustomRoles.Safeguard,
                 CustomRoles.PlagueBearer => CustomRoles.Socialite,
                 CustomRoles.Demon => CustomRoles.Spy,
-                CustomRoles.Kidnapper => CustomRoles.Autocrat,
-                CustomRoles.Capitalism => CustomRoles.Helper,
+                CustomRoles.Undertaker or CustomRoles.Vortex => CustomRoles.Vacuum,
+                CustomRoles.Kidnapper => new[] {CustomRoles.Autocrat, CustomRoles.Carrier}.RandomElement(),
+                CustomRoles.Capitalist => CustomRoles.Helper,
                 CustomRoles.Technician or CustomRoles.Saboteur => CustomRoles.Mechanic,
+                CustomRoles.Inhibitor => new[] {CustomRoles.Doorjammer, CustomRoles.SecurityGuard}.RandomElement(),
                 CustomRoles.Magician or CustomRoles.Curser => CustomRoles.Wizard,
                 CustomRoles.Penguin => CustomRoles.Goose,
-                CustomRoles.Anonymous => CustomRoles.Paranoia,
-                CustomRoles.ImperiusCurse or CustomRoles.Swapster => CustomRoles.Transporter,
+                CustomRoles.Anonymous => CustomRoles.Paranoid,
+                CustomRoles.SoulCatcher or CustomRoles.Swapster => CustomRoles.Transporter,
                 CustomRoles.NoteKiller => CustomRoles.Decryptor,
-                CustomRoles.Gaslighter => new [] {CustomRoles.Medic, CustomRoles.Monarch}.RandomElement(),
+                CustomRoles.Gaslighter => new[] {CustomRoles.Medic, CustomRoles.Monarch}.RandomElement(),
                 CustomRoles.Timelord => CustomRoles.Deputy,
                 CustomRoles.Amnesiac => CustomRoles.Tracefinder,
                 CustomRoles.SerialKiller => CustomRoles.Sheriff,
-                CustomRoles.Maverick => CustomRoles.SwordsMan,
+                CustomRoles.Maverick => CustomRoles.Vigilante,
                 CustomRoles.Hookshot or CustomRoles.Ninja => new[] {CustomRoles.Tether, CustomRoles.Transmitter}.RandomElement(),
-                CustomRoles.Hypocrite or CustomRoles.Phantasm => CustomRoles.Speedrunner,
+                CustomRoles.Hypocrite or CustomRoles.Specter => CustomRoles.Speedrunner,
                 CustomRoles.Bandit => CustomRoles.Cleanser,
+                CustomRoles.Centralizer => CustomRoles.Convener,
                 CustomRoles.Weatherman => CustomRoles.Tornado,
                 _ => role
             };
@@ -188,6 +200,4 @@ public class CopyCat : RoleBase
         SetKillCooldown(pc.PlayerId);
         return false;
     }
-
 }
-

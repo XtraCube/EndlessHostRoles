@@ -81,7 +81,7 @@ public class Cultist : RoleBase
 
     public override void SetKillCooldown(byte id)
     {
-        Main.AllPlayerKillCooldown[id] = id.GetAbilityUseLimit() >= 1 ? CharmCooldown.GetFloat() + ((CharmMax.GetInt() - id.GetAbilityUseLimit()) * CharmCooldownIncrese.GetFloat()) : 300f;
+        Main.AllPlayerKillCooldown[id] = CharmCooldown.GetFloat() + ((CharmMax.GetInt() - id.GetAbilityUseLimit()) * CharmCooldownIncrese.GetFloat());
     }
 
     public override bool CanUseKillButton(PlayerControl player)
@@ -127,7 +127,7 @@ public class Cultist : RoleBase
 
             Logger.Info("SetRole:" + target?.Data?.PlayerName + " = " + target.GetCustomRole() + " + " + CustomRoles.Charmed, "Assign " + CustomRoles.Charmed);
 
-            if (killer.IsLocalPlayer())
+            if (killer.AmOwner)
                 Achievements.Type.YoureMyFriendNow.Complete();
 
             return false;

@@ -106,7 +106,7 @@ public class Hater : RoleBase
                     || (Main.LoversPlayers.Exists(x => x.PlayerId == target.PlayerId) && CanKillLovers.GetBool())
                     || ((target.Is(CustomRoles.Romantic) || target.Is(CustomRoles.RuthlessRomantic) || target.Is(CustomRoles.VengefulRomantic)
                          || Romantic.PartnerId == target.PlayerId) && CanKillLovers.GetBool())
-                    || ((target.Is(CustomRoles.Sidekick) || target.Is(CustomRoles.Jackal) || target.Is(CustomRoles.Recruit)) && CanKillSidekicks.GetBool())
+                    || ((target.Is(CustomRoles.Sidekick) || target.Is(CustomRoles.Jackal)) && CanKillSidekicks.GetBool())
                     || (target.Is(CustomRoles.Egoist) && CanKillEgoists.GetBool())
                     || ((target.Is(CustomRoles.Contagious) || target.Is(CustomRoles.Virus)) && CanKillContagious.GetBool())
                 )
@@ -123,10 +123,10 @@ public class Hater : RoleBase
             target.SetRealKiller(killer);
             killer.Kill(target);
             target.Data.IsDead = true;
-            Main.PlayerStates[target.PlayerId].deathReason = PlayerState.DeathReason.Misfire;
+            Main.PlayerStates[target.PlayerId].deathReason = PlayerState.DeathReason.Sacrifice;
         }
 
-        killer.Suicide(PlayerState.DeathReason.Sacrifice);
+        killer.Suicide(PlayerState.DeathReason.Misfire);
         Logger.Info($"{killer.GetRealName()} killed incorrect target => misfire", "Hater");
         return false;
     }
@@ -138,7 +138,7 @@ public class Hater : RoleBase
             CustomRoles.Cultist or
             CustomRoles.Deathknight or
             CustomRoles.Necromancer or
-            CustomRoles.Refugee or
+            CustomRoles.Renegade or
             CustomRoles.Romantic or
             CustomRoles.RuthlessRomantic or
             CustomRoles.VengefulRomantic or

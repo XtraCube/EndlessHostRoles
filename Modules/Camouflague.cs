@@ -126,6 +126,11 @@ public static class Camouflage
             Logger.Info($"IsCamouflage: {IsCamouflage}", "CheckCamouflage");
             WaitingForSkinChange = [];
             Main.Instance.StartCoroutine(UpdateCamouflageStatusAsync());
+            if (Options.CommsCamouflageSetSameSpeed.GetBool()) Utils.MarkEveryoneDirtySettings();
+            if (!Utils.DoRPC) return true;
+            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SyncCamouflage, SendOption.Reliable);
+            writer.Write(IsCamouflage);
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
             return true;
         }
 
@@ -188,9 +193,16 @@ public static class Camouflage
             newOutfit = BananaMan.GetOutfit(Main.AllPlayerNames.GetValueOrDefault(target.PlayerId, "Banana"));
 
         SetPetForOutfitIfNecessary(newOutfit);
+        
+        if (!target.IsAlive())
+        {
+            var killer = target.GetRealKiller();
 
-        if (Options.RemovePetsAtDeadPlayers.GetBool() && !target.IsAlive())
-            newOutfit.PetId = string.Empty;
+            if (Options.AnonymousBodies.GetBool() || target.Is(CustomRoles.Hidden) || (killer != null && killer.Is(CustomRoles.Concealer)))
+                newOutfit = new NetworkedPlayerInfo.PlayerOutfit().Set(Translator.GetString("Dead"), 15, "", "", "", "", "");
+            else if (Options.RemovePetsAtDeadPlayers.GetBool())
+                newOutfit.PetId = string.Empty;
+        }
 
         // if the current Outfit is the same, return
         if (newOutfit.Compare(target.Data.DefaultOutfit))
@@ -251,7 +263,7 @@ public static class Camouflage
 
     public static void OnFixedUpdate(PlayerControl pc)
     {
-        if (pc.IsLocalPlayer()) CheckCamouflage();
+        if (pc.AmOwner) CheckCamouflage();
 
         if (!WaitingForSkinChange.Contains(pc.PlayerId) || pc.inVent || pc.walkingToVent || pc.onLadder || pc.inMovingPlat) return;
 

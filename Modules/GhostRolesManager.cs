@@ -33,12 +33,13 @@ internal static class GhostRolesManager
 
         IGhostRole instance = CreateGhostRoleInstance(suitableRole);
         pc.RpcSetCustomRole(suitableRole);
-        pc.RpcSetRoleDesync(RoleTypes.GuardianAngel, pc.OwnerId);
+        pc.RpcSetRoleDesync(instance.RoleTypes, pc.OwnerId);
         instance.OnAssign(pc);
         Main.ResetCamPlayerList.Add(pc.PlayerId);
         AssignedGhostRoles[pc.PlayerId] = (suitableRole, instance);
 
-        if (suitableRole == CustomRoles.Haunter) GhostRoles.Remove(suitableRole);
+        if (suitableRole == CustomRoles.Haunter)
+            GhostRoles.Remove(suitableRole);
 
         NotifyAboutGhostRole(pc, true);
     }
@@ -106,11 +107,14 @@ internal static class GhostRolesManager
                     return false;
             }
 
+            var killer = pc.GetRealKiller();
+            if (killer != null && killer.Is(CustomRoles.SoulCollector) && Main.DiedThisRound.Contains(pc.PlayerId)) return false;
+
             CustomRoles suitableRole = GetSuitableGhostRole(pc);
 
             return suitableRole switch
             {
-                CustomRoles.Specter when IsPartnerPickedRole() => false,
+                CustomRoles.Phantasm when IsPartnerPickedRole() => false,
                 _ => suitableRole.IsGhostRole() && !AssignedGhostRoles.Any(x => x.Key == pc.PlayerId || x.Value.Role == suitableRole)
             };
 
