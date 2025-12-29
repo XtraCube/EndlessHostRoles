@@ -5,6 +5,8 @@ using System.Diagnostics;
 using AmongUs.GameOptions;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using Hazel;
+using Il2CppInterop.Runtime;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using UnityEngine;
 
@@ -16,10 +18,7 @@ public abstract class GameOptionsSender
 
     protected virtual void SendGameOptions()
     {
-        Main.logSource.LogInfo("Sending Game Options");
-        var stackTrace = new StackTrace();
-        Main.logSource.LogInfo(stackTrace.ToString());
-        
+        var stopwatch = new Stopwatch();
         IGameOptions opt = BuildGameOptions();
 
         // option => byte[]
@@ -39,20 +38,15 @@ public abstract class GameOptionsSender
 
         writer.EndMessage();
 
-        // https://github.com/willardf/Hazel-Networking/blob/c6a228cc8dddb91cedecd790ddab338d56abec6c/Hazel/MessageWriter.cs#L34
-        // Array & Send
-
-        byte[] output = new byte[writer.Length - 1];
-        Buffer.BlockCopy(writer.Buffer, 1, output, 0, writer.Length - 1);
+        Il2CppStructArray<byte> optionArray = writer.ToByteArray(false);
         writer.Recycle();
-
-        SendOptionsArray(output);
+        SendOptionsArray(optionArray);
     }
 
-    private readonly Queue<byte[]> _optionsQueue = new();
+    private readonly Queue<Il2CppStructArray<byte>> _optionsQueue = new();
     private Coroutine _activeCoroutine;
 
-    protected virtual void SendOptionsArray(byte[] optionArray)
+    protected virtual void SendOptionsArray(Il2CppStructArray<byte> optionArray)
     {
         if (optionArray == null || optionArray.Length == 0)
         {
@@ -74,13 +68,13 @@ public abstract class GameOptionsSender
     {
         while (_optionsQueue.Count > 0)
         {
-            byte[] optionArray = _optionsQueue.Dequeue();
+            Il2CppStructArray<byte> optionArray = _optionsQueue.Dequeue();
             yield return CoSendOptionsArray(optionArray);
         }
         _activeCoroutine = null;
     }
 
-    private static IEnumerator CoSendOptionsArray(byte[] optionArray)
+    private static IEnumerator CoSendOptionsArray(Il2CppStructArray<byte> optionArray)
     {
         int count = GameManager.Instance.LogicComponents.Count;
         for (int i = 0; i < count; i++)
@@ -92,7 +86,7 @@ public abstract class GameOptionsSender
         }
     }
 
-    protected static void SendOptionsArray(byte[] optionArray, byte LogicOptionsIndex, int targetClientId)
+    protected static void SendOptionsArray(Il2CppStructArray<byte> optionArray, byte LogicOptionsIndex, int targetClientId)
     {
         try
         {

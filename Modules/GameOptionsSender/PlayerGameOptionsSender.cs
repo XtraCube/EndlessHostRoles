@@ -10,6 +10,7 @@ using EHR.Crewmate;
 using EHR.Impostor;
 using EHR.Neutral;
 using Hazel;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using Mathf = UnityEngine.Mathf;
 
@@ -113,7 +114,7 @@ public sealed class PlayerGameOptionsSender(PlayerControl player) : GameOptionsS
             base.SendGameOptions();
     }
 
-    protected override void SendOptionsArray(byte[] optionArray)
+    protected override void SendOptionsArray(Il2CppStructArray<byte> optionArray)
     {
         try
         {
