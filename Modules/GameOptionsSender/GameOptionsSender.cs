@@ -3,8 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using AmongUs.GameOptions;
+using BepInEx.Unity.IL2CPP.Utils.Collections;
 using Hazel;
 using InnerNet;
+using UnityEngine;
 
 namespace EHR.Modules;
 
@@ -47,12 +49,46 @@ public abstract class GameOptionsSender
         SendOptionsArray(output);
     }
 
+    private readonly Queue<byte[]> _optionsQueue = new();
+    private Coroutine _activeCoroutine;
+
     protected virtual void SendOptionsArray(byte[] optionArray)
     {
-        for (byte i = 0; i < GameManager.Instance.LogicComponents.Count; i++)
+        if (optionArray == null || optionArray.Length == 0)
+        {
+            return;
+        }
+
+        const int maxQueueSize = 20;
+        if (_optionsQueue.Count >= maxQueueSize)
+        {
+            Main.logSource.LogWarning("Options queue is full, dropping oldest option array");
+            _optionsQueue.Dequeue();
+        }
+
+        _optionsQueue.Enqueue(optionArray);
+        _activeCoroutine ??= GameManager.Instance.StartCoroutine(ProcessQueue().WrapToIl2Cpp());
+    }
+
+    private IEnumerator ProcessQueue()
+    {
+        while (_optionsQueue.Count > 0)
+        {
+            byte[] optionArray = _optionsQueue.Dequeue();
+            yield return CoSendOptionsArray(optionArray);
+        }
+        _activeCoroutine = null;
+    }
+
+    private static IEnumerator CoSendOptionsArray(byte[] optionArray)
+    {
+        int count = GameManager.Instance.LogicComponents.Count;
+        for (int i = 0; i < count; i++)
         {
             Il2CppSystem.Object logicComponent = GameManager.Instance.LogicComponents[(Index)i];
-            if (logicComponent.TryCast<LogicOptions>(out _)) SendOptionsArray(optionArray, i, -1);
+            if (logicComponent.TryCast<LogicOptions>(out _))
+                SendOptionsArray(optionArray, (byte)i, -1);
+            yield return null;
         }
     }
 
