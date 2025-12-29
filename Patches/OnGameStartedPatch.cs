@@ -21,7 +21,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using static EHR.Modules.CustomRoleSelector;
 using static EHR.Translator;
-using DateTime = Il2CppSystem.DateTime;
 using Exception = System.Exception;
 
 namespace EHR;
@@ -96,7 +95,7 @@ internal static class ChangeRoleSettings
 
             yield return HudManager.Instance.CoFadeFullScreen(Color.clear, Color.black);
             ++DataManager.Player.Ban.BanPoints;
-            DataManager.Player.Ban.PreviousGameStartDate = DateTime.UtcNow;
+            DataManager.Player.Ban.PreviousGameStartDate = Il2CppSystem.DateTime.UtcNow;
             DataManager.Player.Save();
 
             if (amongUsClient.AmHost)

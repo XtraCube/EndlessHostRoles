@@ -530,7 +530,7 @@ internal static class OnPlayerJoinedPatch
             Logger.Info($"Blocked Player {client.PlayerName}({client.FriendCode}) has been banned.", "BAN");
         }
 
-        BanManager.CheckBanPlayer(client);
+        //BanManager.CheckBanPlayer(client);
         RPC.RpcVersionCheck();
 
         if (AmongUsClient.Instance.AmHost)

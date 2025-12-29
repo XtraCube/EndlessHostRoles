@@ -9,7 +9,6 @@ using EHR.Neutral;
 using EHR.Patches;
 using HarmonyLib;
 using Hazel;
-using Il2CppSystem.Collections.Generic;
 using UnityEngine;
 using static EHR.Translator;
 
@@ -118,7 +117,7 @@ static class CoShowIntroPatch
             introCutscene.ImpostorName.gameObject.SetActive(false);
             introCutscene.ImpostorTitle.gameObject.SetActive(false);
 
-            List<PlayerControl> show = 
+            var show = 
                 IntroCutscene.SelectTeamToShow(
                     (Func<NetworkedPlayerInfo, bool>)(pcd => 
                         !PlayerControl.LocalPlayer.Data.Role.IsImpostor
@@ -128,7 +127,7 @@ static class CoShowIntroPatch
             if (show == null || show.Count < 1)
             {
                 Logger.Error("IntroCutscene :: CoBegin() :: teamToShow is EMPTY or NULL", "BASE GAME LOGGER");
-                show = new();
+                show = new Il2CppSystem.Collections.Generic.List<PlayerControl>(1);
                 show.Add(PlayerControl.LocalPlayer);
             }
 
@@ -450,7 +449,7 @@ internal static class SetUpRoleTextPatch
 [HarmonyPatch(typeof(IntroCutscene), nameof(IntroCutscene.BeginCrewmate))]
 internal static class BeginCrewmatePatch
 {
-    public static bool Prefix(IntroCutscene __instance, ref List<PlayerControl> teamToDisplay)
+    public static bool Prefix(IntroCutscene __instance, ref Il2CppSystem.Collections.Generic.List<PlayerControl> teamToDisplay)
     {
         CustomRoles role = PlayerControl.LocalPlayer.GetCustomRole();
 
@@ -528,7 +527,7 @@ internal static class BeginCrewmatePatch
         return true;
     }
 
-    public static void Postfix(IntroCutscene __instance, ref List<PlayerControl> teamToDisplay)
+    public static void Postfix(IntroCutscene __instance, ref Il2CppSystem.Collections.Generic.List<PlayerControl> teamToDisplay)
     {
         CustomRoles role = PlayerControl.LocalPlayer.GetCustomRole();
 
@@ -1047,7 +1046,7 @@ internal static class BeginCrewmatePatch
 [HarmonyPatch(typeof(IntroCutscene), nameof(IntroCutscene.BeginImpostor))]
 internal static class BeginImpostorPatch
 {
-    public static bool Prefix(IntroCutscene __instance, ref List<PlayerControl> yourTeam)
+    public static bool Prefix(IntroCutscene __instance, ref Il2CppSystem.Collections.Generic.List<PlayerControl> yourTeam)
     {
         CustomRoles role = PlayerControl.LocalPlayer.GetCustomRole();
 
@@ -1115,7 +1114,7 @@ internal static class BeginImpostorPatch
         return true;
     }
 
-    public static void Postfix(IntroCutscene __instance, ref List<PlayerControl> yourTeam)
+    public static void Postfix(IntroCutscene __instance, ref Il2CppSystem.Collections.Generic.List<PlayerControl> yourTeam)
     {
         BeginCrewmatePatch.Postfix(__instance, ref yourTeam);
     }

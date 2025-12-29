@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
+using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR.AddOns.Crewmate;
 using EHR.AddOns.GhostRoles;
 using EHR.Impostor;
@@ -207,8 +208,8 @@ internal static class RpcSetTasksPatch
 
         // List containing IDs of assignable tasks
         // Clone of the second argument of the original RpcSetTasks
-        Il2CppSystem.Collections.Generic.List<byte> TasksList = new();
-        foreach (byte num in taskTypeIds) TasksList.Add(num);
+        List<byte> TasksList = [];
+        TasksList.AddRange(taskTypeIds);
 
         // Reference: ShipStatus.Begin
         // Processing to delete unnecessary assigned tasks
@@ -239,11 +240,18 @@ internal static class RpcSetTasksPatch
 
         Shuffle(ShortTasks);
 
+        var il2cppList = new Il2CppSystem.Collections.Generic.List<byte>(TasksList.Count);
+
+        foreach (byte b in TasksList)
+        {
+            il2cppList.Add(b);
+        }
+        
         // Use the task assignment function actually used on the Among Us side.
         ShipStatus.Instance.AddTasksFromList(
             ref start2,
             numLongTasks,
-            TasksList,
+            il2cppList,
             usedTaskTypes,
             LongTasks
         );
@@ -251,13 +259,13 @@ internal static class RpcSetTasksPatch
         ShipStatus.Instance.AddTasksFromList(
             ref start3,
             numShortTasks,
-            TasksList,
+            il2cppList,
             usedTaskTypes,
             ShortTasks
         );
 
         // Convert the list of tasks to array (Il2CppStructArray)
-        taskTypeIds = new(TasksList.Count);
+        taskTypeIds = new((long)TasksList.Count);
         for (var i = 0; i < TasksList.Count; i++) taskTypeIds[i] = TasksList[i];
 
         #region Logging

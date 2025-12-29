@@ -1,6 +1,5 @@
 ﻿using EHR.Modules;
 using HarmonyLib;
-using Il2CppSystem;
 using UnityEngine;
 
 namespace EHR.Patches;
@@ -62,7 +61,7 @@ internal static class NotificationPopperPatch
             Instance.lastMessageKey = key.Id;
             LobbyNotificationMessage newMessage = Object.Instantiate(Instance.notificationMessageOrigin, Vector3.zero, Quaternion.identity, Instance.transform);
             newMessage.transform.localPosition = new(0f, 0f, -2f);
-            newMessage.SetUp(item, Instance.settingsChangeSprite, Instance.settingsChangeColor, (Action)(() => Instance.OnMessageDestroy(newMessage)));
+            newMessage.SetUp(item, Instance.settingsChangeSprite, Instance.settingsChangeColor, (Il2CppSystem.Action)(() => Instance.OnMessageDestroy(newMessage)));
             Instance.ShiftMessages();
             Instance.AddMessageToQueue(newMessage);
         }

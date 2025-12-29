@@ -1,7 +1,5 @@
 ﻿using HarmonyLib;
-using Il2CppSystem;
 using static CosmeticsLayer;
-using Action = Il2CppSystem.Action;
 
 namespace EHR.Patches;
 
@@ -102,9 +100,9 @@ public static class LongBoiPatches
     {
         try
         {
-            __instance.cosmeticLayer.OnSetBodyAsGhost += (Action)__instance.SetPoolableGhost;
-            __instance.cosmeticLayer.OnColorChange += (Action<int>)__instance.SetHeightFromColor;
-            __instance.cosmeticLayer.OnCosmeticSet += (Action<string, int, CosmeticKind>)__instance.OnCosmeticSet;
+            __instance.cosmeticLayer.OnSetBodyAsGhost += (Il2CppSystem.Action)__instance.SetPoolableGhost;
+            __instance.cosmeticLayer.OnColorChange += (Il2CppSystem.Action<int>)__instance.SetHeightFromColor;
+            __instance.cosmeticLayer.OnCosmeticSet += (Il2CppSystem.Action<string, int, CosmeticKind>)__instance.OnCosmeticSet;
             __instance.gameObject.layer = 8;
         }
         catch { }

@@ -13,7 +13,7 @@ using static EHR.Translator;
 
 namespace EHR;
 
-[HarmonyPatch]
+//[HarmonyPatch]
 public static class ModUpdater
 {
     private const string URLGithub = "https://api.github.com/repos/Gurge44/EndlessHostRoles";
@@ -30,9 +30,9 @@ public static class ModUpdater
     private static GenericPopup InfoPopup;
     private static GenericPopup InfoPopupV2;
 
-    [HarmonyPatch(typeof(MainMenuManager), nameof(MainMenuManager.Start))]
-    [HarmonyPrefix]
-    [HarmonyPriority(2)]
+    //[HarmonyPatch(typeof(MainMenuManager), nameof(MainMenuManager.Start))]
+    //[HarmonyPrefix]
+    //[HarmonyPriority(2)]
     public static void Start_Prefix()
     {
 #if !ANDROID
@@ -167,6 +167,9 @@ public static class ModUpdater
 
     public static void StartUpdate(string url, bool github)
     {
+#if ANDROID
+        return;
+#endif
         ShowPopup(GetString("updatePleaseWait"), StringNames.Cancel, true, false);
         _ = !github ? DownloadDLL(url) : DownloadDLLGithub(url);
     }

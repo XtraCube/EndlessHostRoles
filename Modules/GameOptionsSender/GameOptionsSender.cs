@@ -1,12 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using AmongUs.GameOptions;
 using Hazel;
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
-using Array = Il2CppSystem.Array;
-using Buffer = Il2CppSystem.Buffer;
 
 namespace EHR.Modules;
 
@@ -16,6 +14,10 @@ public abstract class GameOptionsSender
 
     protected virtual void SendGameOptions()
     {
+        Main.logSource.LogInfo("Sending Game Options");
+        var stackTrace = new StackTrace();
+        Main.logSource.LogInfo(stackTrace.ToString());
+        
         IGameOptions opt = BuildGameOptions();
 
         // option => byte[]
@@ -30,22 +32,22 @@ public abstract class GameOptionsSender
             HideNSeekGameOptionsV10.Serialize(writer, hnsOpt);
         else
         {
-            writer.Recycle();
             Logger.Error("Option cast failed", ToString());
         }
 
         writer.EndMessage();
 
+        // https://github.com/willardf/Hazel-Networking/blob/c6a228cc8dddb91cedecd790ddab338d56abec6c/Hazel/MessageWriter.cs#L34
         // Array & Send
-        var byteArray = new Il2CppStructArray<byte>(writer.Length - 1);
-        // MessageWriter.ToByteArray
-        Buffer.BlockCopy(writer.Buffer.CastFast<Array>(), 1, byteArray.CastFast<Array>(), 0, writer.Length - 1);
 
-        SendOptionsArray(byteArray);
+        byte[] output = new byte[writer.Length - 1];
+        Buffer.BlockCopy(writer.Buffer, 1, output, 0, writer.Length - 1);
         writer.Recycle();
+
+        SendOptionsArray(output);
     }
 
-    protected virtual void SendOptionsArray(Il2CppStructArray<byte> optionArray)
+    protected virtual void SendOptionsArray(byte[] optionArray)
     {
         for (byte i = 0; i < GameManager.Instance.LogicComponents.Count; i++)
         {
@@ -54,7 +56,7 @@ public abstract class GameOptionsSender
         }
     }
 
-    protected static void SendOptionsArray(Il2CppStructArray<byte> optionArray, byte LogicOptionsIndex, int targetClientId)
+    protected static void SendOptionsArray(byte[] optionArray, byte LogicOptionsIndex, int targetClientId)
     {
         try
         {

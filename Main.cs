@@ -10,6 +10,7 @@ using System.Text.Json;
 using AmongUs.GameOptions;
 using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR;
@@ -68,8 +69,8 @@ public class Main : BasePlugin
 #endif
 
     public static readonly Version Version = Version.Parse(PluginVersion);
-
-    //public static ManualLogSource Logger;
+        
+    public static ManualLogSource logSource = BepInEx.Logging.Logger.CreateLogSource("EHR");
     public static bool HasArgumentException;
     public static string CredentialsText;
 
@@ -812,7 +813,7 @@ public class Main : BasePlugin
 
         CustomWinnerHolder.Reset();
         Translator.Init();
-        BanManager.Init();
+        // BanManager.Init();
         TemplateManager.Init();
         SpamManager.Init();
 
@@ -842,20 +843,6 @@ public class Main : BasePlugin
         PrivateTagManager.LoadTagsFromFile();
 
         Harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-        /*var types = Assembly.GetExecutingAssembly().GetTypes().Where(x=>x.GetCustomAttributes<HarmonyPatch>().Any()).ToArray();
-        for (int i = 0; i < types.Length; i++)
-        {
-            var type = types[i];
-
-            if (i <= types.Length / 16)
-            {
-                Log.LogInfo("Skipping: "+type.FullName);
-                continue;
-            }
-
-            Harmony.PatchAll(type);
-        }*/
 
         if (!DebugModeManager.AmDebugger)
             ConsoleManager.DetachConsole();

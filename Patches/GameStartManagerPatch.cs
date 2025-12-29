@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using AmongUs.Data;
 using AmongUs.GameOptions;
@@ -8,7 +9,6 @@ using EHR.Neutral;
 using EHR.Patches;
 using HarmonyLib;
 using Hazel;
-using Il2CppSystem.Collections.Generic;
 using InnerNet;
 using TMPro;
 using UnityEngine;
@@ -347,12 +347,12 @@ public static class GameStartManagerPatch
 
                 if (AmongUsClient.Instance.AmHost)
                 {
-                    List<ClientData> allClients = AmongUsClient.Instance.allClients;
+                    ClientData[] allClients = AmongUsClient.Instance.allClients.ToArray();
 
                     lock (allClients)
                     {
                         // ReSharper disable once ForCanBeConvertedToForeach
-                        for (var index = 0; index < allClients.Count; index++)
+                        for (var index = 0; index < allClients.Length; index++)
                         {
                             ClientData client = allClients[index];
                             if (client.Character == null) continue;

@@ -4172,10 +4172,10 @@ public static class Utils
 
             if (stream != null)
             {
-                long length = stream.Length;
-                var byteTexture = new Il2CppStructArray<byte>(length);
-                stream.Read(new Span<byte>(IntPtr.Add(byteTexture.Pointer, IntPtr.Size * 4).ToPointer(), (int)length));
-                texture.LoadImage(byteTexture, false);
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+
+                texture.LoadImage(ms.ToArray(), false);
             }
 
             return texture;
