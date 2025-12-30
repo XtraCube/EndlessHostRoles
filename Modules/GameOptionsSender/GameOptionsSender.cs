@@ -56,7 +56,7 @@ public abstract class GameOptionsSender
         const int maxQueueSize = 20;
         if (_optionsQueue.Count >= maxQueueSize)
         {
-            Main.logSource.LogWarning("Options queue is full, dropping oldest option array");
+            Main.Instance.Log.LogWarning("Options queue is full, dropping oldest option array");
             _optionsQueue.Dequeue();
         }
 

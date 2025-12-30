@@ -69,8 +69,7 @@ public class Main : BasePlugin
 #endif
 
     public static readonly Version Version = Version.Parse(PluginVersion);
-        
-    public static ManualLogSource logSource = BepInEx.Logging.Logger.CreateLogSource("EHR");
+
     public static bool HasArgumentException;
     public static string CredentialsText;
 

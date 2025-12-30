@@ -6,16 +6,11 @@ using EHR.AddOns.GhostRoles;
 using EHR.Modules;
 using EHR.Patches;
 using HarmonyLib;
-using Hazel;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
-
-#if ANDROID
 using System.Collections.Generic;
-#else
-using Il2CppSystem.Collections.Generic;
-#endif
+using System.Diagnostics;
 
 // ReSharper disable PossibleLossOfFraction
 
@@ -25,9 +20,20 @@ namespace EHR;
 public static class ModGameOptionsMenu
 {
     public static int TabIndex;
-    public static Dictionary<OptionBehaviour, int> OptionList = new();
-    public static Dictionary<int, OptionBehaviour> BehaviourList = new();
-    public static Dictionary<int, CategoryHeaderMasked> CategoryHeaderList = new();
+    private static Dictionary<OptionBehaviour, int> _optionList;
+    private static Dictionary<int, OptionBehaviour> _behaviourList;
+    private static Dictionary<int, CategoryHeaderMasked> _categoryHeaderList;
+
+    public static void ClearDictionaries()
+    {
+        OptionList.Clear();
+        BehaviourList.Clear();
+        CategoryHeaderList.Clear();
+    }
+
+    public static Dictionary<OptionBehaviour, int> OptionList => _optionList ??= new();
+    public static Dictionary<int, OptionBehaviour> BehaviourList => _behaviourList ??= new();
+    public static Dictionary<int, CategoryHeaderMasked> CategoryHeaderList => _categoryHeaderList ??= new();
 }
 
 [HarmonyPatch(typeof(GameOptionsMenu))]
@@ -117,10 +123,15 @@ public static class GameOptionsMenuPatch
             
             TextOptionItem header = null;
 
-            for (var index = 0; index < OptionItem.AllOptions.Count; index++)
+            const int frameBudget = 5; // milliseconds
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            foreach (var option in OptionItem.AllOptions)
             {
-                OptionItem option = OptionItem.AllOptions[index];
-                if (option.Tab != modTab) continue;
+                if (option.Tab != modTab)
+                {
+                    continue;
+                }
 
                 bool enabled = !option.IsCurrentlyHidden() && AllParentsEnabledAndVisible(option.Parent);
 
@@ -150,7 +161,7 @@ public static class GameOptionsMenuPatch
                     }));
                     chmButton.SetButtonEnableState(true);
                     categoryHeaderMasked.gameObject.SetActive(enabled);
-                    ModGameOptionsMenu.CategoryHeaderList.TryAdd(index, categoryHeaderMasked);
+                    ModGameOptionsMenu.CategoryHeaderList.TryAdd(option.Id, categoryHeaderMasked);
 
                     if (enabled) num -= 0.63f;
                     header = toi;
@@ -163,8 +174,12 @@ public static class GameOptionsMenuPatch
                     num -= 0.18f;
 
                 BaseGameSetting baseGameSetting = GetSetting(option);
-                if (baseGameSetting == null) continue;
 
+                if (baseGameSetting == null)
+                {
+                    Main.Instance.Log.LogInfo($"GameOptionsMenuPatch.CreateSettingsPrefix: Unsupported option type for option '{option.Name}'.");
+                    continue;
+                }
 
                 OptionBehaviour optionBehaviour;
 
@@ -178,19 +193,23 @@ public static class GameOptionsMenuPatch
                         _ => throw new Exception("Skipped option type")
                     };
                 }
-                catch { continue; }
+                catch (Exception e)
+                {
+                    Main.Instance.Log.LogInfo($"GameOptionsMenuPatch.CreateSettingsPrefix: Failed to create OptionBehaviour for option '{option.Name}'. Exception: {e}");
+                    continue;
+                }
 
                 optionBehaviour.transform.localPosition = new(posX, num, posZ);
                 OptionBehaviourSetSizeAndPosition(optionBehaviour, option, baseGameSetting.Type);
 
-                if (!ModGameOptionsMenu.OptionList.ContainsValue(index) && option.Name == "Preset")
+                if (!ModGameOptionsMenu.OptionList.ContainsValue(option.Id) && option.Name == "Preset")
                     GameSettingMenuPatch.PresetBehaviour = (NumberOption)optionBehaviour;
 
                 optionBehaviour.transform.localPosition = new(0.952f, num, -2f);
                 optionBehaviour.SetClickMask(__instance.ButtonClickMask);
                 optionBehaviour.SetUpFromData(baseGameSetting, 20);
-                ModGameOptionsMenu.OptionList.TryAdd(optionBehaviour, index);
-                ModGameOptionsMenu.BehaviourList.TryAdd(index, optionBehaviour);
+                ModGameOptionsMenu.OptionList.TryAdd(optionBehaviour, option.Id);
+                ModGameOptionsMenu.BehaviourList.TryAdd(option.Id, optionBehaviour);
                 optionBehaviour.gameObject.SetActive(enabled);
                 optionBehaviour.OnValueChanged = new Action<OptionBehaviour>(__instance.ValueChanged);
                 __instance.Children.Add(optionBehaviour);
@@ -199,7 +218,12 @@ public static class GameOptionsMenuPatch
 
                 if (enabled) num -= 0.45f;
 
-                if (index % 100 == 0) yield return null;
+                if (stopwatch.ElapsedMilliseconds >= frameBudget)
+                {
+                    stopwatch.Reset();
+                    yield return null;
+                    stopwatch.Start();
+                }
             }
 
             __instance.ControllerSelectable.Clear();
@@ -326,9 +350,9 @@ public static class GameOptionsMenuPatch
     {
         if (ModGameOptionsMenu.TabIndex < 3) return true;
 
-        if (ModGameOptionsMenu.OptionList.TryGetValue(option, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(option, out int optionId))
         {
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[optionId];
             if (item != null && item.Children.Count > 0) ReCreateSettings(__instance);
         }
 
@@ -343,14 +367,13 @@ public static class GameOptionsMenuPatch
 
         var num = 2.0f;
 
-        for (var index = 0; index < OptionItem.AllOptions.Count; index++)
+        foreach (var option in OptionItem.AllOptions)
         {
-            OptionItem option = OptionItem.AllOptions[index];
             if (option.Tab != modTab) continue;
 
             bool enabled = !option.IsCurrentlyHidden() && AllParentsEnabledAndVisible(option.Parent);
 
-            if (ModGameOptionsMenu.CategoryHeaderList.TryGetValue(index, out CategoryHeaderMasked categoryHeaderMasked))
+            if (ModGameOptionsMenu.CategoryHeaderList.TryGetValue(option.Id, out CategoryHeaderMasked categoryHeaderMasked))
             {
                 categoryHeaderMasked.transform.localPosition = new(-0.903f, num, -2f);
                 categoryHeaderMasked.gameObject.SetActive(enabled);
@@ -358,7 +381,7 @@ public static class GameOptionsMenuPatch
             }
             else if (option.IsHeader && enabled) num -= 0.18f;
 
-            if (ModGameOptionsMenu.BehaviourList.TryGetValue(index, out OptionBehaviour optionBehaviour))
+            if (ModGameOptionsMenu.BehaviourList.TryGetValue(option.Id, out OptionBehaviour optionBehaviour))
             {
                 optionBehaviour.transform.localPosition = new(0.952f, num, -2f);
                 optionBehaviour.gameObject.SetActive(enabled);
@@ -474,9 +497,9 @@ public static class ToggleOptionPatch
     [HarmonyPrefix]
     private static bool InitializePrefix(ToggleOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[id];
 
             CustomGameMode gm = Options.CurrentGameMode;
             Color32 color = gm == CustomGameMode.Standard ? (TabGroup)(ModGameOptionsMenu.TabIndex - 3) switch
@@ -499,6 +522,7 @@ public static class ToggleOptionPatch
             return false;
         }
 
+        Main.Instance.Log.LogInfo("ToggleOptionPatch.InitializePrefix: Option not found in OptionList.");
         return true;
     }
 
@@ -507,13 +531,13 @@ public static class ToggleOptionPatch
     [HarmonyPrefix]
     private static bool TogglePrefix(ToggleOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
             __instance.CheckMark.enabled = !__instance.CheckMark.enabled;
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[id];
             item.SetValue(__instance.GetBool() ? 1 : 0);
             __instance.OnValueChanged.Invoke(__instance);
-            NotificationPopperPatch.AddSettingsChangeMessage(index, item, true);
+            NotificationPopperPatch.AddSettingsChangeMessage(item, true);
             return false;
         }
 
@@ -571,14 +595,15 @@ public static class NumberOptionPatch
                 break;
         }
 
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[id];
             __instance.TitleText.text = item.GetName();
             item.OptionBehaviour = __instance;
             return false;
         }
 
+        Main.Instance.Log.LogInfo("NumberOptionPatch.InitializePrefix: Option not found in OptionList.");
         return true;
     }
 
@@ -586,9 +611,9 @@ public static class NumberOptionPatch
     [HarmonyPrefix]
     private static bool UpdateValuePrefix(NumberOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[id];
 
             switch (item)
             {
@@ -604,7 +629,7 @@ public static class NumberOptionPatch
                     break;
             }
 
-            NotificationPopperPatch.AddSettingsChangeMessage(index, item, true);
+            NotificationPopperPatch.AddSettingsChangeMessage(item, true);
             return false;
         }
 
@@ -615,7 +640,7 @@ public static class NumberOptionPatch
     [HarmonyPrefix]
     private static bool FixedUpdatePrefix(NumberOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
             __instance.MinusBtn.SetInteractable(true);
             __instance.PlusBtn.SetInteractable(true);
@@ -623,7 +648,7 @@ public static class NumberOptionPatch
             if (!Mathf.Approximately(__instance.oldValue, __instance.Value))
             {
                 __instance.oldValue = __instance.Value;
-                __instance.ValueText.text = GetValueString(__instance, __instance.Value, OptionItem.AllOptions[index]);
+                __instance.ValueText.text = GetValueString(__instance, __instance.Value, OptionItem.FastOptions[id]);
             }
 
             return false;
@@ -699,9 +724,9 @@ public static class StringOptionPatch
     [HarmonyPrefix]
     private static bool InitializePrefix(StringOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[id];
             string name = item.GetName();
             item.OptionBehaviour = __instance;
             string name1 = name;
@@ -756,9 +781,9 @@ public static class StringOptionPatch
 
         gameOptionButton.OnClick.AddListener((Action)(() =>
         {
-            if (ModGameOptionsMenu.OptionList.TryGetValue(option, out int index))
+            if (ModGameOptionsMenu.OptionList.TryGetValue(option, out int id))
             {
-                OptionItem item = OptionItem.AllOptions[index];
+                OptionItem item = OptionItem.FastOptions[id];
                 string name = item.GetName();
 
                 if (Enum.GetValues<CustomRoles>().FindFirst(x => Translator.GetString($"{x}") == name.RemoveHtmlTags(), out CustomRoles value))
@@ -839,9 +864,9 @@ public static class StringOptionPatch
     [HarmonyPrefix]
     private static bool UpdateValuePrefix(StringOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
-            OptionItem item = OptionItem.AllOptions[index];
+            OptionItem item = OptionItem.FastOptions[id];
             item.SetValue(__instance.GetInt());
             string name = item.GetName();
 
@@ -874,10 +899,10 @@ public static class StringOptionPatch
                 __instance.LabelBackground.color = Utils.GetRoleColor(role);
                 __instance.TitleText.color = Color.white;
                 name = $"<size=3.5>{name}</size>";
-                NotificationPopperPatch.AddRoleSettingsChangeMessage(index, item, role, true);
+                NotificationPopperPatch.AddRoleSettingsChangeMessage(item, role, true);
             }
             else
-                NotificationPopperPatch.AddSettingsChangeMessage(index, item, true);
+                NotificationPopperPatch.AddSettingsChangeMessage(item, true);
 
             __instance.TitleText.text = name;
             return false;
@@ -890,12 +915,12 @@ public static class StringOptionPatch
     [HarmonyPrefix]
     private static bool FixedUpdatePrefix(StringOption __instance)
     {
-        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int index))
+        if (ModGameOptionsMenu.OptionList.TryGetValue(__instance, out int id))
         {
             __instance.MinusBtn.SetInteractable(true);
             __instance.PlusBtn.SetInteractable(true);
 
-            if (__instance.oldValue != __instance.Value && OptionItem.AllOptions[index] is StringOptionItem stringOptionItem)
+            if (__instance.oldValue != __instance.Value && OptionItem.FastOptions[id] is StringOptionItem stringOptionItem)
             {
                 __instance.oldValue = __instance.Value;
                 string selection = stringOptionItem.Selections[stringOptionItem.Rule.GetValueByIndex(__instance.Value)];
@@ -943,7 +968,7 @@ public static class StringOptionPatch
 [HarmonyPatch(typeof(GameSettingMenu))]
 public static class GameSettingMenuPatch
 {
-    public static System.Collections.Generic.List<GameObject> GMButtons = [];
+    public static List<GameObject> GMButtons = [];
 
     private static readonly Vector3 ButtonPositionLeft = new(-3.9f, -0.55f, 0f);
     private static readonly Vector3 ButtonPositionRight = new(-2.4f, -0.55f, 0f);
@@ -953,15 +978,15 @@ public static class GameSettingMenuPatch
     private static GameOptionsMenu TemplateGameOptionsMenu;
     private static PassiveButton TemplateGameSettingsButton;
 
-    private static System.Collections.Generic.Dictionary<TabGroup, PassiveButton> ModSettingsButtons = [];
-    private static System.Collections.Generic.Dictionary<TabGroup, GameOptionsMenu> ModSettingsTabs = [];
+    private static Dictionary<TabGroup, PassiveButton> ModSettingsButtons = [];
+    private static Dictionary<TabGroup, GameOptionsMenu> ModSettingsTabs = [];
 
     public static NumberOption PresetBehaviour;
 
     public static long LastPresetChange;
 
     public static FreeChatInputField InputField;
-    private static System.Collections.Generic.List<OptionItem> HiddenBySearch = [];
+    private static List<OptionItem> HiddenBySearch = [];
     public static Action SearchForOptionsAction;
 
     private static int NumImpsOnOpen = 1;
@@ -1262,9 +1287,9 @@ public static class GameSettingMenuPatch
             string text = textField.textArea.text.Trim().ToLower();
             var modTab = (TabGroup)(ModGameOptionsMenu.TabIndex - 3);
             OptionItem[] optionItems = Options.GroupedOptions[modTab];
-            System.Collections.Generic.List<OptionItem> result = optionItems.Where(x => x.Parent == null && !x.IsCurrentlyHidden() && !Translator.GetString($"{x.Name}").Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
+            List<OptionItem> result = optionItems.Where(x => x.Parent == null && !x.IsCurrentlyHidden() && !Translator.GetString($"{x.Name}").Contains(text, StringComparison.OrdinalIgnoreCase)).ToList();
             HiddenBySearch = result;
-            System.Collections.Generic.List<OptionItem> searchWinners = optionItems.Where(x => x.Parent == null && !x.IsCurrentlyHidden() && !result.Contains(x)).ToList();
+            List<OptionItem> searchWinners = optionItems.Where(x => x.Parent == null && !x.IsCurrentlyHidden() && !result.Contains(x)).ToList();
 
             if (searchWinners.Count == 0 || !ModSettingsTabs.TryGetValue(modTab, out GameOptionsMenu gameSettings) || gameSettings == null)
             {
@@ -1398,9 +1423,7 @@ public static class GameSettingMenuPatch
 
         SetDefaultButton(__instance);
 
-        ModGameOptionsMenu.OptionList = new();
-        ModGameOptionsMenu.BehaviourList = new();
-        ModGameOptionsMenu.CategoryHeaderList = new();
+        ModGameOptionsMenu.ClearDictionaries();
 
         ControllerManager.Instance.OpenOverlayMenu(__instance.name, __instance.BackButton, __instance.DefaultButtonSelected, __instance.ControllerSelectable);
         if (HudManager.InstanceExists) HudManager.Instance.menuNavigationPrompts.SetActive(false);
@@ -1502,5 +1525,4 @@ public static class RpcSyncSettingsPatch
     {
         OptionItem.SyncAllOptions();
     }
-
 }
