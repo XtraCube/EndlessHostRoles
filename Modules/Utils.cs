@@ -2385,7 +2385,7 @@ public static class Utils
     {
         if (!AmongUsClient.Instance.AmHost || GameStates.IsMeeting) yield break;
 
-        const int frameBudget = 5; // milliseconds per frame
+        const int frameBudget = 10; // milliseconds per frame
         var aapc = Main.AllAlivePlayerControls.ToList(); // ToList to prevent modification during iteration
 
         var stopwatch = new Stopwatch();
