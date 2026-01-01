@@ -56,12 +56,6 @@ public static class FixedUpdateCaller
                 }
             }
 
-#if ANDROID
-
-            if (GameStartManager.InstanceExists)
-                GameStartManagerPatch.GameStartManagerUpdatePatch.Postfix_ManualCall(GameStartManager.Instance);
-#endif
-
             if (HudManager.InstanceExists)
             {
                 HudManager hudManager = HudManager.Instance;

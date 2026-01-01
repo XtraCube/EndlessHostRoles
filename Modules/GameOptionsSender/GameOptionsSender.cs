@@ -18,7 +18,6 @@ public abstract class GameOptionsSender
 
     protected virtual void SendGameOptions()
     {
-        var stopwatch = new Stopwatch();
         IGameOptions opt = BuildGameOptions();
 
         // option => byte[]

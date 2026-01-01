@@ -327,14 +327,7 @@ public static class GameStartManagerPatch
             instance.LobbyInfoPane.gameObject.SetActive(!HudManager.Instance.Chat.IsOpenOrOpening);
         }
 
-#if !ANDROID
         public static void Postfix(GameStartManager __instance)
-        {
-            Postfix_ManualCall(__instance);
-        }
-#endif
-
-        public static void Postfix_ManualCall(GameStartManager __instance)
         {
             try
             {
