@@ -198,7 +198,7 @@ internal static class ExileControllerWrapUpPatch
         Utils.SyncAllSettings();
         Utils.CheckAndSetVentInteractions();
 
-        Main.Instance.StartCoroutine(Utils.NotifyEveryoneAsync(speed: 5));
+        Main.Instance.StartCoroutine(Utils.NotifyEveryoneAsync());
         
         Stopwatch.Reset();
     }

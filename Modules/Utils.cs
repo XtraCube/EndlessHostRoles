@@ -2381,12 +2381,14 @@ public static class Utils
         return suffix.ToString().Trim();
     }
 
-    public static IEnumerator NotifyEveryoneAsync(int speed = 2, bool noCache = true)
+    public static IEnumerator NotifyEveryoneAsync(bool noCache = true)
     {
         if (!AmongUsClient.Instance.AmHost || GameStates.IsMeeting) yield break;
 
-        var count = 0;
-        var aapc = Main.AllAlivePlayerControls;
+        const int frameBudget = 5; // milliseconds per frame
+        var aapc = Main.AllAlivePlayerControls.ToList(); // ToList to prevent modification during iteration
+
+        var stopwatch = new Stopwatch();
 
         foreach (PlayerControl seer in aapc)
         {
@@ -2396,7 +2398,12 @@ public static class Utils
                 var sender = CustomRpcSender.Create("Utils.NotifyEveryoneAsync", SendOption.Reliable, log: false);
                 var hasValue = WriteSetNameRpcsToSender(ref sender, false, noCache, false, false, false, false, seer, [seer], [target], out bool senderWasCleared) && !senderWasCleared;
                 sender.SendMessage(!hasValue || sender.stream.Length <= 3);
-                if (count++ % speed == 0) yield return null;
+                if (stopwatch.ElapsedMilliseconds >= frameBudget)
+                {
+                    stopwatch.Reset();
+                    yield return null;
+                    stopwatch.Start();
+                }
             }
         }
     }

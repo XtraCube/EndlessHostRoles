@@ -461,7 +461,7 @@ public static class KingOfTheZones
         Main.AllPlayerSpeed.SetAllValues(Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod));
         Utils.SyncAllSettings();
 
-        yield return Utils.NotifyEveryoneAsync(1, false);
+        yield return Utils.NotifyEveryoneAsync(false);
         yield break;
 
         IEnumerator StartingCountdown()

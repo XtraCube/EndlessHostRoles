@@ -795,7 +795,7 @@ internal static class MurderPlayerPatch
 
         __instance.MarkDirtySettings();
         target.MarkDirtySettings();
-        Main.Instance.StartCoroutine(NotifyEveryoneAsync(4, false));
+        Main.Instance.StartCoroutine(NotifyEveryoneAsync(false));
 
         Statistics.OnMurder(killer, target);
     }
@@ -903,7 +903,7 @@ internal static class ShapeshiftPatch
 
         // Forced rewriting in case the name cannot be corrected due to the timing of unshifting being off.
         if (!shapeshifting && !shapeshifter.Is(CustomRoles.Glitch) && isSSneeded)
-            LateTask.New(() => Main.Instance.StartCoroutine(NotifyEveryoneAsync(3)), 1.2f, "ShapeShiftNotify");
+            LateTask.New(() => Main.Instance.StartCoroutine(NotifyEveryoneAsync()), 1.2f, "ShapeShiftNotify");
 
         if (!(shapeshifting && doSSwithoutAnim) && !isSSneeded && !Swapster.FirstSwapTarget.ContainsKey(shapeshifter.PlayerId) && !Transporter.FirstSwapTarget.ContainsKey(shapeshifter.PlayerId))
             LateTask.New(shapeshifter.RpcResetAbilityCooldown, 0.01f, log: false);
