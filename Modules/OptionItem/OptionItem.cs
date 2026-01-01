@@ -259,11 +259,19 @@ public abstract class OptionItem
 
     private void Refresh()
     {
-        if (OptionBehaviour is StringOption opt)
+        switch (OptionBehaviour)
         {
-            opt.TitleText.text = GetName();
-            opt.ValueText.text = GetString();
-            opt.oldValue = opt.Value = CurrentValue;
+            case StringOption strOpt:
+                strOpt.TitleText.text = GetName();
+                strOpt.ValueText.text = GetString();
+                strOpt.oldValue = strOpt.Value = CurrentValue;
+                break;
+            
+            case NumberOption numOpt:
+                numOpt.TitleText.text = GetName();
+                numOpt.ValueText.text = GetString();
+                numOpt.oldValue = numOpt.Value = CurrentValue;
+                break;
         }
     }
 
