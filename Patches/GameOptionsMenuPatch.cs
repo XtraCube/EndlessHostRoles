@@ -20,7 +20,7 @@ namespace EHR;
 public static class ModGameOptionsMenu
 {
     public static int TabIndex;
-    private static Dictionary<OptionBehaviour, int> _optionList;
+    private static Dictionary<int, int> _optionList;
     private static Dictionary<int, OptionBehaviour> _behaviourList;
     private static Dictionary<int, CategoryHeaderMasked> _categoryHeaderList;
 
@@ -33,15 +33,15 @@ public static class ModGameOptionsMenu
     
     public static OptionItem GetFromBehaviour(OptionBehaviour behaviour)
     {
-        if (OptionList.TryGetValue(behaviour, out int id))
+        if (OptionList.TryGetValue(behaviour.GetHashCode(), out int id))
         {
             return OptionItem.FastOptions[id];
         }
 
-        return behaviour.GetComponent<CustomOptionBehaviour>() is { item: var item } ? item : null;
+        return null;// behaviour.GetComponent<CustomOptionBehaviour>() is { item: var item } ? item : null;
     }
 
-    public static Dictionary<OptionBehaviour, int> OptionList => _optionList ??= new();
+    public static Dictionary<int, int> OptionList => _optionList ??= new();
     public static Dictionary<int, OptionBehaviour> BehaviourList => _behaviourList ??= new();
     public static Dictionary<int, CategoryHeaderMasked> CategoryHeaderList => _categoryHeaderList ??= new();
 }
@@ -133,7 +133,7 @@ public static class GameOptionsMenuPatch
             
             TextOptionItem header = null;
 
-            const int frameBudget = 5; // milliseconds
+            const int frameBudget = 10; // milliseconds
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             foreach (var option in OptionItem.AllOptions)
@@ -208,10 +208,6 @@ public static class GameOptionsMenuPatch
                     Main.Instance.Log.LogInfo($"GameOptionsMenuPatch.CreateSettingsPrefix: Failed to create OptionBehaviour for option '{option.Name}'. Exception: {e}");
                     continue;
                 }
-
-                var customBehaviour = optionBehaviour.gameObject.AddComponent<CustomOptionBehaviour>();
-                customBehaviour.item = option;
-
                 optionBehaviour.transform.localPosition = new(posX, num, posZ);
                 OptionBehaviourSetSizeAndPosition(optionBehaviour, option, baseGameSetting.Type);
 
@@ -221,7 +217,7 @@ public static class GameOptionsMenuPatch
                 optionBehaviour.transform.localPosition = new(0.952f, num, -2f);
                 optionBehaviour.SetClickMask(__instance.ButtonClickMask);
                 optionBehaviour.SetUpFromData(baseGameSetting, 20);
-                ModGameOptionsMenu.OptionList.TryAdd(optionBehaviour, option.Id);
+                ModGameOptionsMenu.OptionList.TryAdd(optionBehaviour.GetHashCode(), option.Id);
                 ModGameOptionsMenu.BehaviourList.TryAdd(option.Id, optionBehaviour);
                 optionBehaviour.gameObject.SetActive(enabled);
                 optionBehaviour.OnValueChanged = new Action<OptionBehaviour>(__instance.ValueChanged);
