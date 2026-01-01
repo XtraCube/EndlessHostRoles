@@ -89,7 +89,7 @@ internal static class ExtendedPlayerControl
         {
             case CustomGameMode.RoomRush:
                 return true;
-            case CustomGameMode.Standard when Options.DisableVentingOn1v1.GetBool() && Main.AllAlivePlayerControls.Length == 2 && player.GetRoleTypes() != RoleTypes.Engineer:
+            case CustomGameMode.Standard when Options.DisableVentingOn1v1.GetBool() && Main.AllAlivePlayerControls.Count == 2 && player.GetRoleTypes() != RoleTypes.Engineer:
                 return false;
             case CustomGameMode.StopAndGo:
                 return StopAndGo.IsEventActive && StopAndGo.Event.Type == StopAndGo.Events.VentAccess;
@@ -106,25 +106,56 @@ internal static class ExtendedPlayerControl
     // Next 2: https://github.com/Rabek009/MoreGamemodes/blob/master/Modules/ExtendedPlayerControl.cs
     public static Vent GetClosestVent(this PlayerControl player)
     {
+        if (ShipStatus.Instance?.AllVents == null)
+        {
+            return null;
+        }
+
         Vector2 pos = player.Pos();
-        return ShipStatus.Instance?.AllVents?.Where(x => x != null).MinBy(x => Vector2.Distance(pos, x.transform.position));
+        Vent closest = null;
+
+        foreach (var vent in ShipStatus.Instance.AllVents)
+        {
+            if (closest == null || Vector2.Distance(pos, vent.transform.position) < Vector2.Distance(pos, closest.transform.position))
+                closest = vent;
+        }
+
+        return closest;
     }
+
+    private static readonly List<Vent> ResultBuffer = [];
 
     public static List<Vent> GetVentsFromClosest(this PlayerControl player)
     {
-        Vector2 playerpos = player.Pos();
-        List<Vent> vents = ShipStatus.Instance.AllVents.ToList();
-        vents.Sort((v1, v2) => Vector2.Distance(playerpos, v1.transform.position).CompareTo(Vector2.Distance(playerpos, v2.transform.position)));
+        var allVents = ShipStatus.Instance?.AllVents;
+        if (allVents == null) return [];
 
-        if ((player.walkingToVent || player.inVent) && vents[0] != null)
+        ResultBuffer.Clear();
+        ResultBuffer.AddRange(allVents);
+
+        Vector2 playerpos = player.Pos();
+        ResultBuffer.Sort((v1, v2) => 
+            Vector2.Distance(playerpos, v1.transform.position)
+                .CompareTo(Vector2.Distance(playerpos, v2.transform.position)));
+
+        if ((player.walkingToVent || player.inVent) && ResultBuffer.Count > 0 && ResultBuffer[0] != null)
         {
-            List<Vent> nextvents = vents[0].NearbyVents.ToList();
-            nextvents.RemoveAll(v => v == null);
-            nextvents.ForEach(v => vents.Remove(v));
-            vents.InsertRange(0, nextvents);
+            var nearbyVents = ResultBuffer[0].NearbyVents;
+            if (nearbyVents != null)
+            {
+                for (int i = nearbyVents.Length - 1; i >= 0; i--)
+                {
+                    var v = nearbyVents[i];
+                    if (v != null)
+                    {
+                        ResultBuffer.Remove(v);
+                        ResultBuffer.Insert(0, v);
+                    }
+                }
+            }
         }
 
-        return vents;
+        return ResultBuffer;
     }
     
     // Next 2 from https://github.com/Rabek009/MoreGamemodes/blob/master/Roles/Impostor/Concealing/Droner.cs
@@ -1764,7 +1795,7 @@ internal static class ExtendedPlayerControl
             CustomRoles.BedWarsPlayer => 1f,
             CustomRoles.Racer => 3f,
             CustomRoles.SnowdownPlayer => 1f,
-            _ when player.Is(CustomRoles.Underdog) => Main.AllAlivePlayerControls.Length <= Underdog.UnderdogMaximumPlayersNeededToKill.GetInt() ? Underdog.UnderdogKillCooldownWithLessPlayersAlive.GetInt() : Underdog.UnderdogKillCooldownWithMorePlayersAlive.GetInt(),
+            _ when player.Is(CustomRoles.Underdog) => Main.AllAlivePlayerControls.Count <= Underdog.UnderdogMaximumPlayersNeededToKill.GetInt() ? Underdog.UnderdogKillCooldownWithLessPlayersAlive.GetInt() : Underdog.UnderdogKillCooldownWithMorePlayersAlive.GetInt(),
             _ => Main.AllPlayerKillCooldown[player.PlayerId]
         };
 
@@ -2272,7 +2303,12 @@ internal static class ExtendedPlayerControl
 
     public static bool IsConverted(this PlayerControl target)
     {
-        return target.GetCustomSubRoles().Any(x => x.IsConverted());
+        foreach (var subRole in target.GetCustomSubRoles())
+        {
+            if (subRole.IsConverted()) return true;
+        }
+        
+        return false;
     }
 
     public static bool IsAlive(this PlayerControl target)

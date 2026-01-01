@@ -1403,7 +1403,7 @@ internal static class ChatCommands
         DraftResult = [];
 
         byte[] allPlayerIds = Main.AllPlayerControls.Select(x => x.PlayerId).ToArray();
-        List<CustomRoles> allRoles = Enum.GetValues<CustomRoles>().Where(x => x < CustomRoles.NotAssigned && x.IsEnable() && !x.IsForOtherGameMode() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsVanilla() && x is not CustomRoles.GM).ToList();
+        List<CustomRoles> allRoles = Main.CustomRoleValues.Where(x => x < CustomRoles.NotAssigned && x.IsEnable() && !x.IsForOtherGameMode() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsVanilla() && x is not CustomRoles.GM).ToList();
 
         if (allRoles.Count < allPlayerIds.Length)
         {
@@ -2011,7 +2011,7 @@ internal static class ChatCommands
         string subArgs = text.Remove(0, 8);
         string setRole = FixRoleNameInput(subArgs.Trim());
 
-        foreach (CustomRoles rl in Enum.GetValues<CustomRoles>())
+        foreach (CustomRoles rl in Main.CustomRoleValues)
         {
             if (rl.IsVanilla()) continue;
 
@@ -2768,7 +2768,7 @@ internal static class ChatCommands
             return;
         }
 
-        if (GameStates.IsLobby || !Options.EnableKillerLeftCommand.GetBool() || Main.AllAlivePlayerControls.Length < Options.MinPlayersForGameStateCommand.GetInt())
+        if (GameStates.IsLobby || !Options.EnableKillerLeftCommand.GetBool() || Main.AllAlivePlayerControls.Count < Options.MinPlayersForGameStateCommand.GetInt())
         {
             Utils.SendMessage(GetString("Message.CommandUnavailable"), player.PlayerId, sendOption: SendOption.None);
             return;
@@ -3461,7 +3461,7 @@ internal static class ChatCommands
         
         string nameWithoutId = Regex.Replace(name.Replace(" ", string.Empty), @"^\d+", string.Empty);
 
-        foreach (CustomRoles rl in Enum.GetValues<CustomRoles>())
+        foreach (CustomRoles rl in Main.CustomRoleValues)
         {
             if (rl.IsVanilla()) continue;
             
@@ -3500,7 +3500,7 @@ internal static class ChatCommands
 
         role = FixRoleNameInput(role).ToLower().Trim().Replace(" ", string.Empty);
 
-        foreach (CustomRoles rl in Enum.GetValues<CustomRoles>())
+        foreach (CustomRoles rl in Main.CustomRoleValues)
         {
             if (rl.IsVanilla()) continue;
 

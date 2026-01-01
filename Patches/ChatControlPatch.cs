@@ -223,8 +223,8 @@ public static class ChatManager
 
         Logger.Info(" Sending Previous Messages To Everyone", "ChatManager");
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
-        if (aapc.Length == 0) return;
+        var aapc = Main.AllAlivePlayerControls;
+        if (aapc.Count == 0) return;
 
         string[] filtered = ChatHistory.Where(a => Utils.GetPlayerById(Convert.ToByte(a.Split(':')[0].Trim())).IsAlive()).ToArray();
         ChatController chat = HudManager.Instance.Chat;
@@ -277,6 +277,30 @@ public static class ChatManager
         if (player == null) return;
 
         if (targets.Length == 0 || targets.Length == PlayerControl.AllPlayerControls.Count) SendEmptyMessage(null);
+        else targets.Do(SendEmptyMessage);
+        return;
+
+        void SendEmptyMessage(PlayerControl receiver)
+        {
+            bool toEveryone = receiver == null;
+            bool toLocalPlayer = !toEveryone && receiver.AmOwner;
+            if (HudManager.InstanceExists && (toLocalPlayer || toEveryone)) HudManager.Instance.Chat.AddChat(player, "<size=32767>.");
+            if (toLocalPlayer) return;
+            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SendChat, SendOption.Reliable, toEveryone ? -1 : receiver.OwnerId);
+            writer.Write("<size=32767>.");
+            writer.Write(true);
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
+        }
+    }
+
+    // Base from https://github.com/Rabek009/MoreGamemodes/blob/master/Modules/Utils.cs
+    public static void ClearChat(IReadOnlyList<PlayerControl> targets)
+    {
+        if (!AmongUsClient.Instance.AmHost) return;
+        PlayerControl player = Main.AllAlivePlayerControls.MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+        if (player == null) return;
+
+        if (targets.Count == 0 || targets.Count == PlayerControl.AllPlayerControls.Count) SendEmptyMessage(null);
         else targets.Do(SendEmptyMessage);
         return;
 

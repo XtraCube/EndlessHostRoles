@@ -141,7 +141,7 @@ internal static class FreeForAll
 
         PlayerTeams = [];
 
-        PlayerControl[] allPlayers = Main.AllAlivePlayerControls;
+        var allPlayers = Main.AllAlivePlayerControls;
         if (Main.GM.Value && AmongUsClient.Instance.AmHost) allPlayers = allPlayers.Without(PlayerControl.LocalPlayer).ToArray();
         allPlayers = allPlayers.ExceptBy(ChatCommands.Spectators, x => x.PlayerId).ToArray();
 
@@ -201,7 +201,7 @@ internal static class FreeForAll
                 return;
             }
 
-            int totalalive = Main.AllAlivePlayerControls.Length;
+            int totalalive = Main.AllAlivePlayerControls.Count;
 
             if (FFAShieldedList.TryGetValue(target.PlayerId, out long dur))
             {
@@ -354,7 +354,7 @@ internal static class FreeForAll
 
     public static string GetPlayerArrow(PlayerControl seer, PlayerControl target = null)
     {
-        if (GameStates.IsMeeting || target != null && seer.PlayerId != target.PlayerId || Main.AllAlivePlayerControls.Length != 2) return string.Empty;
+        if (GameStates.IsMeeting || target != null && seer.PlayerId != target.PlayerId || Main.AllAlivePlayerControls.Count != 2) return string.Empty;
 
         PlayerControl otherPlayer = Main.AllAlivePlayerControls.FirstOrDefault(pc => pc.IsAlive() && pc.PlayerId != seer.PlayerId);
         if (otherPlayer == null) return string.Empty;

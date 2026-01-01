@@ -171,7 +171,7 @@ internal class Arsonist : RoleBase
 
                     physics.myPlayer.KillFlash();
 
-                    int apc = Main.AllAlivePlayerControls.Length;
+                    int apc = Main.AllAlivePlayerControls.Count;
 
                     switch (apc)
                     {

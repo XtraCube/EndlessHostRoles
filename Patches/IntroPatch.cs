@@ -1144,9 +1144,9 @@ internal static class IntroCutsceneDestroyPatch
         {
             Main.AllPlayerControls.DoIf(x => x.Is(CustomRoles.NotAssigned) && ((x.AmOwner && Main.GM.Value) || ChatCommands.Spectators.Contains(x.PlayerId)), x => x.RpcSetCustomRole(CustomRoles.GM));
             
-            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls;
 
-            Utils.NumSnapToCallsThisRound = aapc.Length;
+            Utils.NumSnapToCallsThisRound = aapc.Count;
             
             if (Main.NormalOptions.MapId != 4)
             {

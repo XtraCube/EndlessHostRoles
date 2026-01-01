@@ -173,7 +173,7 @@ internal class Bomber : RoleBase
 
         LateTask.New(() =>
         {
-            int totalAlive = Main.AllAlivePlayerControls.Length;
+            int totalAlive = Main.AllAlivePlayerControls.Count;
 
             if (BomberDiesInExplosion.GetBool() && totalAlive > 1 && !GameStates.IsEnded)
                 pc.Suicide(PlayerState.DeathReason.Bombed);

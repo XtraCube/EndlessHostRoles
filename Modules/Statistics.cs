@@ -23,7 +23,7 @@ public static class Statistics
         try
         {
             PlayerControl[] apc = Main.AllPlayerControls;
-            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls;
 
             WinCountsForOutro = string.Empty;
 
@@ -127,7 +127,7 @@ public static class Statistics
             if (Main.PlayerStates.Values.Count(x => x.GetRealKiller() == lp.PlayerId) >= 7)
                 Achievements.Type.TheKillingMachine2Point0.CompleteAfterGameEnd();
 
-            if (won && lp.IsCrewmate() && aapc.Length == 1 && lp.IsAlive())
+            if (won && lp.IsCrewmate() && aapc.Count == 1 && lp.IsAlive())
                 Achievements.Type.TheLastSurvivor.CompleteAfterGameEnd();
 
             if (addons.Contains(CustomRoles.Spurt) && Spurt.LocalPlayerAvoidsZeroAndOneHundredPrecent)
@@ -275,9 +275,9 @@ public static class Statistics
             {
                 if (GameStates.IsEnded) return;
 
-                PlayerControl[] aapc = Main.AllAlivePlayerControls;
+                var aapc = Main.AllAlivePlayerControls;
 
-                if (aapc.Length == 2 && lp.IsAlive() && aapc.All(x => x.IsNeutralKiller() || x.IsImpostor()))
+                if (aapc.Count == 2 && lp.IsAlive() && aapc.All(x => x.IsNeutralKiller() || x.IsImpostor()))
                     Achievements.Type.Duel.Complete();
             }, 12f, log: false);
         }

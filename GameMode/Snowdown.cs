@@ -168,9 +168,9 @@ public static class Snowdown
     {
         reason = GameOverReason.ImpostorsByKill;
         if (GameStates.IsEnded || !Main.IntroDestroyed) return false;
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
+        var aapc = Main.AllAlivePlayerControls;
 
-        switch (aapc.Length)
+        switch (aapc.Count)
         {
             case 1:
             {

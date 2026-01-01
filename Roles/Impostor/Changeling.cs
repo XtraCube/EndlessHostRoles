@@ -41,7 +41,7 @@ internal class Changeling : RoleBase
     {
         try
         {
-            CustomRoles[] allRoles = Enum.GetValues<CustomRoles>();
+            CustomRoles[] allRoles = Main.CustomRoleValues;
 
             IEnumerable<CustomRoles> result = AvailableRoles.GetValue() switch
             {

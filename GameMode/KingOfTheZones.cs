@@ -300,8 +300,8 @@ public static class KingOfTheZones
 
         yield return new WaitForSecondsRealtime(3f);
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
-        bool showTutorial = aapc.ExceptBy(PlayedFCs, x => x.FriendCode).Count() > aapc.Length / 2;
+        var aapc = Main.AllAlivePlayerControls;
+        bool showTutorial = aapc.ExceptBy(PlayedFCs, x => x.FriendCode).Count() > aapc.Count / 2;
         NameNotifyManager.Reset();
 
         int teams = NumTeams.GetInt();

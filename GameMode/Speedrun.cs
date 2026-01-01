@@ -101,7 +101,7 @@ public static class Speedrun
         if (!pc.IsAlive()) return string.Empty;
 
         int time = Timers[pc.PlayerId];
-        int alive = Main.AllAlivePlayerControls.Length;
+        int alive = Main.AllAlivePlayerControls.Count;
         int apc = Main.AllPlayerControls.Length;
         int killers = CanKill.Count;
 
@@ -115,7 +115,7 @@ public static class Speedrun
 
     public static bool CheckForGameEnd(out GameOverReason reason)
     {
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
+        var aapc = Main.AllAlivePlayerControls;
 
         if (TaskFinishWins.GetBool())
         {
@@ -129,7 +129,7 @@ public static class Speedrun
             }
         }
 
-        switch (aapc.Length)
+        switch (aapc.Count)
         {
             case 1:
                 CustomWinnerHolder.WinnerIds = [aapc[0].PlayerId];
@@ -187,9 +187,9 @@ public static class Speedrun
 
             CanKill.RemoveWhere(x => x.GetPlayer() == null || !x.GetPlayer().IsAlive());
 
-            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls;
 
-            switch (Arrow, aapc.Length == 2)
+            switch (Arrow, aapc.Count == 2)
             {
                 case (false, true):
                 {

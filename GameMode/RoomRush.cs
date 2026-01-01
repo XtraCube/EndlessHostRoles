@@ -211,12 +211,12 @@ public static class RoomRush
 
         yield return new WaitForSeconds(Main.CurrentMap == MapNames.Airship ? 8f : 3f);
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
+        var aapc = Main.AllAlivePlayerControls;
         aapc.Do(x => x.RpcSetCustomRole(CustomRoles.RRPlayer));
 
-        PointsToWinValue = PointsToWin.GetInt() * aapc.Length;
+        PointsToWinValue = PointsToWin.GetInt() * aapc.Count;
 
-        bool showTutorial = aapc.ExceptBy(HasPlayedFriendCodes, x => x.FriendCode).Count() > aapc.Length / 2;
+        bool showTutorial = aapc.ExceptBy(HasPlayedFriendCodes, x => x.FriendCode).Count() > aapc.Count / 2;
 
         if (showTutorial)
         {
@@ -461,7 +461,7 @@ public static class RoomRush
         switch (reader.ReadPackedInt32())
         {
             case 1:
-                PointsToWinValue = PointsToWin.GetInt() * Main.AllAlivePlayerControls.Length;
+                PointsToWinValue = PointsToWin.GetInt() * Main.AllAlivePlayerControls.Count;
                 int ventLimit = VentTimes.GetInt();
                 VentLimit = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => ventLimit);
                 if (WinByPointsInsteadOfDeaths.GetBool()) Points = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => 0);
@@ -495,7 +495,7 @@ public static class RoomRush
             if (!GameGoing || Main.HasJustStarted || Options.CurrentGameMode != CustomGameMode.RoomRush || !AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || GameStates.IsEnded || !Main.IntroDestroyed) return;
 
             long now = Utils.TimeStamp;
-            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls;
 
             if (WinByPointsInsteadOfDeaths.GetBool())
             {
@@ -522,7 +522,7 @@ public static class RoomRush
                     if (pc.AmOwner) Utils.DirtyName.Add(pc.PlayerId);
 
                     if (WinByPointsInsteadOfDeaths.GetBool())
-                        Points[pc.PlayerId] += aapc.Length == 1 ? 1 : aapc.Length - DonePlayers.Count;
+                        Points[pc.PlayerId] += aapc.Count == 1 ? 1 : aapc.Count - DonePlayers.Count;
 
                     int setTo = TimeWhenFirstTwoPlayersEnterRoom.GetInt();
                     long remaining = TimeLimitEndTS - now;
@@ -533,11 +533,11 @@ public static class RoomRush
                         TimeLimitEndTS = now + setTo;
                         LastUpdate = now;
 
-                        if (aapc.Length == 2 && pc.AmOwner)
+                        if (aapc.Count == 2 && pc.AmOwner)
                             Achievements.Type.WheresTheBlueShell.CompleteAfterGameEnd();
                     }
 
-                    if (DonePlayers.Count == aapc.Length - 1 && !DontKillLastPlayer.GetBool())
+                    if (DonePlayers.Count == aapc.Count - 1 && !DontKillLastPlayer.GetBool())
                     {
                         PlayerControl last = aapc.First(x => !DonePlayers.Contains(x.PlayerId));
                         Logger.Info($"All players entered the correct room except one, killing the last player ({last.GetRealName()})", "RoomRush");
@@ -551,7 +551,7 @@ public static class RoomRush
                     }
                 }
                 else if (!isInRoom && !DontKillPlayersOutsideRoomWhenTimeRunsOut.GetBool() && DonePlayers.Remove(pc.PlayerId) && WinByPointsInsteadOfDeaths.GetBool())
-                    Points[pc.PlayerId] -= aapc.Length - DonePlayers.Count;
+                    Points[pc.PlayerId] -= aapc.Count - DonePlayers.Count;
             }
 
             if (LastUpdate != now)
@@ -563,9 +563,9 @@ public static class RoomRush
             if (TimeLimitEndTS > now) return;
 
             Logger.Info("Time is up, killing everyone who didn't enter the correct room", "RoomRush");
-            PlayerControl[] lateAapc = Main.AllAlivePlayerControls;
+            var lateAapc = Main.AllAlivePlayerControls;
             PlayerControl[] playersOutsideRoom = lateAapc.ExceptBy(DonePlayers, x => x.PlayerId).ToArray();
-            bool everyoneDies = playersOutsideRoom.Length == lateAapc.Length;
+            bool everyoneDies = playersOutsideRoom.Length == lateAapc.Count;
 
             if (WinByPointsInsteadOfDeaths.GetBool())
             {

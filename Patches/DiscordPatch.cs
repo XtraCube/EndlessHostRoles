@@ -7,9 +7,7 @@ namespace EHR.Patches;
 
 // Originally from "Town of Us Rewritten", by Det
 
-#if !ANDROID
 [HarmonyPatch(typeof(ActivityManager), nameof(ActivityManager.UpdateActivity))]
-#endif
 public static class DiscordRPC
 {
     private static string Lobbycode = "";

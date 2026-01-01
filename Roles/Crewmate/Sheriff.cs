@@ -66,7 +66,7 @@ public class Sheriff : RoleBase
 
     private static void SetUpNeutralOptions(int id)
     {
-        foreach (CustomRoles neutral in Enum.GetValues<CustomRoles>())
+        foreach (CustomRoles neutral in Main.CustomRoleValues)
         {
             if (neutral.IsNeutral() && neutral is not CustomRoles.Pestilence and not CustomRoles.GM and not CustomRoles.Convict && !neutral.IsForOtherGameMode())
             {

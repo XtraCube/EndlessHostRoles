@@ -23,11 +23,11 @@ public static class AntiBlackout
         SkipTasks = true;
         CachedRoleMap = StartGameHostPatch.RpcSetRoleReplacer.RoleMap.ToDictionary(x => (x.Key.SeerID, x.Key.TargetID), x => (x.Value.RoleType, x.Value.CustomRole));
 
-        PlayerControl[] players = Main.AllAlivePlayerControls;
+        var players = Main.AllAlivePlayerControls;
         if (CheckForEndVotingPatch.TempExiledPlayer != null) players = players.Where(x => x.PlayerId != CheckForEndVotingPatch.TempExiledPlayer.PlayerId).ToArray();
         PlayerControl dummyImp = players.OrderByDescending(x => x.GetRoleMap().RoleType != RoleTypes.Detective).ThenByDescending(x => x.IsModdedClient()).MinBy(x => x.PlayerId);
 
-        if (players.Length == 2)
+        if (players.Count == 2)
         {
             // There are only 2 players alive. We need to revive 1 dead player to have 2 living crewmates.
             PlayerControl revived = Main.AllPlayerControls.Where(x => !x.IsAlive() && !x.Data.Disconnected && x != CheckForEndVotingPatch.TempExiledPlayer?.Object).MaxBy(x => x.PlayerId);

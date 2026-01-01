@@ -269,7 +269,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.AddonAssign:
                 {
-                    CustomRoles[] addons = Enum.GetValues<CustomRoles>().Where(x => x.IsAdditionRole() && x != CustomRoles.NotAssigned).ToArray();
+                    CustomRoles[] addons = Main.CustomRoleValues.Where(x => x.IsAdditionRole() && x != CustomRoles.NotAssigned).ToArray();
                     PlayerControl pc = PickRandomPlayer();
                     CustomRoles addon = addons.RandomElement();
                     if (Main.PlayerStates[pc.PlayerId].SubRoles.Contains(addon)) break;
@@ -554,8 +554,8 @@ internal class Randomizer : RoleBase
 
     public static PlayerControl PickRandomPlayer()
     {
-        PlayerControl[] allPc = Main.AllAlivePlayerControls;
-        if (allPc.Length == 0) return null;
+        var allPc = Main.AllAlivePlayerControls;
+        if (allPc.Count == 0) return null;
 
         PlayerControl pc = allPc.RandomElement();
         return pc;

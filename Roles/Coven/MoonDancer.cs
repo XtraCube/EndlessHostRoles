@@ -109,7 +109,7 @@ public class MoonDancer : Coven
 
     public override bool OnVanish(PlayerControl pc)
     {
-        CustomRoles addon = Enum.GetValues<CustomRoles>().Where(x => x.IsAdditionRole() && !x.IsGhostRole() && !pc.Is(x) && !x.IsNotAssignableMidGame() && !x.IsConverted()).RandomElement();
+        CustomRoles addon = Main.CustomRoleValues.Where(x => x.IsAdditionRole() && !x.IsGhostRole() && !pc.Is(x) && !x.IsNotAssignableMidGame() && !x.IsConverted()).RandomElement();
         if (addon == default(CustomRoles)) return false;
         pc.RpcSetCustomRole(addon);
         return false;

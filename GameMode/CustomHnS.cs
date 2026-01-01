@@ -354,10 +354,10 @@ internal static class CustomHnS
     {
         reason = GameOverReason.ImpostorsByKill;
 
-        PlayerControl[] alivePlayers = Main.AllAlivePlayerControls;
+        var alivePlayers = Main.AllAlivePlayerControls;
 
         // If there are 0 players alive, the game is over and only foxes win
-        if (alivePlayers.Length == 0)
+        if (alivePlayers.Count == 0)
         {
             reason = GameOverReason.CrewmateDisconnect;
             CustomWinnerHolder.ResetAndSetWinner(CustomWinner.None);

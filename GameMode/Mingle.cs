@@ -104,9 +104,9 @@ public static class Mingle
     {
         reason = GameOverReason.ImpostorsByKill;
         if (GameStates.IsEnded || !GameGoing || TimeEndTS > Utils.TimeStamp) return false;
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
+        var aapc = Main.AllAlivePlayerControls;
 
-        switch (aapc.Length)
+        switch (aapc.Count)
         {
             case 1:
                 PlayerControl winner = aapc[0];
@@ -269,7 +269,7 @@ public static class Mingle
         if (GameStates.IsEnded) return;
 
         RequiredPlayerCount = [];
-        int playerCount = Main.AllAlivePlayerControls.Length;
+        int playerCount = Main.AllAlivePlayerControls.Count;
         bool last2 = playerCount <= 2;
 
         while (playerCount > 0)
@@ -313,7 +313,7 @@ public static class Mingle
             case 0:
                 Time = Math.Max(Time - TimeDecreaseOnNoDeath, MinTime);
                 break;
-            case var x when x == aapc.Length:
+            case var x when x == aapc.Count:
                 Main.AllPlayerSpeed.SetAllValues(Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod));
                 Main.PlayerStates.Values.DoIf(s => !s.IsDead, s => s.RealKiller.TimeStamp = DateTime.Now);
                 CustomWinnerHolder.ResetAndSetWinner(CustomWinner.None);

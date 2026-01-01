@@ -228,47 +228,69 @@ public class Main : BasePlugin
     public static ConfigEntry<float> LastShapeshifterCooldown { get; private set; }
     public static bool IsFixedCooldown => CustomRoles.Vampire.IsEnable() || CustomRoles.Poisoner.IsEnable();
 
+    public static readonly CustomRoles[] CustomRoleValues = Enum.GetValues<CustomRoles>();
+
+    private static PlayerControl[] _allPlayerControlsCache = new PlayerControl[byte.MaxValue];
+
     public static PlayerControl[] AllPlayerControls
     {
         get
         {
-            int count = PlayerControl.AllPlayerControls.Count;
-            var result = new PlayerControl[count];
-            var i = 0;
+            var allPlayers = PlayerControl.AllPlayerControls;
+            int count = allPlayers.Count;
 
-            foreach (PlayerControl pc in PlayerControl.AllPlayerControls)
+            if (_allPlayerControlsCache.Length < count)
+                _allPlayerControlsCache = new PlayerControl[count];
+
+            int i = 0;
+            foreach (PlayerControl pc in allPlayers)
             {
                 if (pc == null || pc.PlayerId >= 254) continue;
-
-                result[i++] = pc;
+                _allPlayerControlsCache[i++] = pc;
             }
 
             if (i == 0) return [];
 
-            Array.Resize(ref result, i);
+            // Only resize if needed, reuses existing array otherwise
+            if (i == _allPlayerControlsCache.Length)
+                return _allPlayerControlsCache;
+
+            var result = new PlayerControl[i];
+            Array.Copy(_allPlayerControlsCache, result, i);
             return result;
         }
     }
 
-    public static PlayerControl[] AllAlivePlayerControls
+    public static IEnumerable<PlayerControl> EnumerateAlivePlayerControls()
+    {
+        foreach (PlayerControl pc in PlayerControl.AllPlayerControls)
+        {
+            if (pc == null || pc.PlayerId >= 254 || !pc.IsAlive() || pc.Data == null || 
+                (pc.Data.Disconnected && IntroDestroyed) || Pelican.IsEaten(pc.PlayerId)) 
+                continue;
+    
+            yield return pc;
+        }
+    }
+
+    private static readonly List<PlayerControl> AlivePlayerControlsCache = new(byte.MaxValue);
+
+    public static IReadOnlyList<PlayerControl> AllAlivePlayerControls
     {
         get
         {
-            int count = PlayerControl.AllPlayerControls.Count;
-            var result = new PlayerControl[count];
-            var i = 0;
+            AlivePlayerControlsCache.Clear();
 
             foreach (PlayerControl pc in PlayerControl.AllPlayerControls)
             {
-                if (pc == null || pc.PlayerId >= 254 || !pc.IsAlive() || pc.Data == null || (pc.Data.Disconnected && IntroDestroyed) || Pelican.IsEaten(pc.PlayerId) || pc.Is(CustomRoles.GM)) continue;
+                if (pc == null || pc.PlayerId >= 254 || !pc.IsAlive() || pc.Data == null || 
+                    (pc.Data.Disconnected && IntroDestroyed) || Pelican.IsEaten(pc.PlayerId)) 
+                    continue;
 
-                result[i++] = pc;
+                AlivePlayerControlsCache.Add(pc);
             }
 
-            if (i == 0) return [];
-
-            Array.Resize(ref result, i);
-            return result;
+            return AlivePlayerControlsCache;
         }
     }
 
@@ -798,7 +820,7 @@ public class Main : BasePlugin
                 { CustomRoles.Taskinator, "#561dd1" }
             };
 
-            CustomRoles[] allRoles = Enum.GetValues<CustomRoles>();
+            CustomRoles[] allRoles = Main.CustomRoleValues;
             allRoles.Where(x => x.GetCustomRoleTypes() == CustomRoleTypes.Impostor).Do(x => RoleColors.TryAdd(x, ImpostorColor));
             allRoles.Where(x => x.IsCoven() || x == CustomRoles.Entranced).Do(x => RoleColors.TryAdd(x, CovenColor));
         }
@@ -812,7 +834,7 @@ public class Main : BasePlugin
 
         CustomWinnerHolder.Reset();
         Translator.Init();
-        // BanManager.Init();
+        BanManager.Init();
         TemplateManager.Init();
         SpamManager.Init();
 

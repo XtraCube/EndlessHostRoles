@@ -28,7 +28,7 @@ public class DoubleAgent : RoleBase
     public override void Add(byte playerId)
     {
         On = true;
-        ShownRoles[playerId] = Enum.GetValues<CustomRoles>().Where(x => x is not CustomRoles.DoubleAgent and not CustomRoles.LovingImpostor && x.IsImpostor() && !x.IsVanilla() && !x.IsForOtherGameMode() && x.GetMode() != 0).RandomElement();
+        ShownRoles[playerId] = Main.CustomRoleValues.Where(x => x is not CustomRoles.DoubleAgent and not CustomRoles.LovingImpostor && x.IsImpostor() && !x.IsVanilla() && !x.IsForOtherGameMode() && x.GetMode() != 0).RandomElement();
     }
 
     public override string GetProgressText(byte playerId, bool comms)

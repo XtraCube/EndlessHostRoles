@@ -227,7 +227,7 @@ internal class QuizMaster : RoleBase
         List<int> indexes = abc ? allowedABCIndexes : allowedIndexes;
         int index = indexes.RandomElement();
 
-        CustomRoles randomRole = Enum.GetValues<CustomRoles>().Where(x => x.IsEnable() && !x.IsAdditionRole() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsForOtherGameMode()).RandomElement();
+        CustomRoles randomRole = Main.CustomRoleValues.Where(x => x.IsEnable() && !x.IsAdditionRole() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsForOtherGameMode()).RandomElement();
 
         string title = index switch
         {

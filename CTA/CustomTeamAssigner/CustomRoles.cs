@@ -427,19 +427,19 @@ public enum CustomRoles
     VoodooMaster,
     Wyrd,
 
-    // Solo PVP
+    // Solo Kombat
     Challenger,
 
     // FFA
     Killer,
 
-    // Stop And Go
+    // Move And Stop
     Tasker,
 
     // Hot Potato
     Potato,
 
-    // Hide And Seek
+    // H&S
     Hider,
     Seeker,
     Fox,

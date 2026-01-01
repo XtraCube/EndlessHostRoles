@@ -703,7 +703,7 @@ internal static class CustomRolesHelper
 
     public static bool IsGhostRole(this CustomRoles role)
     {
-        return role == CustomRoles.EvilSpirit || GhostRolesManager.CreateGhostRoleInstance(role, true) != null;
+        return role == CustomRoles.EvilSpirit || GhostRolesManager.GhostRoleTypes.ContainsKey(role);
     }
 
     public static bool IsImpostor(this CustomRoles role)

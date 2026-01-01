@@ -29,7 +29,7 @@ public class Investigator : RoleBase
 
     public static bool On;
 
-    private static CustomRoles[] RandomRolesForTrickster => Enum.GetValues<CustomRoles>().Where(x => x.IsCrewmate()).ToArray();
+    private static CustomRoles[] RandomRolesForTrickster => Main.CustomRoleValues.Where(x => x.IsCrewmate()).ToArray();
     public override bool IsEnable => On;
 
     public override void SetupCustomOption()

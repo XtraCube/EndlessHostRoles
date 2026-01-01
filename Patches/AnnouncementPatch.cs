@@ -76,9 +76,7 @@ public static class ModNewsFetcher
     }
 }
 
-#if !ANDROID
 [HarmonyPatch]
-#endif
 public static class ModNewsHistory
 {
     public static List<ModNews> AllModNews = [];

@@ -954,7 +954,7 @@ public static class GuessManager
                 CreatePage(true, __instance, container);
             }
 
-            foreach (CustomRoles role in Enum.GetValues<CustomRoles>())
+            foreach (CustomRoles role in Main.CustomRoleValues)
             {
                 if (!ShowRoleOnUI(role)) continue;
 
@@ -1247,7 +1247,7 @@ public static class GuessManager
                         }
 
                         CurrentTeam = Enum.Parse<CustomRoleTypes>(display, true);
-                        ShownRoles = Enum.GetValues<CustomRoles>().Where(x => x.GetCustomRoleTypes() == CurrentTeam && ShowRoleOnUI(x)).ToArray();
+                        ShownRoles = Main.CustomRoleValues.Where(x => x.GetCustomRoleTypes() == CurrentTeam && ShowRoleOnUI(x)).ToArray();
                         CurrentState = State.FirstLetterSelection;
                         SpawnCNOs();
                         break;
@@ -1352,8 +1352,8 @@ public static class GuessManager
                 namePlateIds = namePlateIds.Prepend("nameplate_candyCanePlate");
 
                 (string choice, string namePlateId)[] data = choices.Zip(namePlateIds, (choice, namePlateId) => (choice, namePlateId)).ToArray();
-                PlayerControl[] alivePlayerControls = Main.AllAlivePlayerControls;
-                int alivePlayerControlsLength = alivePlayerControls.Length - 1;
+                var alivePlayerControls = Main.AllAlivePlayerControls;
+                int alivePlayerControlsLength = alivePlayerControls.Count - 1;
 
                 Logger.Info($"Set Up Meeting Shapeshift Menu For Guessing ({Main.AllPlayerNames.GetValueOrDefault(guesserId, "Someone")}, {CurrentState})", "Meeting Shapeshift For Guessing");
 
@@ -1370,7 +1370,7 @@ public static class GuessManager
                 writer.Write(AmongUsClient.Instance.GameId);
                 writer.WritePacked(guesser.OwnerId);
 
-                for (var i = 0; i < alivePlayerControls.Length && (skipped ? i - 1 : i) < data.Length; i++)
+                for (var i = 0; i < alivePlayerControls.Count && (skipped ? i - 1 : i) < data.Length; i++)
                 {
                     string choice = data[skipped ? i - 1 : i].choice;
                     string namePlateId = data[skipped ? i - 1 : i].namePlateId;

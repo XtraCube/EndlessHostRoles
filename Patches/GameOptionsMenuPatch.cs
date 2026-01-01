@@ -742,7 +742,7 @@ public static class StringOptionPatch
         item.OptionBehaviour = __instance;
         string name1 = name;
 
-        if (Enum.GetValues<CustomRoles>().FindFirst(x => Translator.GetString($"{x}") == name1.RemoveHtmlTags(), out CustomRoles role))
+        if (Main.CustomRoleValues.FindFirst(x => Translator.GetString($"{x}") == name1.RemoveHtmlTags(), out CustomRoles role))
         {
             if (role.ToString().Contains("GuardianAngel")) role = CustomRoles.GA;
 
@@ -794,7 +794,7 @@ public static class StringOptionPatch
             
             string name = item.GetName();
 
-            if (Enum.GetValues<CustomRoles>().FindFirst(x => Translator.GetString($"{x}") == name.RemoveHtmlTags(), out CustomRoles value))
+            if (Main.CustomRoleValues.FindFirst(x => Translator.GetString($"{x}") == name.RemoveHtmlTags(), out CustomRoles value))
             {
                 string roleName = value.IsVanilla() ? value + "EHR" : value.ToString();
                 string str = Translator.GetString($"{roleName}InfoLong").FixRoleName(value);
@@ -882,7 +882,7 @@ public static class StringOptionPatch
 
         string name1 = name;
 
-        if (Enum.GetValues<CustomRoles>().FindFirst(x => Translator.GetString($"{x}") == name1.RemoveHtmlTags(), out CustomRoles role))
+        if (Main.CustomRoleValues.FindFirst(x => Translator.GetString($"{x}") == name1.RemoveHtmlTags(), out CustomRoles role))
         {
             if (role.ToString().Contains("GuardianAngel")) role = CustomRoles.GA;
 

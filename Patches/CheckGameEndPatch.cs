@@ -590,13 +590,13 @@ internal static class GameEndChecker
 
             if (Main.HasJustStarted) return false;
 
-            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls;
 
-            if (CustomRoles.Sunnyboy.RoleExist() && aapc.Length > 1 && aapc.Any(x => x.CanUseKillButton() && !x.IsCrewmate())) return false;
+            if (CustomRoles.Sunnyboy.RoleExist() && aapc.Count > 1 && aapc.Any(x => x.CanUseKillButton() && !x.IsCrewmate())) return false;
 
             if (CustomTeamManager.CheckCustomTeamGameEnd()) return true;
 
-            if (aapc.Length > 0 && aapc.All(x => Main.LoversPlayers.Exists(l => l.PlayerId == x.PlayerId)) && (!Main.LoversPlayers.TrueForAll(x => x.Is(Team.Crewmate)) || !Lovers.CrewLoversWinWithCrew.GetBool()))
+            if (aapc.Count > 0 && aapc.All(x => Main.LoversPlayers.Exists(l => l.PlayerId == x.PlayerId)) && (!Main.LoversPlayers.TrueForAll(x => x.Is(Team.Crewmate)) || !Lovers.CrewLoversWinWithCrew.GetBool()))
             {
                 ResetAndSetWinner(CustomWinner.Lovers);
                 WinnerIds.UnionWith(Main.LoversPlayers.ConvertAll(x => x.PlayerId));
@@ -633,7 +633,7 @@ internal static class GameEndChecker
 
             Dictionary<(CustomRoles? Role, CustomWinner Winner), int> roleCounts = [];
 
-            foreach (CustomRoles role in Enum.GetValues<CustomRoles>())
+            foreach (CustomRoles role in Main.CustomRoleValues)
             {
                 if ((!role.IsNK() && role is not CustomRoles.Bloodlust and not CustomRoles.Gaslighter) || role.IsMadmate() || role is CustomRoles.Sidekick) continue;
 
@@ -833,7 +833,7 @@ internal static class GameEndChecker
                 }
             }
 
-            switch (Main.AllAlivePlayerControls.Length)
+            switch (Main.AllAlivePlayerControls.Count)
             {
                 case 1:
                 {
@@ -879,7 +879,7 @@ internal static class GameEndChecker
                 return true;
             }
 
-            PlayerControl[] aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls;
 
             if (aapc.Any(x => x.GetTaskState().IsTaskFinished))
             {
@@ -887,7 +887,7 @@ internal static class GameEndChecker
                 return true;
             }
 
-            switch (aapc.Length)
+            switch (aapc.Count)
             {
                 case 1 when !GameStates.IsLocalGame:
                     SetWinner(aapc[0]);
@@ -921,7 +921,7 @@ internal static class GameEndChecker
         {
             reason = GameOverReason.ImpostorsByKill;
 
-            switch (Main.AllAlivePlayerControls.Length)
+            switch (Main.AllAlivePlayerControls.Count)
             {
                 case 1:
                     PlayerControl winner = Main.AllAlivePlayerControls[0];
@@ -993,7 +993,7 @@ internal static class GameEndChecker
         {
             reason = GameOverReason.ImpostorsByKill;
 
-            switch (Main.AllAlivePlayerControls.Length)
+            switch (Main.AllAlivePlayerControls.Count)
             {
                 case 1:
                     PlayerControl winner = Main.AllAlivePlayerControls[0];
@@ -1023,9 +1023,9 @@ internal static class GameEndChecker
         {
             reason = GameOverReason.ImpostorsByKill;
 
-            PlayerControl[] appc = Main.AllAlivePlayerControls;
+            var appc = Main.AllAlivePlayerControls;
 
-            switch (appc.Length)
+            switch (appc.Count)
             {
                 case 1:
                     PlayerControl winner = appc[0];
@@ -1071,9 +1071,9 @@ internal static class GameEndChecker
 
             if (Quiz.AllowKills) return false;
 
-            PlayerControl[] appc = Main.AllAlivePlayerControls;
+            var appc = Main.AllAlivePlayerControls;
 
-            switch (appc.Length)
+            switch (appc.Count)
             {
                 case 1:
                     PlayerControl winner = appc[0];

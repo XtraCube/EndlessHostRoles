@@ -171,7 +171,7 @@ public static class Quiz
 
         if (FFAEndTS == 0)
         {
-            int numPlayers = Main.AllAlivePlayerControls.Length;
+            int numPlayers = Main.AllAlivePlayerControls.Count;
             
             if (QuestionTimeLimitEndTS != 0)
             {
@@ -273,8 +273,8 @@ public static class Quiz
         if (Chat) yield return new WaitForSeconds(1f);
 
         NoSuffix = true;
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
-        bool showTutorial = !SubmergedCompatibility.IsSubmerged() && aapc.ExceptBy(HasPlayedFriendCodes, x => x.FriendCode).Count() > aapc.Length / 2;
+        var aapc = Main.AllAlivePlayerControls;
+        bool showTutorial = !SubmergedCompatibility.IsSubmerged() && aapc.ExceptBy(HasPlayedFriendCodes, x => x.FriendCode).Count() > aapc.Count / 2;
 
         var usedRooms = string.Join('\n', UsedRooms[Main.CurrentMap].Select(x => $"{x.Key}: {GetString(x.Value.ToString())}"));
         aapc.NotifyPlayers(string.Format(GetString("Quiz.Tutorial.Basics"), usedRooms), 11f);
@@ -360,9 +360,9 @@ public static class Quiz
         time -= NumAllCorrectAnswers;
         QuestionTimeLimitEndTS = Utils.TimeStamp + time;
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
+        var aapc = Main.AllAlivePlayerControls;
 
-        if (aapc.Length is 3 or 2 && CurrentDifficulty > Difficulty.Test)
+        if (aapc.Count is 3 or 2 && CurrentDifficulty > Difficulty.Test)
             aapc.Do(x => x.RpcMakeInvisible());
 
         Logger.Info($"New question: {CurrentQuestion.Question} | {string.Join(", ", CurrentQuestion.Answers)} | {CurrentQuestion.Answers[CurrentQuestion.CorrectAnswerIndex]}", "Quiz");
@@ -447,11 +447,11 @@ public static class Quiz
     {
         QuestionsAsked++;
         QuestionTimeLimitEndTS = 0;
-        PlayerControl[] aapc = Main.AllAlivePlayerControls;
+        var aapc = Main.AllAlivePlayerControls;
         SystemTypes correctRoom = UsedRooms[Main.CurrentMap][(char)('A' + CurrentQuestion.CorrectAnswerIndex)];
         DyingPlayers = aapc.Select(x => (ID: x.PlayerId, Room: x.GetPlainShipRoom())).Where(x => correctRoom == SystemTypes.Outside ? x.Room != null : x.Room == null || x.Room.RoomId != correctRoom).Select(x => x.ID).ToList();
         if (DyingPlayers.Count == 0) NumAllCorrectAnswers++;
-        bool everyoneWasWrong = DyingPlayers.Count == aapc.Length;
+        bool everyoneWasWrong = DyingPlayers.Count == aapc.Count;
         if (!everyoneWasWrong) NumCorrectAnswers.IntersectBy(aapc.Select(x => x.PlayerId), x => x.Key).DoIf(x => !DyingPlayers.Contains(x.Key), x => x.Value[CurrentDifficulty][Round]++);
         Logger.Info($"{(everyoneWasWrong ? "Everyone" : "Players who")} got the question wrong: {string.Join(", ", DyingPlayers.Select(x => Main.AllPlayerNames.GetValueOrDefault(x, $"Someone (ID {x})")))}", "Quiz");
         Logger.Info($"Number of correct answers for everyone currently: {string.Join(", ", NumCorrectAnswers.Select(x => $"{Main.AllPlayerNames.GetValueOrDefault(x.Key, string.Empty)}: {x.Value[CurrentDifficulty][Round]}"))}", "Quiz");
@@ -459,7 +459,7 @@ public static class Quiz
         if (everyoneWasWrong) QuestionsAsked--;
         Utils.NotifyRoles();
 
-        yield return new WaitForSeconds(everyoneWasWrong ? aapc.Length <= 3 ? 4f : 6f : 3f);
+        yield return new WaitForSeconds(everyoneWasWrong ? aapc.Count <= 3 ? 4f : 6f : 3f);
         if (GameStates.IsMeeting || ExileController.Instance || !GameStates.InGame || GameStates.IsLobby) yield break;
 
         var settings = Settings[CurrentDifficulty];
@@ -490,12 +490,12 @@ public static class Quiz
                 pc.RpcMakeVisible();
                 pc.Suicide();
                 goto case 0;
-            case var x when x == aapc.Length:
+            case var x when x == aapc.Count:
                 Round--;
                 NumCorrectAnswers.Values.Do(d => d[CurrentDifficulty][Round] = 0);
                 goto case 0;
             default:
-                if (aapc.Length is 3 or 2) aapc.Do(x => x.RpcMakeVisible());
+                if (aapc.Count is 3 or 2) aapc.Do(x => x.RpcMakeVisible());
                 yield return new WaitForSeconds(2f);
                 AllowKills = true;
                 FFAEndTS = Utils.TimeStamp + FFAEventLength.GetInt();
