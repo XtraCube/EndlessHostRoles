@@ -272,21 +272,18 @@ internal static class ExtendedPlayerControl
 
     public static ClientData GetClient(this PlayerControl player)
     {
-        try { return AmongUsClient.Instance.allClients.ToArray().FirstOrDefault(cd => cd.Character.PlayerId == player.PlayerId); }
+        try { return AmongUsClient.Instance.GetClientFromCharacter(player); }
         catch { return null; }
     }
 
     public static int GetClientId(this PlayerControl player)
     {
-        if (player == null) return -1;
-
-        ClientData client = player.GetClient();
-        return client?.Id ?? -1;
+        return !player ? -1 : player.OwnerId;
     }
 
     public static CustomRoles GetCustomRole(this NetworkedPlayerInfo player)
     {
-        return player == null || player.Object == null ? CustomRoles.Crewmate : player.Object.GetCustomRole();
+        return (!player || !player.Object) ? CustomRoles.Crewmate : player.Object.GetCustomRole();
     }
 
     /// <summary>
@@ -1505,8 +1502,15 @@ internal static class ExtendedPlayerControl
     public static Vector2 Pos(this PlayerControl pc)
     {
         if (pc.AmOwner) return pc.transform.position;
-        if (pc.NetTransform.incomingPosQueue.Count > 0 && pc.NetTransform.isActiveAndEnabled && !pc.NetTransform.isPaused)
-            return pc.NetTransform.incomingPosQueue.ToArray()[^1];
+
+        var queue = pc.NetTransform.incomingPosQueue;
+        if (queue.Count > 0 && pc.NetTransform.isActiveAndEnabled && !pc.NetTransform.isPaused)
+        {        
+            var array = queue._array;
+            int tail = queue._tail;
+            int index = (tail - 1 + array.Length) % array.Length; // handle wrap-around
+            return array[index];
+        }
         return pc.transform.position;
     }
 

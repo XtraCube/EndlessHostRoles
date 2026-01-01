@@ -2216,11 +2216,19 @@ public static class Utils
         return playerRooms;
     }
 
+    public static readonly Dictionary<string, FieldInfo> CachedRoleSettings = new();
+
     public static float GetSettingNameAndValueForRole(CustomRoles role, string settingName)
     {
         const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-        Type[] types = Assembly.GetExecutingAssembly().GetTypes();
-        FieldInfo field = types.SelectMany(x => x.GetFields(flags)).FirstOrDefault(x => x.Name == $"{role}{settingName}");
+
+        var key = $"{role}{settingName}";
+        Type[] types = Main.AllTypes;
+
+        if (!CachedRoleSettings.TryGetValue(key, out FieldInfo field))
+        {
+            field = types.SelectMany(x => x.GetFields(flags)).FirstOrDefault(x => x.Name == key);
+        }
 
         if (field == null)
         {
@@ -2240,7 +2248,7 @@ public static class Utils
                     }
                 }
 
-                if (any && x.Name == $"{role}")
+                if (any && x.Name == role.ToString())
                 {
                     field = tempField;
                     break;

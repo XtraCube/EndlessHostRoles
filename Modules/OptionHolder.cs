@@ -1162,9 +1162,8 @@ public static class Options
 
     private static void GroupAddons()
     {
-        GroupedAddons = Assembly
-            .GetExecutingAssembly()
-            .GetTypes()
+        GroupedAddons = 
+            Main.AllTypes
             .Where(x => x.GetInterfaces().ToList().Contains(typeof(IAddon)))
             .Select(x => (IAddon)Activator.CreateInstance(x))
             .Where(x => x != null)
@@ -1493,9 +1492,7 @@ public static class Options
 
         Type IAddonType = typeof(IAddon);
 
-        Type[] assemblyTypes = Assembly
-            .GetExecutingAssembly()
-            .GetTypes();
+        Type[] assemblyTypes = Main.AllTypes;
 
         Dictionary<AddonTypes, IAddon[]> addonTypes = assemblyTypes
             .Where(t => IAddonType.IsAssignableFrom(t) && !t.IsInterface)

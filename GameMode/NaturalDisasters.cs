@@ -103,9 +103,7 @@ public static class NaturalDisasters
 
     public static void LoadAllDisasters()
     {
-        AllDisasters = Assembly
-            .GetExecutingAssembly()
-            .GetTypes()
+        AllDisasters = Main.AllTypes
             .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(Disaster)))
             .ToList();
     }

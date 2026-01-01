@@ -227,7 +227,11 @@ public class Main : BasePlugin
     public static ConfigEntry<float> LastKillCooldown { get; private set; }
     public static ConfigEntry<float> LastShapeshifterCooldown { get; private set; }
     public static bool IsFixedCooldown => CustomRoles.Vampire.IsEnable() || CustomRoles.Poisoner.IsEnable();
-
+    
+    // Cached Values
+    
+    public static readonly Type[] AllTypes = Assembly.GetExecutingAssembly().GetTypes();
+    
     public static readonly CustomRoles[] CustomRoleValues = Enum.GetValues<CustomRoles>();
 
     private static PlayerControl[] _allPlayerControlsCache = new PlayerControl[byte.MaxValue];
@@ -959,8 +963,7 @@ public class Main : BasePlugin
 
         try
         {
-            AllRoleClasses.AddRange(Assembly.GetAssembly(typeof(RoleBase))!
-                .GetTypes()
+            AllRoleClasses.AddRange(AllTypes
                 .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(RoleBase)))
                 .Select(t => (RoleBase)Activator.CreateInstance(t, null)));
 

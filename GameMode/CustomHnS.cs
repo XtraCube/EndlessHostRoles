@@ -109,11 +109,12 @@ internal static class CustomHnS
             .ToList();
     }
 
+    private static Type[] CachedHnsTypes;
+
     public static Type[] GetAllHnsRoleTypes()
     {
-        return Assembly
-            .GetExecutingAssembly()
-            .GetTypes()
+        return CachedHnsTypes ??=
+            Main.AllTypes
             .Where(t => typeof(IHideAndSeekRole).IsAssignableFrom(t) && !t.IsInterface)
             .ToArray();
     }
@@ -217,7 +218,7 @@ internal static class CustomHnS
 
         Logger.Msg($"Roles: {result.Join(x => $"{x.Key.GetRealName()} => {x.Value}")}", "HnsRoleAssigner");
 
-        Dictionary<string, IHideAndSeekRole> roleInterfaces = Assembly.GetExecutingAssembly().GetTypes()
+        Dictionary<string, IHideAndSeekRole> roleInterfaces = Main.AllTypes
             .Where(x => typeof(IHideAndSeekRole).IsAssignableFrom(x) && !x.IsInterface)
             .Select(x => (IHideAndSeekRole)Activator.CreateInstance(x))
             .Where(x => x != null)

@@ -148,7 +148,7 @@ internal static class GhostRolesManager
         {
             if (!GhostRoleTypes.TryGetValue(ghostRole, out Type ghostRoleClass))
             {
-                ghostRoleClass = Assembly.GetExecutingAssembly().GetTypes().First(x => typeof(IGhostRole).IsAssignableFrom(x) && !x.IsInterface && x.Name == $"{ghostRole}");
+                ghostRoleClass = Main.AllTypes.First(x => typeof(IGhostRole).IsAssignableFrom(x) && !x.IsInterface && x.Name == $"{ghostRole}");
                 GhostRoleTypes[ghostRole] = ghostRoleClass;
             }
             

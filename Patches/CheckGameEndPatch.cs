@@ -583,6 +583,9 @@ internal static class GameEndChecker
 
             return CheckGameEndBySabotage(out reason) || CheckGameEndByTask(out reason) || CheckGameEndByLivingPlayers(out reason);
         }
+        
+        // avoiding reallocations and too much resizing
+        private static readonly Dictionary<(CustomRoles? Role, CustomWinner Winner), int> RoleCounts = new(64);
 
         private static bool CheckGameEndByLivingPlayers(out GameOverReason reason)
         {
@@ -631,7 +634,7 @@ internal static class GameEndChecker
                 crew += countsAs - 1;
             }
 
-            Dictionary<(CustomRoles? Role, CustomWinner Winner), int> roleCounts = [];
+            RoleCounts.Clear();
 
             foreach (CustomRoles role in Main.CustomRoleValues)
             {
@@ -644,7 +647,7 @@ internal static class GameEndChecker
                 var keyWinner = (CustomWinner)role;
                 int value = AlivePlayersCount(countTypes);
 
-                roleCounts[(keyRole, keyWinner)] = value;
+                RoleCounts[(keyRole, keyWinner)] = value;
             }
 
             if (CustomRoles.Schizophrenic.IsEnable())
@@ -657,14 +660,14 @@ internal static class GameEndChecker
                     else if (x.Is(Team.Crewmate)) crew++;
                     else if (x.Is(Team.Coven)) coven++;
 
-                    if (x.Is(CustomRoles.Charmed)) roleCounts[(null, CustomWinner.Cultist)]++;
-                    if (x.Is(CustomRoles.Undead)) roleCounts[(null, CustomWinner.Necromancer)]++;
-                    if (x.Is(CustomRoles.Sidekick)) roleCounts[(null, CustomWinner.Jackal)]++;
-                    if (x.Is(CustomRoles.Contagious)) roleCounts[(null, CustomWinner.Virus)]++;
+                    if (x.Is(CustomRoles.Charmed)) RoleCounts[(null, CustomWinner.Cultist)]++;
+                    if (x.Is(CustomRoles.Undead)) RoleCounts[(null, CustomWinner.Necromancer)]++;
+                    if (x.Is(CustomRoles.Sidekick)) RoleCounts[(null, CustomWinner.Jackal)]++;
+                    if (x.Is(CustomRoles.Contagious)) RoleCounts[(null, CustomWinner.Virus)]++;
                 }
             }
 
-            int totalNKAlive = roleCounts.Values.Sum();
+            int totalNKAlive = RoleCounts.Values.Sum();
 
             CustomWinner? winner = null;
             CustomRoles? rl = null;
@@ -719,7 +722,7 @@ internal static class GameEndChecker
             if (crew > totalNKAlive || crewKeepsGameGoing) return false; // Imps are dead, but crew still outnumbers NKs, game must continue
 
             // Imps dead, Crew <= NK, Checking if all NKs alive are in 1 team
-            List<int> aliveCounts = roleCounts.Values.Where(x => x > 0).ToList();
+            List<int> aliveCounts = RoleCounts.Values.Where(x => x > 0).ToList();
 
             switch (aliveCounts.Count)
             {
@@ -729,9 +732,9 @@ internal static class GameEndChecker
                 // There is only one type of NK alive, they've won
                 case 1:
                 {
-                    if (aliveCounts[0] != roleCounts.Values.Max()) Logger.Warn("There is something wrong here.", "CheckGameEndPatch");
+                    if (aliveCounts[0] != RoleCounts.Values.Max()) Logger.Warn("There is something wrong here.", "CheckGameEndPatch");
 
-                    foreach (KeyValuePair<(CustomRoles? Role, CustomWinner Winner), int> keyValuePair in roleCounts)
+                    foreach (KeyValuePair<(CustomRoles? Role, CustomWinner Winner), int> keyValuePair in RoleCounts)
                     {
                         if (keyValuePair.Value == aliveCounts[0])
                         {
