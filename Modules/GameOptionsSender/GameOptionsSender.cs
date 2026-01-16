@@ -42,33 +42,27 @@ public abstract class GameOptionsSender
         SendOptionsArray(optionArray);
     }
 
-    private readonly Queue<Il2CppStructArray<byte>> _optionsQueue = new();
-    private Coroutine _activeCoroutine;
+    private static bool _pendingSend;
+    private static Coroutine _activeCoroutine;
+    private static Il2CppStructArray<byte> _sendOptions;
 
     protected virtual void SendOptionsArray(Il2CppStructArray<byte> optionArray)
     {
-        if (optionArray == null || optionArray.Length == 0)
-        {
-            return;
-        }
+        if (optionArray == null || optionArray.Length == 0) return;
 
-        const int maxQueueSize = 20;
-        if (_optionsQueue.Count >= maxQueueSize)
-        {
-            Main.Instance.Log.LogWarning("Options queue is full, dropping oldest option array");
-            _optionsQueue.Dequeue();
-        }
+        _sendOptions = optionArray;
+        _pendingSend = true;
 
-        _optionsQueue.Enqueue(optionArray);
-        _activeCoroutine ??= GameManager.Instance.StartCoroutine(ProcessQueue().WrapToIl2Cpp());
+        _activeCoroutine ??= GameManager.Instance.StartCoroutine(CoSendOptionsLoop().WrapToIl2Cpp());
     }
 
-    private IEnumerator ProcessQueue()
+    private static IEnumerator CoSendOptionsLoop()
     {
-        while (_optionsQueue.Count > 0)
+        while (_pendingSend)
         {
-            Il2CppStructArray<byte> optionArray = _optionsQueue.Dequeue();
-            yield return CoSendOptionsArray(optionArray);
+            _pendingSend = false;
+            var options = _sendOptions;
+            yield return GameManager.Instance.StartCoroutine(CoSendOptionsArray(options).WrapToIl2Cpp());
         }
         _activeCoroutine = null;
     }
