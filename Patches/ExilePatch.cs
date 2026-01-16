@@ -214,12 +214,14 @@ internal static class ExileControllerWrapUpPatch
     }
 
 #if ANDROID
-    [HarmonyPatch(typeof(AirshipExileController), nameof(AirshipExileController.WrapUpAndSpawn))]
+    [HarmonyPatch(typeof(AirshipExileController._WrapUpAndSpawn_d__11), "MoveNext")]
     private static class AirshipExileControllerPatch
     {
-        public static void Postfix(AirshipExileController __instance)
+        public static void Postfix(AirshipExileController._WrapUpAndSpawn_d__11 __instance, ref bool __result)
         {
-            try { WrapUpPostfix(__instance.initData.networkedPlayer); }
+            if (__result) return;
+
+            try { WrapUpPostfix(__instance.__4__this.initData.networkedPlayer); }
             finally { WrapUpFinalizer(); }
         }
     }

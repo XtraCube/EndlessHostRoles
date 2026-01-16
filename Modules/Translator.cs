@@ -182,11 +182,7 @@ public static class Translator
 
     public static string GetString(StringNames stringName)
     {
-#if ANDROID
-        return TranslationController.Instance.GetString(stringName);
-#else
-        return TranslationController.Instance.GetString(stringName, new Il2CppReferenceArray<Il2CppSystem.Object>(0));
-#endif
+        return TranslationController.Instance.GetString(stringName, []);
     }
 
     public static string GetRoleString(string str, bool forUser = true)
