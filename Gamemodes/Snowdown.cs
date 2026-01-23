@@ -198,7 +198,7 @@ public static class Snowdown
                     return true;
                 }
 
-                if (GameEndsWhenPointsReached && Data.IntersectBy(Main.AllAlivePlayerControls.Select(p => p.PlayerId), x => x.Key).FindFirst(x => x.Value.Points >= PointsToReach, out var winnerData))
+                if (GameEndsWhenPointsReached && Data.IntersectBy(Main.EnumerateAlivePlayerControls().Select(p => p.PlayerId), x => x.Key).FindFirst(x => x.Value.Points >= PointsToReach, out var winnerData))
                 {
                     CustomWinnerHolder.WinnerIds = [winnerData.Key];
                     Logger.Info($"Winners: {Main.AllPlayerNames.GetValueOrDefault(winnerData.Key, "[Unknown player]")}", "Snowdown");

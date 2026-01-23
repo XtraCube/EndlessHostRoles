@@ -1125,7 +1125,7 @@ public static class GuessManager
                 if (Guessers.Count == 0 && restrictions)
                     InitializeGuesserPlayers();
 
-                HashSet<byte> guessers = Main.AllAlivePlayerControls.Where(x => !x.IsModdedClient() && CanGuess(x, restrictions)).Select(x => x.PlayerId).ToHashSet();
+                HashSet<byte> guessers = Main.EnumerateAlivePlayerControls().Where(x => !x.IsModdedClient() && CanGuess(x, restrictions)).Select(x => x.PlayerId).ToHashSet();
                 bool meetingSS = Options.UseMeetingShapeshift.GetBool() && Options.UseMeetingShapeshiftForGuessing.GetBool();
                 LateTask.New(() => guessers.Do(x => Utils.SendMessage(GetString(meetingSS ? "YouCanGuessMeetingSS" : "YouCanGuess"), x, GetString("YouCanGuessTitle"))), 12f, log: false);
                 if (meetingSS) Data = guessers.ToDictionary(x => x, x => new MeetingShapeshiftData(x));

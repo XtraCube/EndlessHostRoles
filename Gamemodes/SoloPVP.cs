@@ -101,7 +101,7 @@ internal static class SoloPVP
         RoundTime = SoloPVP_GameTime.GetInt() + 8;
         Utils.SendRPC(CustomRPC.SoloPVPSync, 1, RoundTime);
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             PlayerHPMax.TryAdd(pc.PlayerId, SoloPVP_HPMax.GetFloat());
             PlayerHP.TryAdd(pc.PlayerId, SoloPVP_HPMax.GetFloat());

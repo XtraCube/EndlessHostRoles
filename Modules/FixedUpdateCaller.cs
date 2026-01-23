@@ -227,7 +227,7 @@ public static class FixedUpdateCaller
                             CustomWinnerHolder.ResetAndSetWinner(CustomWinner.None);
                         
                             if (Options.CurrentGameMode == CustomGameMode.NaturalDisasters)
-                                CustomWinnerHolder.WinnerIds.UnionWith(Main.AllAlivePlayerControls.Select(x => x.PlayerId));
+                                CustomWinnerHolder.WinnerIds.UnionWith(Main.EnumerateAlivePlayerControls().Select(x => x.PlayerId));
                         }
                     }
                 }

@@ -389,7 +389,7 @@ internal static class CheckForEndVotingPatch
             goto EndOfSession;
         }
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             if (pc == exiledPlayer.Object) continue;
 
@@ -595,7 +595,7 @@ internal static class CheckForEndVotingPatch
     private static PlayerControl PickRevengeTarget(PlayerControl exiledplayer /*, PlayerState.DeathReason deathReason*/)
     {
         List<PlayerControl> targetList = [];
-        targetList.AddRange(Main.AllAlivePlayerControls.Where(candidate => candidate != exiledplayer && !Main.AfterMeetingDeathPlayers.ContainsKey(candidate.PlayerId)));
+        targetList.AddRange(Main.EnumerateAlivePlayerControls().Where(candidate => candidate != exiledplayer && !Main.AfterMeetingDeathPlayers.ContainsKey(candidate.PlayerId)));
 
         if (targetList.Count == 0) return null;
 
@@ -688,7 +688,7 @@ internal static class MeetingHudStartPatch
         {
             List<Message> roleDescMsgs = [];
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 if (pc.IsModdedClient()) continue;
 
@@ -731,7 +731,7 @@ internal static class MeetingHudStartPatch
 
                 LateTask.New(() =>
                 {
-                    PlayerControl player = Main.AllAlivePlayerControls.MinBy(x => x.PlayerId);
+                    PlayerControl player = Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId);
                     var sender = CustomRpcSender.Create("RpcSetNameEx on meeting start", SendOption.Reliable);
                     {
                         sender.AutoStartRpc(player.NetId, 6);
@@ -754,7 +754,7 @@ internal static class MeetingHudStartPatch
 
         if (MeetingStates.FirstMeeting && CustomRoles.Workaholic.RoleExist() && Workaholic.WorkaholicGiveAdviceAlive.GetBool() && !Workaholic.WorkaholicCannotWinAtDeath.GetBool() /* && !Options.GhostIgnoreTasks.GetBool()*/)
         {
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls.Where(x => x.Is(CustomRoles.Workaholic)).ToArray()) Workaholic.WorkaholicAlive.Add(pc.PlayerId);
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls().Where(x => x.Is(CustomRoles.Workaholic)).ToArray()) Workaholic.WorkaholicAlive.Add(pc.PlayerId);
 
             List<string> workaholicAliveList = [];
             workaholicAliveList.AddRange(Workaholic.WorkaholicAlive.Select(whId => Main.AllPlayerNames[whId]));
@@ -766,7 +766,7 @@ internal static class MeetingHudStartPatch
         // Bait Notify
         if (MeetingStates.FirstMeeting && CustomRoles.Bait.RoleExist() && Options.BaitNotification.GetBool())
         {
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls.Where(x => x.Is(CustomRoles.Bait)).ToArray()) Main.BaitAlive.Add(pc.PlayerId);
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls().Where(x => x.Is(CustomRoles.Bait)).ToArray()) Main.BaitAlive.Add(pc.PlayerId);
 
             List<string> baitAliveList = [];
             baitAliveList.AddRange(Main.BaitAlive.Select(whId => Main.AllPlayerNames[whId]));

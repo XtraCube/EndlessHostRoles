@@ -351,7 +351,7 @@ public static class TheMindGame
         yield return NotifyEveryone("TMG.Tutorial.Round1", 12, TimeForEachPickInRound1, NumPointsToAdvanceInRound1, Main.AllAlivePlayerControls.Count - MinPlayersInRound2);
         if (Stop) yield break;
 
-        Main.AllAlivePlayerControls.Do(x => x.RpcChangeRoleBasis(CustomRoles.PhantomEHR));
+        Main.EnumerateAlivePlayerControls().Do(x => x.RpcChangeRoleBasis(CustomRoles.PhantomEHR));
 
         while (true)
         {
@@ -372,13 +372,13 @@ public static class TheMindGame
                 {
                     LastTimeWarning = Utils.TimeStamp;
                     Utils.SendMessage(string.Format(Translator.GetString("TMG.Message.TimeLeft"), (int)timer), title: Translator.GetString("TMG.Message.TimeLeftTitle"));
-                    LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.AllAlivePlayerControls.MinBy(x => x.PlayerId)), 1f, log: false);
+                    LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId)), 1f, log: false);
                 }
             }
 
             ShowSuffixOtherThanPoints = false;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 Group group = Groups[pc.PlayerId];
                 int pick = Pick[pc.PlayerId];
@@ -412,7 +412,7 @@ public static class TheMindGame
         for (int i = 0; i < 3; i++)
         {
             AuctionValue = IRandom.Instance.Next(1, 11);
-            Pick = Main.AllAlivePlayerControls.IntersectBy(Points.Keys, x => x.PlayerId).ToDictionary(x => x.PlayerId, x => IRandom.Instance.Next(Points[x.PlayerId] + 1));
+            Pick = Main.EnumerateAlivePlayerControls().IntersectBy(Points.Keys, x => x.PlayerId).ToDictionary(x => x.PlayerId, x => IRandom.Instance.Next(Points[x.PlayerId] + 1));
             ProceedingInCountdownEndTS = Utils.TimeStamp + TimeForEachPickInRound2;
             float timer = TimeForEachPickInRound2;
 
@@ -429,13 +429,13 @@ public static class TheMindGame
                 {
                     LastTimeWarning = Utils.TimeStamp;
                     Utils.SendMessage(string.Format(Translator.GetString("TMG.Message.TimeLeft"), (int)timer), title: Translator.GetString("TMG.Message.TimeLeftTitle"));
-                    LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.AllAlivePlayerControls.MinBy(x => x.PlayerId)), 1f, log: false);
+                    LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId)), 1f, log: false);
                 }
             }
 
             ShowSuffixOtherThanPoints = false;
 
-            Main.AllAlivePlayerControls.Do(x => Points[x.PlayerId] -= Pick[x.PlayerId]);
+            Main.EnumerateAlivePlayerControls().Do(x => Points[x.PlayerId] -= Pick[x.PlayerId]);
             int highestBid = Pick.Values.Max();
             List<byte> auctionWinners = Pick.Where(x => x.Value == highestBid).Select(x => x.Key).ToList();
             auctionWinners.ForEach(x => SuperPoints[x] += AuctionValue);
@@ -445,7 +445,7 @@ public static class TheMindGame
         }
 
         int lowestSuperPoints = SuperPoints.Values.Min();
-        Main.AllAlivePlayerControls.Join(SuperPoints, x => x.PlayerId, x => x.Key, (pc, kvp) => (pc, points: kvp.Value)).DoIf(x => x.points == lowestSuperPoints, x => x.pc.Suicide());
+        Main.EnumerateAlivePlayerControls().Join(SuperPoints, x => x.PlayerId, x => x.Key, (pc, kvp) => (pc, points: kvp.Value)).DoIf(x => x.points == lowestSuperPoints, x => x.pc.Suicide());
 
         yield return NotifyEveryone("TMG.Notify.ItemPurchasingBegins", 6, TimeForItemPurchasingInRound2);
         if (Stop) yield break;
@@ -453,7 +453,7 @@ public static class TheMindGame
         Item[] items = Enum.GetValues<Item>();
         int[] itemIds = items.Select(x => (int)x).ToArray();
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             ItemIds[pc.PlayerId] = items.Zip(itemIds.Shuffle()).ToDictionary(x => x.First, x => x.Second);
 
         AuctionValue = 0;
@@ -473,7 +473,7 @@ public static class TheMindGame
             {
                 LastTimeWarning = Utils.TimeStamp;
                 Utils.SendMessage(string.Format(Translator.GetString("TMG.Message.TimeLeft"), (int)timer2), title: Translator.GetString("TMG.Message.TimeLeftTitle"));
-                LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.AllAlivePlayerControls.MinBy(x => x.PlayerId)), 1f, log: false);
+                LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId)), 1f, log: false);
             }
 
             if (Main.AllAlivePlayerControls.Count == AmReady.Count)
@@ -498,7 +498,7 @@ public static class TheMindGame
 
         while (true)
         {
-            Pick = Main.AllAlivePlayerControls.ToDictionary(x => x.PlayerId, _ => IRandom.Instance.Next(1, Main.AllAlivePlayerControls.Count + 1));
+            Pick = Main.EnumerateAlivePlayerControls().ToDictionary(x => x.PlayerId, _ => IRandom.Instance.Next(1, Main.AllAlivePlayerControls.Count + 1));
             ProceedingInCountdownEndTS = Utils.TimeStamp + TimeForEachPickInRound3;
             float timer = TimeForEachPickInRound3;
 
@@ -515,16 +515,16 @@ public static class TheMindGame
                 {
                     LastTimeWarning = Utils.TimeStamp;
                     Utils.SendMessage(string.Format(Translator.GetString("TMG.Message.TimeLeft"), (int)timer), title: Translator.GetString("TMG.Message.TimeLeftTitle"));
-                    LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.AllAlivePlayerControls.MinBy(x => x.PlayerId)), 1f, log: false);
+                    LateTask.New(() => Utils.NotifyRoles(SpecifyTarget: Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId)), 1f, log: false);
                 }
             }
 
             ShowSuffixOtherThanPoints = false;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 int pick = Pick[pc.PlayerId];
-                bool sameAsSomeoneElse = Main.AllAlivePlayerControls.Without(pc).FindFirst(x => Pick.TryGetValue(x.PlayerId, out int p) && p == pick, out PlayerControl otherPc);
+                bool sameAsSomeoneElse = Main.EnumerateAlivePlayerControls().Without(pc).FindFirst(x => Pick.TryGetValue(x.PlayerId, out int p) && p == pick, out PlayerControl otherPc);
 
                 if (!sameAsSomeoneElse)
                     Points[pc.PlayerId] += DoubleModifierActive.Contains(pc.PlayerId) ? pick * 2 : pick;
@@ -565,7 +565,7 @@ public static class TheMindGame
             WinningBriefcaseHolderId = Main.AllAlivePlayerControls.RandomElement().PlayerId;
 
             Utils.SendMessage("\n", WinningBriefcaseHolderId, Translator.GetString("TMG.Message.YouHoldTheWinningBriefcase"));
-            Main.AllAlivePlayerControls.Select(x => x.PlayerId).Without(WinningBriefcaseHolderId).Do(x => Utils.SendMessage("\n", x, Translator.GetString("TMG.Message.YouHoldAnEmptyBriefcase")));
+            Main.EnumerateAlivePlayerControls().Select(x => x.PlayerId).Without(WinningBriefcaseHolderId).Do(x => Utils.SendMessage("\n", x, Translator.GetString("TMG.Message.YouHoldAnEmptyBriefcase")));
 
             while (GameStates.IsMeeting || ExileController.Instance || AntiBlackout.SkipTasks)
             {
@@ -625,7 +625,7 @@ public static class TheMindGame
 
         string join = string.Join('\n', ranking.Select((x, i) => $"{i + 1}. {x.ColoredPlayerName()}"));
         NameNotifyManager.Reset();
-        Main.AllAlivePlayerControls.NotifyPlayers(join, 100f);
+        Main.EnumerateAlivePlayerControls().NotifyPlayers(join, 100f);
         ProceedingInCountdownEndTS = Utils.TimeStamp + 5;
         yield return new WaitForSecondsRealtime(5f);
         if (Stop) yield break;
@@ -637,7 +637,7 @@ public static class TheMindGame
         yield return NotifyEveryone("TMG.Notify.Round4PointGain", 5, join);
         if (Stop) yield break;
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             int superPoints = SuperPoints[pc.PlayerId];
 
@@ -673,7 +673,7 @@ public static class TheMindGame
     {
         NameNotifyManager.Reset();
         string str = Translator.GetString(key);
-        Main.AllAlivePlayerControls.NotifyPlayers(args.Length == 0 ? str : string.Format(str, args), 100f);
+        Main.EnumerateAlivePlayerControls().NotifyPlayers(args.Length == 0 ? str : string.Format(str, args), 100f);
         ProceedingInCountdownEndTS = Utils.TimeStamp + time;
         yield return new WaitForSecondsRealtime(time);
         NameNotifyManager.Reset();
@@ -683,7 +683,7 @@ public static class TheMindGame
     {
         while (Round == 1 && !GameStates.IsEnded && GameStates.IsInTask && !ExileController.Instance)
         {
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 Group group = Groups[pc.PlayerId];
                 SystemTypes groupRoom = GroupRooms[group];

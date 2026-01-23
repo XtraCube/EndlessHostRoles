@@ -92,7 +92,7 @@ internal static class ExileControllerWrapUpPatch
         if (Options.RandomSpawn.GetBool() && Main.CurrentMap != MapNames.Airship)
         {
             var map = RandomSpawn.SpawnMap.GetSpawnMap();
-            Main.AllAlivePlayerControls.Do(player => map.RandomTeleport(player));
+            Main.EnumerateAlivePlayerControls().Do(player => map.RandomTeleport(player));
         }
 
         FallFromLadder.Reset();
@@ -150,7 +150,7 @@ internal static class ExileControllerWrapUpPatch
             if (Options.EnableGameTimeLimit.GetBool()) finalText += $"\n<#888888>{Options.GameTimeLimit.GetInt() - Main.GameTimer:N0}s {Translator.GetString("RemainingText.Suffix")}";
 
             if (!string.IsNullOrWhiteSpace(finalText))
-                Main.AllAlivePlayerControls.NotifyPlayers(finalText, 13f);
+                Main.EnumerateAlivePlayerControls().NotifyPlayers(finalText, 13f);
         }
 
         LateTask.New(() =>

@@ -53,7 +53,7 @@ public static class Speedrun
     public static void Init()
     {
         CanKill = [];
-        Timers = Main.AllAlivePlayerControls.ToDictionary(x => x.PlayerId, _ => TimeLimit.GetInt() + 10);
+        Timers = Main.EnumerateAlivePlayerControls().ToDictionary(x => x.PlayerId, _ => TimeLimit.GetInt() + 10);
         Utils.SendRPC(CustomRPC.SpeedrunSync, 1);
     }
 

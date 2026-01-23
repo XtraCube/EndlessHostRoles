@@ -245,7 +245,7 @@ public class Dad : RoleBase
         {
             case Ability.GoForMilk:
                 LateTask.New(() => pc.TP(Pelican.GetBlackRoomPS()), 2f, log: false);
-                Main.AllAlivePlayerControls.NotifyPlayers(Translator.GetString("Dad.GoForMilkNotify"), 10f);
+                Main.EnumerateAlivePlayerControls().NotifyPlayers(Translator.GetString("Dad.GoForMilkNotify"), 10f);
                 UsingAbilities.Add(SelectedAbility);
                 break;
             case Ability.SuperVision:
@@ -270,7 +270,7 @@ public class Dad : RoleBase
                 break;
             case Ability.GiveDrink:
                 Vector2 pos = pc.Pos();
-                DrunkPlayers = Main.AllAlivePlayerControls.Without(pc).Where(x => Vector2.Distance(x.Pos(), pos) <= GivingDrinkRange.GetFloat()).Select(x => x.PlayerId).ToList();
+                DrunkPlayers = Main.EnumerateAlivePlayerControls().Without(pc).Where(x => Vector2.Distance(x.Pos(), pos) <= GivingDrinkRange.GetFloat()).Select(x => x.PlayerId).ToList();
                 Utils.NotifyRoles(SpecifySeer: pc);
                 break;
             case Ability.BecomeGodOfAlcohol:

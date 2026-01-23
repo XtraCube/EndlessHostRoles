@@ -1208,11 +1208,11 @@ internal static class IntroCutsceneDestroyPatch
 
                 StartGameHostPatch.RpcSetRoleReplacer.SetActualSelfRolesAfterOverride();
                 
-                var doubleAgents = Main.AllAlivePlayerControls.Where(x => x.Is(CustomRoles.DoubleAgent)).ToList();
+                var doubleAgents = Main.EnumerateAlivePlayerControls().Where(x => x.Is(CustomRoles.DoubleAgent)).ToList();
 
                 if (doubleAgents.Count > 0)
                 {
-                    Main.AllAlivePlayerControls.DoIf(x => x.Is(Team.Impostor), x =>
+                    Main.EnumerateAlivePlayerControls().DoIf(x => x.Is(Team.Impostor), x =>
                     {
                         var sender = CustomRpcSender.Create("Double Agent", SendOption.Reliable);
                         doubleAgents.ForEach(da => sender.RpcSetRole(da, RoleTypes.Impostor, x.OwnerId, changeRoleMap: true));
@@ -1372,7 +1372,7 @@ internal static class IntroCutsceneDestroyPatch
             Main.GameTimer = 0f;
             
             if (AmongUsClient.Instance.AmHost && SubmergedCompatibility.IsSubmerged())
-                Main.AllAlivePlayerControls.DoIf(x => !x.IsInRoom((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerCentral) && !x.IsInRoom((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperCentral), x => x.TP(new Vector2(3.32f, -26.57f)));
+                Main.EnumerateAlivePlayerControls().DoIf(x => !x.IsInRoom((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.LowerCentral) && !x.IsInRoom((SystemTypes)SubmergedCompatibility.SubmergedSystemTypes.UpperCentral), x => x.TP(new Vector2(3.32f, -26.57f)));
             
             if (!HudManager.InstanceExists) return;
 

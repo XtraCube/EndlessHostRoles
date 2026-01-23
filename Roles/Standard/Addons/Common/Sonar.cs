@@ -23,7 +23,7 @@ public class Sonar : IAddon
     {
         if (!seer.Is(CustomRoles.Sonar) || !GameStates.IsInTask || seer.inVent || Main.AllAlivePlayerControls.Count == 1) return;
 
-        PlayerControl closest = Main.AllAlivePlayerControls.Where(x => x.PlayerId != seer.PlayerId).MinBy(x => Vector2.Distance(seer.Pos(), x.Pos()));
+        PlayerControl closest = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != seer.PlayerId).MinBy(x => Vector2.Distance(seer.Pos(), x.Pos()));
 
         if (Target.TryGetValue(seer.PlayerId, out byte targetId))
         {

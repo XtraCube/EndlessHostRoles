@@ -330,7 +330,7 @@ public static class Mingle
         }
     }
     
-    private static int GetNumPlayersInRoom(SystemTypes room) => Main.AllAlivePlayerControls.Where(x => !x.inMovingPlat).Count(x => x.IsInRoom(room));
+    private static int GetNumPlayersInRoom(SystemTypes room) => Main.EnumerateAlivePlayerControls().Where(x => !x.inMovingPlat).Count(x => x.IsInRoom(room));
 
     public static void HandleDisconnect()
     {
@@ -362,11 +362,11 @@ public static class Mingle
             }
             else
             {
-                Dictionary<SystemTypes, int> numPlayersInRoom = Main.AllAlivePlayerControls.Select(x => (pc: x, room: x.GetPlainShipRoom())).GroupBy(x => x.room == null ? SystemTypes.Outside : x.room.RoomId).ToDictionary(x => x.Key, x => x.Count());
+                Dictionary<SystemTypes, int> numPlayersInRoom = Main.EnumerateAlivePlayerControls().Select(x => (pc: x, room: x.GetPlainShipRoom())).GroupBy(x => x.room == null ? SystemTypes.Outside : x.room.RoomId).ToDictionary(x => x.Key, x => x.Count());
                 
                 if (RequiredPlayerCount.All(x => numPlayersInRoom.GetValueOrDefault(x.Key, 0) == x.Value))
                 {
-                    Main.AllAlivePlayerControls.NotifyPlayers(Utils.ColorString(Color.green, "✓"), 3f);
+                    Main.EnumerateAlivePlayerControls().NotifyPlayers(Utils.ColorString(Color.green, "✓"), 3f);
                     Time = Math.Max(Time - TimeDecreaseOnNoDeath, MinTime);
                     StartNewRound();
                     return;

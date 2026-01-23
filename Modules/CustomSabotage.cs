@@ -139,7 +139,7 @@ public class GrabOxygenMaskSabotage : CustomSabotage
         AdjustTimeLimitBasedOnPlayerSpeed(ref TimeLimit);
 
         RoomPosition = RandomSpawn.SpawnMap.GetSpawnMap().Positions.GetValueOrDefault(TargetRoom, TargetRoom.GetRoomClass().transform.position);
-        Main.AllAlivePlayerControls.Do(x => LocateArrow.Add(x.PlayerId, RoomPosition));
+        Main.EnumerateAlivePlayerControls().Do(x => LocateArrow.Add(x.PlayerId, RoomPosition));
     }
 
     protected override void Update()

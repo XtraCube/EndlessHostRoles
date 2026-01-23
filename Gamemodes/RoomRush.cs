@@ -505,7 +505,7 @@ public static class RoomRush
             if (!GameGoing || Main.HasJustStarted || Options.CurrentGameMode != CustomGameMode.RoomRush || !AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || GameStates.IsEnded || !Main.IntroDestroyed) return;
 
             long now = Utils.TimeStamp;
-            var aapc = Main.AllAlivePlayerControls;
+            var aapc = Main.AllAlivePlayerControls.ToList();
 
             if (WinByPointsInsteadOfDeaths.GetBool())
             {

@@ -140,7 +140,7 @@ internal static class CheckMurderPatch
             if (target.Is(CustomRoles.Detour))
             {
                 PlayerControl tempTarget = target;
-                target = Main.AllAlivePlayerControls.Where(x => x.PlayerId != target.PlayerId && x.PlayerId != killer.PlayerId).MinBy(x => Vector2.Distance(x.Pos(), target.Pos()));
+                target = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != target.PlayerId && x.PlayerId != killer.PlayerId).MinBy(x => Vector2.Distance(x.Pos(), target.Pos()));
                 Logger.Info($"Target was {tempTarget.GetNameWithRole()}, new target is {target.GetNameWithRole()}", "Detour");
 
                 if (tempTarget.AmOwner)
@@ -740,7 +740,7 @@ internal static class MurderPlayerPatch
 
             if (target.Is(CustomRoles.Avenger))
             {
-                PlayerControl[] pcList = Main.AllAlivePlayerControls.Where(x => x.PlayerId != target.PlayerId).ToArray();
+                PlayerControl[] pcList = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != target.PlayerId).ToArray();
                 PlayerControl rp = pcList.RandomElement();
                 if (!rp.Is(CustomRoles.Pestilence)) rp.Suicide(PlayerState.DeathReason.Revenge, target);
             }
@@ -932,7 +932,7 @@ internal static class ShapeshiftPatch
 
         bool shapeshifting = __instance.PlayerId != target.PlayerId;
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             PlainShipRoom plainShipRoom = pc.GetPlainShipRoom();
             string room = GetString(plainShipRoom != null ? plainShipRoom.RoomId.ToString() : "Outside");
@@ -1160,7 +1160,7 @@ internal static class ReportDeadBodyPatch
             try
             {
                 Main.PlayerStates.Values.DoIf(x => !x.IsDead, x => x.IsBlackOut = true);
-                Main.AllAlivePlayerControls.Do(x => x.SyncSettings());
+                Main.EnumerateAlivePlayerControls().Do(x => x.SyncSettings());
             }
             catch (Exception e) { ThrowException(e); }
         }
@@ -1205,10 +1205,10 @@ internal static class ReportDeadBodyPatch
 
         Main.DiedThisRound = [];
 
-        try { Main.AllAlivePlayerControls.DoIf(x => x.Is(CustomRoles.Lazy), x => Lazy.BeforeMeetingPositions[x.PlayerId] = x.Pos()); }
+        try { Main.EnumerateAlivePlayerControls().DoIf(x => x.Is(CustomRoles.Lazy), x => Lazy.BeforeMeetingPositions[x.PlayerId] = x.Pos()); }
         catch (Exception e) { ThrowException(e); }
 
-        try { if (Lovers.PrivateChat.GetBool() && Main.LoversPlayers.Exists(x => x != null && x.IsAlive())) LateTask.New(() => ChatManager.ClearChat(Main.AllAlivePlayerControls.ExceptBy(Main.LoversPlayers.ConvertAll(x => x.PlayerId), x => x.PlayerId).ToArray()), GameStates.CurrentServerType == GameStates.ServerType.Vanilla && !PlayerControl.LocalPlayer.IsAlive() ? 3f : 0f); }
+        try { if (Lovers.PrivateChat.GetBool() && Main.LoversPlayers.Exists(x => x != null && x.IsAlive())) LateTask.New(() => ChatManager.ClearChat(Main.EnumerateAlivePlayerControls().ExceptBy(Main.LoversPlayers.ConvertAll(x => x.PlayerId), x => x.PlayerId).ToArray()), GameStates.CurrentServerType == GameStates.ServerType.Vanilla && !PlayerControl.LocalPlayer.IsAlive() ? 3f : 0f); }
         catch (Exception e) { ThrowException(e); }
 
         CustomSabotage.Reset();
@@ -2192,7 +2192,7 @@ internal static class EnterVentPatch
 
             if (Ventguard.VentguardNotifyOnBlockedVentUse.GetBool())
             {
-                foreach (PlayerControl ventguard in Main.AllAlivePlayerControls)
+                foreach (PlayerControl ventguard in Main.EnumerateAlivePlayerControls())
                 {
                     if (ventguard.Is(CustomRoles.Ventguard))
                         ventguard.Notify(GetString("VentguardNotify"));
@@ -2343,7 +2343,7 @@ static class PlayerControlRevivePatch
                 var hasValue = sender.SyncGeneralOptions(__instance);
                 sender.SendMessage(dispose: !hasValue);
                 Vector2 pos = __instance.Pos();
-                __instance.TP(Main.AllAlivePlayerControls.Without(__instance).Select(x => x.Pos()).Concat(ShipStatus.Instance.AllVents.Select(x => new Vector2(x.transform.position.x, x.transform.position.y + 0.3636f))).MinBy(x => Vector2.Distance(pos, x)));
+                __instance.TP(Main.EnumerateAlivePlayerControls().Without(__instance).Select(x => x.Pos()).Concat(ShipStatus.Instance.AllVents.Select(x => new Vector2(x.transform.position.x, x.transform.position.y + 0.3636f))).MinBy(x => Vector2.Distance(pos, x)));
             }
         }, 0.2f);
     }

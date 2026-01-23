@@ -1241,7 +1241,7 @@ public static class Utils
     /// <returns>A list containing all PlayerControls within the specified range from the specified location</returns>
     public static IEnumerable<PlayerControl> GetPlayersInRadius(float radius, Vector2 from)
     {
-        return from tg in Main.AllAlivePlayerControls let dis = Vector2.Distance(@from, tg.Pos()) where !Pelican.IsEaten(tg.PlayerId) && !tg.inVent where dis <= radius select tg;
+        return from tg in Main.EnumerateAlivePlayerControls() let dis = Vector2.Distance(@from, tg.Pos()) where !Pelican.IsEaten(tg.PlayerId) && !tg.inVent where dis <= radius select tg;
     }
 
     public static void ShowActiveSettings(byte playerId = byte.MaxValue)
@@ -1762,7 +1762,7 @@ public static class Utils
         {
             if (Options.CurrentGameMode != CustomGameMode.Standard || deadPlayer == null || deadPlayer.Object.Is(CustomRoles.Renegade) || Main.HasJustStarted || !GameStates.InGame || !Options.SpawnAdditionalRenegadeOnImpsDead.GetBool() || Main.AllAlivePlayerControls.Count < Options.SpawnAdditionalRenegadeMinAlivePlayers.GetInt() || CustomRoles.Renegade.RoleExist(true) || Main.AllAlivePlayerControls == null || Main.AllAlivePlayerControls.Count == 0 || Main.AllAlivePlayerControls.Any(x => x.PlayerId != deadPlayer.PlayerId && (x.Is(CustomRoleTypes.Impostor) || (x.IsNeutralKiller() && !Options.SpawnAdditionalRenegadeWhenNKAlive.GetBool())))) return;
 
-            PlayerControl[] listToChooseFrom = Main.AllAlivePlayerControls.Where(x => x.PlayerId != deadPlayer.PlayerId && x.Is(CustomRoleTypes.Crewmate) && !x.Is(CustomRoles.Loyal)).ToArray();
+            PlayerControl[] listToChooseFrom = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != deadPlayer.PlayerId && x.Is(CustomRoleTypes.Crewmate) && !x.Is(CustomRoles.Loyal)).ToArray();
 
             if (listToChooseFrom.Length > 0)
             {
@@ -1867,7 +1867,7 @@ public static class Utils
             if (GameStates.CurrentServerType == GameStates.ServerType.Vanilla)
                 text = ReplaceHexColorsWithSafeColors(text);
 
-            PlayerControl sender = !addToHistory || GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.AllAlivePlayerControls.MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+            PlayerControl sender = !addToHistory || GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
 
             if (sendTo != byte.MaxValue && receiver.AmOwner)
             {
@@ -2419,7 +2419,7 @@ public static class Utils
     {
         Dictionary<string, int> playerRooms = [];
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             if (!pc.IsAlive() || Pelican.IsEaten(pc.PlayerId)) return null;
 
@@ -3528,7 +3528,7 @@ public static class Utils
         if (CustomRoles.Romantic.RoleExist(true)) nums[Options.GameStateInfo.RomanticState] = 1;
         if (Romantic.HasPickedPartner) nums[Options.GameStateInfo.RomanticState] = 2;
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             if (!Forger.Forges.ContainsKey(pc.PlayerId))
             {
@@ -4126,7 +4126,7 @@ public static class Utils
     {
         int doused = 0, all = 0;
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             if (pc.PlayerId == playerId) continue;
 
@@ -4475,7 +4475,7 @@ public static class Utils
     public static void SetChatVisibleForAll()
     {
         if (!GameStates.IsInGame) return;
-        Main.AllAlivePlayerControls.Do(x => x.SetChatVisible(true));
+        Main.EnumerateAlivePlayerControls().Do(x => x.SetChatVisible(true));
     }
 
     public static bool TryCast<T>(this Il2CppObjectBase obj, out T casted) where T : Il2CppObjectBase

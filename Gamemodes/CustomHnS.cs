@@ -98,7 +98,7 @@ internal static class CustomHnS
             IsBlindTime = false;
             Utils.MarkEveryoneDirtySettingsV4();
 
-            Main.AllAlivePlayerControls
+            Main.EnumerateAlivePlayerControls()
                 .Join(PlayerRoles, x => x.PlayerId, x => x.Key, (pc, role) => (pc, role.Value.Interface))
                 .Where(x => x.Interface.Team == Team.Impostor)
                 .Do(x => x.pc.SetKillCooldown());
@@ -361,7 +361,7 @@ internal static class CustomHnS
     {
         reason = GameOverReason.ImpostorsByKill;
 
-        var alivePlayers = Main.AllAlivePlayerControls;
+        var alivePlayers = Main.AllAlivePlayerControls.ToList();
 
         // If there are 0 players alive, the game is over and only foxes win
         if (alivePlayers.Count == 0)

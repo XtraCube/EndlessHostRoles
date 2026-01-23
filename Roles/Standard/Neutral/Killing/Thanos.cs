@@ -172,7 +172,7 @@ public class Thanos : RoleBase
             switch (ActiveStone)
             {
                 case Stone.Time:
-                    Main.AllAlivePlayerControls.DoIf(x => x.PlayerId != pc.PlayerId, x =>
+                    Main.EnumerateAlivePlayerControls().DoIf(x => x.PlayerId != pc.PlayerId, x =>
                     {
                         Main.AllPlayerSpeed[x.PlayerId] = Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod);
                         if (GameStates.IsInTask && !ExileController.Instance && !AntiBlackout.SkipTasks) x.MarkDirtySettings();
@@ -202,7 +202,7 @@ public class Thanos : RoleBase
                 pc.ResetKillCooldown();
                 break;
             case Stone.Time:
-                Main.AllAlivePlayerControls.DoIf(x => x.PlayerId != pc.PlayerId, x =>
+                Main.EnumerateAlivePlayerControls().DoIf(x => x.PlayerId != pc.PlayerId, x =>
                 {
                     Main.AllPlayerSpeed[x.PlayerId] -= TimeStoneReducesSpeedBy.GetFloat();
                     x.MarkDirtySettings();

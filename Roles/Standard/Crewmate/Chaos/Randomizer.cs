@@ -45,7 +45,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.ShieldAll:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         AddEffectForPlayer(pc, effect);
                         NotifyAboutRNG(pc);
@@ -55,7 +55,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.TPEveryoneToVents:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         pc.TPToRandomVent();
                         NotifyAboutRNG(pc);
@@ -70,11 +70,11 @@ internal static class EffectExtenstions
                 {
                     List<byte> changePositionPlayers = [];
 
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         if (changePositionPlayers.Contains(pc.PlayerId) || Pelican.IsEaten(pc.PlayerId) || pc.onLadder || pc.inVent || pc.inMovingPlat || GameStates.IsMeeting) continue;
 
-                        PlayerControl[] filtered = Main.AllAlivePlayerControls.Where(a => !a.inVent && !Pelican.IsEaten(a.PlayerId) && !a.onLadder && a.PlayerId != pc.PlayerId && !changePositionPlayers.Contains(a.PlayerId)).ToArray();
+                        PlayerControl[] filtered = Main.EnumerateAlivePlayerControls().Where(a => !a.inVent && !Pelican.IsEaten(a.PlayerId) && !a.onLadder && a.PlayerId != pc.PlayerId && !changePositionPlayers.Contains(a.PlayerId)).ToArray();
                         if (filtered.Length == 0) break;
 
                         PlayerControl target = filtered.RandomElement();
@@ -107,7 +107,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.SuperSpeedForAll:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         RevertSpeedChangesForPlayer(pc, false);
                         AddEffectForPlayer(pc, effect);
@@ -145,7 +145,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.SuperVisionForAll:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         RevertVisionChangesForPlayer(pc, false);
                         AddEffectForPlayer(pc, effect);
@@ -168,7 +168,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.BlindnessForAll:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         RevertVisionChangesForPlayer(pc, false);
                         AddEffectForPlayer(pc, effect);
@@ -181,7 +181,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.AllKCDsReset:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         if (pc.HasKillButton() && pc.CanUseKillButton())
                         {
@@ -194,7 +194,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.AllKCDsTo0:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         if (pc.HasKillButton() && pc.CanUseKillButton())
                         {
@@ -253,7 +253,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.InvertControls:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         RevertSpeedChangesForPlayer(pc, false);
                         AddEffectForPlayer(pc, effect);
@@ -302,7 +302,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.HandcuffAll:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         AddEffectForPlayer(pc, effect);
                         pc.BlockRole(IRandom.Instance.Next(MinimumEffectDuration, MaximumEffectDuration));
@@ -313,7 +313,7 @@ internal static class EffectExtenstions
                     break;
                 case Effect.DonutForAll:
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls) DonutDelivery.RandomNotifyTarget(pc);
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls()) DonutDelivery.RandomNotifyTarget(pc);
                 }
 
                     break;
@@ -344,7 +344,7 @@ internal static class EffectExtenstions
                 case Effect.GhostPlayer when TimeSinceLastMeeting > Options.AdjustedDefaultKillCooldown:
                 {
                     PlayerControl killer = PickRandomPlayer();
-                    PlayerControl[] allPc = Main.AllAlivePlayerControls.Where(x => x.PlayerId != killer.PlayerId).ToArray();
+                    PlayerControl[] allPc = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != killer.PlayerId).ToArray();
                     if (allPc.Length == 0) break;
 
                     PlayerControl target = allPc.RandomElement();
@@ -381,7 +381,7 @@ internal static class EffectExtenstions
                 case Effect.Duel:
                 {
                     PlayerControl pc1 = PickRandomPlayer();
-                    PlayerControl[] allPc = Main.AllAlivePlayerControls.Where(x => x.CanUseKillButton() && x.PlayerId != pc1.PlayerId).ToArray();
+                    PlayerControl[] allPc = Main.EnumerateAlivePlayerControls().Where(x => x.CanUseKillButton() && x.PlayerId != pc1.PlayerId).ToArray();
                     if (allPc.Length == 0) break;
 
                     PlayerControl pc2 = allPc.RandomElement();

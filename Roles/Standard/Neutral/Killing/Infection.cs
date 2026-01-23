@@ -203,7 +203,7 @@ public class Infection : RoleBase
             bool inVent = player.inVent;
             List<PlayerControl> updates = [];
 
-            foreach (PlayerControl target in Main.AllAlivePlayerControls)
+            foreach (PlayerControl target in Main.EnumerateAlivePlayerControls())
             {
                 // Plague doctors are excluded if they cannot infect themselves.
                 if (!CanInfect(target)) continue;
@@ -269,7 +269,7 @@ public class Infection : RoleBase
 
         var str = new StringBuilder(40);
 
-        foreach (PlayerControl player in Main.AllAlivePlayerControls)
+        foreach (PlayerControl player in Main.EnumerateAlivePlayerControls())
         {
             if (!player.Is(CustomRoles.Infection))
                 str.Append(GetInfectRateCharactor(player, pd));
@@ -318,13 +318,13 @@ public class Infection : RoleBase
         // Invalid if someone's victory is being processed
         if (CustomWinnerHolder.WinnerTeam != CustomWinner.Default) return;
 
-        if (Main.AllAlivePlayerControls.All(p => p.Is(CustomRoles.Infection) || IsInfected(p.PlayerId)))
+        if (Main.EnumerateAlivePlayerControls().All(p => p.Is(CustomRoles.Infection) || IsInfected(p.PlayerId)))
         {
             InfectActive = false;
 
             PlayerControl pd = Main.AllPlayerControls.FirstOrDefault(x => x.Is(CustomRoles.Infection));
 
-            foreach (PlayerControl player in Main.AllAlivePlayerControls)
+            foreach (PlayerControl player in Main.EnumerateAlivePlayerControls())
             {
                 if (player.Is(CustomRoles.Infection)) continue;
                 player.Suicide(PlayerState.DeathReason.Curse, pd);

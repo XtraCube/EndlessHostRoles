@@ -139,7 +139,7 @@ internal class Arsonist : RoleBase
             {
                 CustomSoundsManager.RPCPlayCustomSoundAll("Boom");
 
-                foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                 {
                     if (pc != physics.myPlayer)
                         pc.Suicide(PlayerState.DeathReason.Torched, physics.myPlayer);
@@ -163,7 +163,7 @@ internal class Arsonist : RoleBase
                 {
                     if (douseCount > ArsonistMaxPlayersToIgnite.GetInt()) Logger.Warn("Arsonist Ignited with more players doused than the maximum amount in the settings", "Arsonist Ignite");
 
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         if (!physics.myPlayer.IsDousedPlayer(pc)) continue;
                         pc.Suicide(PlayerState.DeathReason.Torched, physics.myPlayer);
@@ -180,7 +180,7 @@ internal class Arsonist : RoleBase
                             CustomWinnerHolder.WinnerIds.Add(physics.myPlayer.PlayerId);
                             break;
                         case 2:
-                            if (Main.AllAlivePlayerControls.Where(x => x.PlayerId != physics.myPlayer.PlayerId).All(x => x.GetCountTypes() == CountTypes.Crew))
+                            if (Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != physics.myPlayer.PlayerId).All(x => x.GetCountTypes() == CountTypes.Crew))
                             {
                                 CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Arsonist);
                                 CustomWinnerHolder.WinnerIds.Add(physics.myPlayer.PlayerId);

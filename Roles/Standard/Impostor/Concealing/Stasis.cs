@@ -133,7 +133,7 @@ public class Stasis : RoleBase
 
         IEnumerator Countdown()
         {
-            PlayerControl[] imps = AffectsOtherImpostors.GetBool() ? [pc] : Main.AllAlivePlayerControls.Where(x => x.Is(Team.Impostor)).ToArray();
+            PlayerControl[] imps = AffectsOtherImpostors.GetBool() ? [pc] : Main.EnumerateAlivePlayerControls().Where(x => x.Is(Team.Impostor)).ToArray();
 
             for (var i = 0; i < time; i++)
             {

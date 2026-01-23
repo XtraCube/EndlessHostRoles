@@ -593,7 +593,7 @@ public static class KingOfTheZones
 
         if (!Main.IntroDestroyed) return false;
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls.Concat(ExtendedPlayerControl.TempExiled.ToValidPlayers()).ToArray();
+        PlayerControl[] aapc = Main.EnumerateAlivePlayerControls().Concat(ExtendedPlayerControl.TempExiled.ToValidPlayers()).ToArray();
 
         switch (aapc.Length)
         {
@@ -815,7 +815,7 @@ public static class KingOfTheZones
 
             try
             {
-                Dictionary<byte, PlainShipRoom> playerRooms = Main.AllAlivePlayerControls.ToDictionary(x => x.PlayerId, x => x.GetPlainShipRoom());
+                Dictionary<byte, PlainShipRoom> playerRooms = Main.EnumerateAlivePlayerControls().ToDictionary(x => x.PlayerId, x => x.GetPlainShipRoom());
                 Dictionary<SystemTypes, List<(KOTZTeam Team, int Length)>> roomPlayersAndTeams = Zones.ToDictionary(x => x, x => playerRooms.ExceptBy(RespawnTimes.Keys, k => k.Key).Where(k => k.Value != null && k.Value.RoomId == x).GroupBy(k => PlayerTeams[k.Key]).Select(k => (Team: k.Key, Length: k.Count())).OrderByDescending(k => k.Length).ToList());
 
                 foreach ((SystemTypes zone, List<(KOTZTeam Team, int Length)> teamPlayers) in roomPlayersAndTeams)
@@ -837,7 +837,7 @@ public static class KingOfTheZones
             }
             catch (Exception e) { Utils.ThrowException(e); }
 
-            foreach (PlayerControl player in Main.AllAlivePlayerControls)
+            foreach (PlayerControl player in Main.EnumerateAlivePlayerControls())
             {
                 try
                 {

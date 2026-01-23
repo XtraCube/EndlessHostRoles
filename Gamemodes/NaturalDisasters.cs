@@ -369,7 +369,7 @@ public static class NaturalDisasters
 
         protected void KillNearbyPlayers(PlayerState.DeathReason deathReason, float range = Range)
         {
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 if (Vector2.Distance(pc.Pos(), Position) <= range)
                     pc.Suicide(deathReason);
@@ -415,7 +415,7 @@ public static class NaturalDisasters
         {
             if (RemoveIfExpired()) return;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 float speed = (Vector2.Distance(pc.Pos(), Position) <= Range) switch
                 {
@@ -436,7 +436,7 @@ public static class NaturalDisasters
         {
             if (base.RemoveIfExpired())
             {
-                foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                 {
                     if (AffectedPlayers.Remove(pc.PlayerId))
                     {
@@ -587,7 +587,7 @@ public static class NaturalDisasters
             const float eyeRange = Range / 4f;
             const float dragRange = Range * 1.5f;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 Vector2 pos = pc.Pos();
 
@@ -692,7 +692,7 @@ public static class NaturalDisasters
                     cno.Despawn();
                 else
                 {
-                    foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                    foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                     {
                         if (Vector2.Distance(pc.Pos(), hit) <= Range / 2f)
                             pc.Suicide(PlayerState.DeathReason.Lightning);
@@ -752,7 +752,7 @@ public static class NaturalDisasters
         {
             if (RemoveIfExpired()) return;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 bool inRange = Vector2.Distance(pc.Pos(), Position) <= Range;
                 if ((inRange && AffectedPlayers.Add(pc.PlayerId)) || (!inRange && AffectedPlayers.Remove(pc.PlayerId)))
@@ -764,7 +764,7 @@ public static class NaturalDisasters
         {
             if (base.RemoveIfExpired())
             {
-                foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                 {
                     if (AffectedPlayers.Remove(pc.PlayerId))
                         pc.MarkDirtySettings();
@@ -830,7 +830,7 @@ public static class NaturalDisasters
         {
             if (RemoveIfExpired()) return;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 Vector2 pos = pc.Pos();
 
@@ -911,7 +911,7 @@ public static class NaturalDisasters
         {
             if (Sinkholes.Count == 0) return;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 Vector2 pos = pc.Pos();
 
@@ -947,7 +947,7 @@ public static class NaturalDisasters
             PlainShipRoom room = ShipStatus.Instance.AllRooms.FirstOrDefault(x => x.RoomId == naturalDisaster.Room);
             if (room == null) return;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 if (pc.IsInRoom(room))
                     pc.Suicide(PlayerState.DeathReason.Collapsed);
@@ -974,7 +974,7 @@ public static class NaturalDisasters
             if (Count++ < 10) return;
             Count = 0;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 if (pc.onLadder || pc.inMovingPlat || pc.MyPhysics.Animations.IsPlayingAnyLadderAnimation()) continue;
                 

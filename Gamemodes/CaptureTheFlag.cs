@@ -237,7 +237,7 @@ public static class CaptureTheFlag
 
         if (!ValidTag) return false;
 
-        PlayerControl[] aapc = Main.AllAlivePlayerControls.Concat(ExtendedPlayerControl.TempExiled.ToValidPlayers()).ToArray();
+        PlayerControl[] aapc = Main.EnumerateAlivePlayerControls().Concat(ExtendedPlayerControl.TempExiled.ToValidPlayers()).ToArray();
 
         switch (aapc.Length)
         {
@@ -304,7 +304,7 @@ public static class CaptureTheFlag
         yield return new WaitForSecondsRealtime(3f);
 
         // Assign players to teams
-        List<PlayerControl> players = Main.AllAlivePlayerControls.Shuffle().ToList();
+        List<PlayerControl> players = Main.EnumerateAlivePlayerControls().Shuffle().ToList();
         if (Main.GM.Value) players.RemoveAll(x => x.IsHost());
         if (ChatCommands.Spectators.Count > 0) players.RemoveAll(x => ChatCommands.Spectators.Contains(x.PlayerId));
 
@@ -344,7 +344,7 @@ public static class CaptureTheFlag
         TeamData[CTFTeam.Yellow] = new(CTFTeam.Yellow, yellowFlag, yellowPlayers, byte.MaxValue);
 
         // Teleport players to their respective bases
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             if (PlayerTeams.TryGetValue(pc.PlayerId, out CTFTeam team))
             {

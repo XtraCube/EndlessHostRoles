@@ -269,26 +269,7 @@ public class Main : BasePlugin
         }
     }
 
-    private static readonly List<PlayerControl> AlivePlayerControlsCache = new(byte.MaxValue);
-
-    public static IReadOnlyList<PlayerControl> AllAlivePlayerControls
-    {
-        get
-        {
-            AlivePlayerControlsCache.Clear();
-
-            foreach (PlayerControl pc in PlayerControl.AllPlayerControls)
-            {
-                if (pc == null || pc.PlayerId >= 254 || !pc.IsAlive() || pc.Data == null || 
-                    (pc.Data.Disconnected && IntroDestroyed) || Pelican.IsEaten(pc.PlayerId)) 
-                    continue;
-
-                AlivePlayerControlsCache.Add(pc);
-            }
-
-            return AlivePlayerControlsCache;
-        }
-    }
+    public static IReadOnlyList<PlayerControl> AllAlivePlayerControls => EnumerateAlivePlayerControls().ToList();
 
     // ReSharper disable once InconsistentNaming
     public static string Get_TName_Snacks => TranslationController.Instance.currentLanguage.languageID is SupportedLangs.SChinese or SupportedLangs.TChinese ? NameSnacksCn.RandomElement() : NameSnacksEn.RandomElement();

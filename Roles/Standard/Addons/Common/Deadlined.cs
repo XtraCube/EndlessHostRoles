@@ -47,7 +47,7 @@ public class Deadlined : IAddon
 
         if (MeetingEndTS + InactiveTime.GetInt() >= Utils.TimeStamp) return;
 
-        foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
         {
             if (!pc.Is(CustomRoles.Deadlined)) continue;
 

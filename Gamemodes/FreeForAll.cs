@@ -139,7 +139,7 @@ internal static class FreeForAll
 
         PlayerTeams = [];
 
-        var allPlayers = Main.AllAlivePlayerControls;
+        var allPlayers = Main.EnumerateAlivePlayerControls();
         if (Main.GM.Value && AmongUsClient.Instance.AmHost) allPlayers = allPlayers.Without(PlayerControl.LocalPlayer).ToArray();
         allPlayers = allPlayers.ExceptBy(ChatCommands.Spectators, x => x.PlayerId).ToArray();
 
@@ -222,7 +222,7 @@ internal static class FreeForAll
             {
                 PlayerControl otherPC = null;
 
-                foreach (PlayerControl pc in Main.AllAlivePlayerControls.Where(a => a.PlayerId != killer.PlayerId && a.PlayerId != target.PlayerId && a.IsAlive()))
+                foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls().Where(a => a.PlayerId != killer.PlayerId && a.PlayerId != target.PlayerId && a.IsAlive()))
                 {
                     TargetArrow.Add(killer.PlayerId, pc.PlayerId);
                     TargetArrow.Add(pc.PlayerId, killer.PlayerId);
@@ -354,7 +354,7 @@ internal static class FreeForAll
     {
         if (GameStates.IsMeeting || target != null && seer.PlayerId != target.PlayerId || Main.AllAlivePlayerControls.Count != 2) return string.Empty;
 
-        PlayerControl otherPlayer = Main.AllAlivePlayerControls.FirstOrDefault(pc => pc.IsAlive() && pc.PlayerId != seer.PlayerId);
+        PlayerControl otherPlayer = Main.EnumerateAlivePlayerControls().FirstOrDefault(pc => pc.IsAlive() && pc.PlayerId != seer.PlayerId);
         if (otherPlayer == null) return string.Empty;
 
         string arrow = TargetArrow.GetArrows(seer, otherPlayer.PlayerId);
@@ -387,11 +387,11 @@ internal static class FreeForAll
 
                 List<byte> changePositionPlayers = [];
 
-                foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+                foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
                 {
                     if (changePositionPlayers.Contains(pc.PlayerId) || !pc.IsAlive() || pc.onLadder || pc.inVent || pc.inMovingPlat) continue;
 
-                    PlayerControl[] filtered = Main.AllAlivePlayerControls.Where(a =>
+                    PlayerControl[] filtered = Main.EnumerateAlivePlayerControls().Where(a =>
                         pc.IsAlive() && !pc.inVent && a.PlayerId != pc.PlayerId && !changePositionPlayers.Contains(a.PlayerId)).ToArray();
 
                     if (filtered.Length == 0) break;
@@ -418,7 +418,7 @@ internal static class FreeForAll
 
             if (Main.NormalOptions.MapId == 4) return;
 
-            foreach (PlayerControl pc in Main.AllAlivePlayerControls)
+            foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
             {
                 if (pc == null) return;
 

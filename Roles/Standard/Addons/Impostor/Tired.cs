@@ -21,7 +21,7 @@ public class Tired : IAddon
 
     public static void Reset()
     {
-        try { KillsThisRound = Main.AllAlivePlayerControls.Where(x => x.Is(CustomRoles.Tired)).ToDictionary(x => x.PlayerId, _ => 0); }
+        try { KillsThisRound = Main.EnumerateAlivePlayerControls().Where(x => x.Is(CustomRoles.Tired)).ToDictionary(x => x.PlayerId, _ => 0); }
         catch (Exception e) { Utils.ThrowException(e); }
     }
     
