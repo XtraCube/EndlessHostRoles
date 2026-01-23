@@ -1163,9 +1163,7 @@ internal static class MeetingHudStartPatch
         Starspawn.StartMeetingPatch.Postfix(__instance);
         Ventriloquist.StartMeetingPatch.Postfix(__instance);
         ShowHostMeetingPatch.Setup_Postfix(__instance);
-#if !ANDROID
         Crowded.MeetingHudStartPatch.Postfix(__instance);
-#endif
     }
 }
 

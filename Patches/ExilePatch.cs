@@ -211,19 +211,6 @@ internal static class ExileControllerWrapUpPatch
         }
     }
 
-#if ANDROID
-    [HarmonyPatch(typeof(AirshipExileController._WrapUpAndSpawn_d__11), "MoveNext")]
-    private static class AirshipExileControllerPatch
-    {
-        public static void Postfix(AirshipExileController._WrapUpAndSpawn_d__11 __instance, ref bool __result)
-        {
-            if (__result) return;
-
-            try { WrapUpPostfix(__instance.__4__this.initData.networkedPlayer); }
-            finally { WrapUpFinalizer(); }
-        }
-    }
-#else
     [HarmonyPatch(typeof(AirshipExileController._WrapUpAndSpawn_d__11), nameof(AirshipExileController._WrapUpAndSpawn_d__11.MoveNext))]
     private static class AirshipExileControllerPatch
     {
@@ -237,7 +224,6 @@ internal static class ExileControllerWrapUpPatch
             finally { WrapUpFinalizer(); }
         }
     }
-#endif
 }
 
 [HarmonyPatch(typeof(PbExileController), nameof(PbExileController.PlayerSpin))]

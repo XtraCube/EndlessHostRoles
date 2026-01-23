@@ -430,7 +430,7 @@ public enum CustomRoles
     VoodooMaster,
     Wyrd,
 
-    // Solo Kombat
+    // Solo PVP
     Challenger,
 
     // FFA

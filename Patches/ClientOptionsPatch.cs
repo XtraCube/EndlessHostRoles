@@ -31,9 +31,8 @@ public static class OptionsMenuBehaviourStartPatch
     private static ClientOptionItem AutoHaunt;
     private static ClientOptionItem ButtonCooldownInDecimalUnder10s;
     private static ClientOptionItem CancelPetAnimation;
-#if !ANDROID
     private static ClientOptionItem TryFixStuttering;
-#endif
+
 #if DEBUG
     private static ClientOptionItem GodMode;
 #endif
@@ -204,7 +203,6 @@ public static class OptionsMenuBehaviourStartPatch
         if (CancelPetAnimation == null || CancelPetAnimation.ToggleButton == null)
             CancelPetAnimation = ClientOptionItem.Create("CancelPetAnimation", Main.CancelPetAnimation, __instance);
         
-#if !ANDROID
         if (TryFixStuttering == null || TryFixStuttering.ToggleButton == null)
         {
             TryFixStuttering = ClientOptionItem.Create("TryFixStuttering", Main.TryFixStuttering, __instance, TryFixStutteringButtonToggle);
@@ -212,6 +210,8 @@ public static class OptionsMenuBehaviourStartPatch
             [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
             static void TryFixStutteringButtonToggle()
             {
+                if (OperatingSystem.IsAndroid()) return;
+                
                 if (Main.TryFixStuttering.Value)
                 {
                     if (Application.platform == RuntimePlatform.WindowsPlayer && Environment.ProcessorCount >= 4)
@@ -232,7 +232,6 @@ public static class OptionsMenuBehaviourStartPatch
                 }
             }
         }
-#endif
 
 #if DEBUG
         if ((GodMode == null || GodMode.ToggleButton == null) && DebugModeManager.AmDebugger)

@@ -255,9 +255,11 @@ internal static class OnGameJoinedPatch
     /// </summary>
     private static (int Files, int Folders) CleanOldItems(bool dryRun = true, int days = 7)
     {
-#if ANDROID
-    return (0, 0); // Not supported on Android
-#endif
+        if (OperatingSystem.IsAndroid())
+        {
+            return (0, 0); // Not supported on Android
+        }
+    
         string path;
 
         try

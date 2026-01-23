@@ -459,7 +459,7 @@ public static class Quiz
         if (everyoneWasWrong) QuestionsAsked--;
         Utils.NotifyRoles();
 
-        yield return new WaitForSecondsRealtime(everyoneWasWrong ? aapc.Length <= 3 ? 4f : 6f : 3f);
+        yield return new WaitForSecondsRealtime(everyoneWasWrong ? aapc.Count <= 3 ? 4f : 6f : 3f);
         if (GameStates.IsMeeting || ExileController.Instance || !GameStates.InGame || GameStates.IsLobby) yield break;
 
         var settings = Settings[CurrentDifficulty];

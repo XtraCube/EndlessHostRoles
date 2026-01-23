@@ -4097,11 +4097,11 @@ public static class Utils
             if (finish) CustomLogger.Instance.Finish();
 
             var t = DateTime.Now.ToString("yyyy-MM-dd_HH.mm.ss");
-#if ANDROID
-            var f = $"{Main.DataPath}/EHR_Logs/{t}";
-#else
-            var f = $"{Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)}/EHR_Logs/{t}";
-#endif
+
+            var basePath = OperatingSystem.IsAndroid() ? Main.DataPath : Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+
+            var f = Path.Combine(basePath, "EHR_Logs", t);
+
             if (!Directory.Exists(f)) Directory.CreateDirectory(f);
 
             var filename = $"{f}/EHR-v{Main.PluginVersion}-LOG";
@@ -4114,9 +4114,10 @@ public static class Utils
             if (PlayerControl.LocalPlayer != null && HudManager.InstanceExists)
                 HudManager.Instance?.Chat?.AddChat(PlayerControl.LocalPlayer, string.Format(GetString("Message.DumpfileSaved"), "EHR" + filename.Split("EHR")[1]));
 
-#if !ANDROID
-            Process.Start("explorer.exe", f.Replace("/", "\\"));
-#endif
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start("explorer.exe", f.Replace("/", "\\"));
+            }
         }
         catch (Exception e) { ThrowException(e); }
     }
@@ -4723,6 +4724,31 @@ public static class Utils
         Object.Destroy(playerControl.gameObject);
         sender.EndMessage();
         sender.SendMessage();
+    }
+
+    public static MethodBase GetStateMachineMoveNext<T>(string methodName)
+    {
+        var typeName = typeof(T).FullName;
+        var showRoleStateMachine =
+            typeof(T)
+                .GetNestedTypes()
+                .FirstOrDefault(x=>x.Name.Contains(methodName));
+
+        if (showRoleStateMachine == null)
+        {
+            Logger.Error($"Failed to find {methodName} state machine for {typeName}", "GetStateMachineMoveNext");
+            return null;
+        }
+
+        var moveNext = AccessTools.Method(showRoleStateMachine, "MoveNext");
+        if (moveNext == null)
+        {
+            Logger.Error($"Failed to find MoveNext method for {typeName}.{methodName}", "GetStateMachineMoveNext");
+            return null;
+        }
+
+        Logger.Info($"Found {methodName}.MoveNext", "GetStateMachineMoveNext");
+        return moveNext;
     }
 }
 

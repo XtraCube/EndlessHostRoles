@@ -9,7 +9,6 @@ using UnityEngine;
 
 namespace EHR.Patches;
 
-[HarmonyPatch(typeof(TextBoxTMP))]
 public static class TextBoxPatch
 {
     private static TextMeshPro PlaceHolderText;
@@ -18,8 +17,7 @@ public static class TextBoxPatch
 
     public static bool IsInvalidCommand;
 
-#if !ANDROID
-    [HarmonyPatch(nameof(TextBoxTMP.SetText))]
+    [HarmonyPatch(typeof(TextBoxTMP), nameof(TextBoxTMP.SetText))]
     [HarmonyPrefix]
     public static bool AllowAllCharacters(TextBoxTMP __instance, [HarmonyArgument(0)] string input, [HarmonyArgument(1)] string inputCompo = "")
     {
@@ -101,9 +99,8 @@ public static class TextBoxPatch
         __instance.SetPipePosition();
         return false;
     }
-#endif
 
-    [HarmonyPatch(nameof(TextBoxTMP.SetText))]
+    [HarmonyPatch(typeof(TextBoxTMP), nameof(TextBoxTMP.SetText))]
     [HarmonyPostfix]
     public static void ShowCommandHelp(TextBoxTMP __instance)
     {
@@ -374,8 +371,7 @@ public static class TextBoxPatch
         catch { }
     }
 
-#if !ANDROID
-    [HarmonyPatch(nameof(TextBoxTMP.Update))]
+    [HarmonyPatch(typeof(TextBoxTMP), nameof(TextBoxTMP.Update))]
     [HarmonyPrefix]
     public static bool UpdatePatch(TextBoxTMP __instance)
     {
@@ -398,10 +394,9 @@ public static class TextBoxPatch
 
         return false;
     }
-#endif
 
     // Originally by KARPED1EM. Reference: https://github.com/KARPED1EM/TownOfNext/blob/TONX/TONX/Patches/TextBoxPatch.cs
-    [HarmonyPatch(nameof(TextBoxTMP.SetText))]
+    [HarmonyPatch(typeof(TextBoxTMP), nameof(TextBoxTMP.SetText))]
     [HarmonyPrefix]
     public static void ModifyCharacterLimit(TextBoxTMP __instance)
     {

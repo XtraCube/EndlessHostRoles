@@ -294,7 +294,7 @@ public static class ChatManager
 
         if (GameStates.CurrentServerType == GameStates.ServerType.Vanilla)
         {
-            if (targets.Length <= 1 || targets.Length >= Main.AllAlivePlayerControls.Length)
+            if (targets.Length <= 1 || targets.Length >= Main.AllAlivePlayerControls.Count)
                 Loop.Times(30, _ => Utils.SendMessage(string.Empty, targets.Length == 1 ? targets[0].PlayerId : byte.MaxValue, "​", force: true, sendOption: SendOption.None));
             else
                 targets.Do(x => Loop.Times(30, _ => Utils.SendMessage(string.Empty, x.PlayerId, "​", force: true, sendOption: SendOption.None)));

@@ -1,6 +1,4 @@
-﻿#if !ANDROID
-using System;
-#endif
+﻿using System;
 
 namespace EHR;
 
@@ -10,7 +8,8 @@ public static class AddSteamID
 
     public static void AddSteamAppIdFile()
     {
-#if !ANDROID
+        if (OperatingSystem.IsAndroid()) return;
+
         try
         {
             if (!File.Exists(FilePath))
@@ -23,6 +22,5 @@ public static class AddSteamID
             }
         }
         catch (Exception e) { Utils.ThrowException(e); }
-#endif
     }
 }

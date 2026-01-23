@@ -35,10 +35,13 @@ public static class ModUpdater
     [HarmonyPriority(2)]
     public static void Start_Prefix()
     {
-#if !ANDROID
-        NewVersionCheck();
-        DeleteOldFiles();
-#endif
+        if (!OperatingSystem.IsAndroid())
+        {
+            // Version checks are not handled on Android
+            NewVersionCheck();
+            DeleteOldFiles();
+        }
+
         InfoPopup = Object.Instantiate(TwitchManager.Instance.TwitchPopup);
         InfoPopup.name = "InfoPopup";
         InfoPopup.TextAreaTMP.GetComponent<RectTransform>().sizeDelta = new(2.5f, 2f);
@@ -46,8 +49,7 @@ public static class ModUpdater
         InfoPopupV2 = Object.Instantiate(TwitchManager.Instance.TwitchPopup);
         InfoPopupV2.name = "InfoPopupV2";
 
-#if !ANDROID
-        if (!IsChecked)
+        if (!OperatingSystem.IsAndroid() && !IsChecked)
         {
             bool done = CheckReleaseFromGithub(Main.BetaBuildUrl.Value != "").GetAwaiter().GetResult();
             Logger.Msg("done: " + done, "CheckRelease");
@@ -56,7 +58,6 @@ public static class ModUpdater
             Logger.Info("downloadUrl: " + DownloadUrl, "CheckRelease");
             Logger.Info("latestVersionl: " + LatestVersion, "CheckRelease");
         }
-#endif
     }
 
     public static void ShowAvailableUpdate()
@@ -167,9 +168,8 @@ public static class ModUpdater
 
     public static void StartUpdate(string url, bool github)
     {
-#if ANDROID
-        return;
-#endif
+        if (OperatingSystem.IsAndroid()) return;
+
         ShowPopup(GetString("updatePleaseWait"), StringNames.Cancel, true, false);
         _ = !github ? DownloadDLL(url) : DownloadDLLGithub(url);
     }

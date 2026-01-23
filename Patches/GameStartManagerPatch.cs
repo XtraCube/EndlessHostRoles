@@ -383,14 +383,6 @@ public static class GameStartManagerPatch
                     }
                 }
 
-#if ANDROID
-                try
-                {
-                    if (canStartGame) CheckAutoStart(__instance);
-                }
-                catch (Exception e) { Utils.ThrowException(e); }
-#endif
-
                 if (warningMessage == "")
                     WarningText.gameObject.SetActive(false);
                 else

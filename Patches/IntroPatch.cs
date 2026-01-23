@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using AmongUs.GameOptions;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR.Gamemodes;
@@ -9,6 +10,7 @@ using EHR.Patches;
 using EHR.Roles;
 using HarmonyLib;
 using Hazel;
+using Il2CppInterop.Runtime.InteropTypes;
 using UnityEngine;
 using static EHR.Translator;
 
@@ -16,31 +18,24 @@ namespace EHR;
 
 // Patch for non-host modded clients to ensure that the intro cutscene is shown correctly
 // and GameStates.InGame is set to true
-#if ANDROID
-[HarmonyPatch(typeof(IntroCutscene._ShowRole_d__40), "MoveNext")]
-static class ShowRoleMoveNextPatchAndroid
-{
-    public static void Postfix(IntroCutscene._ShowRole_d__40 __instance, ref bool __result)
-    {
-        if (__instance.__1__state != 1 || !__result) return;
-
-        GameStates.InGame = true;
-        SetUpRoleTextPatch.Postfix(__instance.__4__this);
-    }
-}
-#else
-[HarmonyPatch(typeof(IntroCutscene._ShowRole_d__41), nameof(IntroCutscene._ShowRole_d__41.MoveNext))]
+[HarmonyPatch]
 static class ShowRoleMoveNextPatch
 {
-    public static void Postfix(IntroCutscene._ShowRole_d__41 __instance, ref bool __result)
+    public static MethodBase TargetMethod()
     {
-        if (__instance.__1__state != 1 || !__result) return;
+        return Utils.GetStateMachineMoveNext<IntroCutscene>(nameof(IntroCutscene.ShowRole));
+    }
+    
+    public static void Postfix(Il2CppObjectBase __instance, ref bool __result)
+    {
+        var wrapper = new StateMachineWrapper<IntroCutscene>(__instance);
+        
+        if (wrapper.GetField<int>("__1__state") != 1 || !__result) return;
 
         GameStates.InGame = true;
-        SetUpRoleTextPatch.Postfix(__instance.__4__this);
+        SetUpRoleTextPatch.Postfix(wrapper.Instance);
     }
 }
-#endif
 
 // For some reason, IntroCutScene.ShowRole is not called in the base game with this exact same code,
 // so we need to patch HudManager.CoShowIntro for the host entirely to ensure that the intro is shown correctly

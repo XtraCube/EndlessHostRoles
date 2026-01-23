@@ -9,10 +9,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using EHR.Gamemodes;
 
-#if !ANDROID
-using Il2CppInterop.Runtime.InteropTypes.Arrays;
-#endif
-
 namespace EHR;
 
 public static class Translator
@@ -184,7 +180,7 @@ public static class Translator
 
     public static string GetString(StringNames stringName)
     {
-        return TranslationController.Instance.GetString(stringName, []);
+        return TranslationController.Instance.GetString(stringName);
     }
 
     public static string GetRoleString(string str, bool forUser = true)

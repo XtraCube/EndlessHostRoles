@@ -10,7 +10,6 @@ using System.Text.Json;
 using AmongUs.GameOptions;
 using BepInEx;
 using BepInEx.Configuration;
-using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR;
@@ -20,9 +19,7 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 using UnityEngine.Networking;
-#if !ANDROID
 using EHR.Patches;
-#endif
 
 [assembly: AssemblyFileVersion(Main.PluginVersion)]
 [assembly: AssemblyInformationalVersion(Main.PluginVersion)]
@@ -854,11 +851,9 @@ public class Main : BasePlugin
         handler.Info($"{nameof(ThisAssembly.Git.Tag)}: {ThisAssembly.Git.Tag}");
 
         ClassInjector.RegisterTypeInIl2Cpp<ErrorText>();
-#if !ANDROID
         ClassInjector.RegisterTypeInIl2Cpp<MeetingHudPagingBehaviour>();
         ClassInjector.RegisterTypeInIl2Cpp<ShapeShifterPagingBehaviour>();
         ClassInjector.RegisterTypeInIl2Cpp<VitalsPagingBehaviour>();
-#endif
 
         NormalGameOptionsV10.RecommendedImpostors = NormalGameOptionsV10.MaxImpostors = Enumerable.Repeat(128, 128).ToArray();
         NormalGameOptionsV10.MinPlayers = Enumerable.Repeat(4, 128).ToArray();
@@ -867,6 +862,12 @@ public class Main : BasePlugin
         PrivateTagManager.LoadTagsFromFile();
 
         Harmony.PatchAll(Assembly.GetExecutingAssembly());
+
+        if (!OperatingSystem.IsAndroid())
+        {
+            // there are some issues with TextBoxPatch on Android
+            Harmony.PatchAll(typeof(TextBoxPatch));
+        }
 
         if (!DebugModeManager.AmDebugger)
             ConsoleManager.DetachConsole();
@@ -898,9 +899,7 @@ public class Main : BasePlugin
         {
             CustomLogger.ClearLog();
 
-#if !ANDROID
             StartCoroutine(ModNewsFetcher.FetchNews());
-#endif
 
             try { DevManager.StartFetchingTags(); }
             catch (Exception e) { Utils.ThrowException(e); }
@@ -918,10 +917,9 @@ public class Main : BasePlugin
             Logger.Msg($"EHR Version: {PluginVersion}, Test Build: {TestBuild}", "Plugin Load");
         };
 
-#if !ANDROID
         try
         {
-            if (TryFixStuttering.Value && Application.platform == RuntimePlatform.WindowsPlayer && Environment.ProcessorCount >= 4)
+            if (TryFixStuttering.Value && OperatingSystem.IsWindows() && Environment.ProcessorCount >= 4)
             {
                 var process = Process.GetCurrentProcess();
                 OriginalAffinity = process.ProcessorAffinity;
@@ -929,7 +927,6 @@ public class Main : BasePlugin
             }
         }
         catch (Exception e) { Utils.ThrowException(e); }
-#endif
     }
 
     private static void HandleRoleColorFiles()

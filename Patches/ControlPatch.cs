@@ -12,15 +12,18 @@ using static EHR.Translator;
 
 namespace EHR;
 
-#if !ANDROID
 [HarmonyPatch(typeof(ControllerManager), nameof(ControllerManager.Update))]
-#endif
 internal static class ControllerManagerUpdatePatch
 {
     private static readonly (int, int)[] Resolutions = [(480, 270), (640, 360), (800, 450), (1280, 720), (1600, 900), (1920, 1080)];
     private static int ResolutionIndex;
 
     private static bool IsResetting;
+
+    public static bool Prepare()
+    {
+        return !OperatingSystem.IsAndroid(); // Disable on Android to prevent input issues
+    }
 
     public static void Postfix( /*ControllerManager __instance*/)
     {

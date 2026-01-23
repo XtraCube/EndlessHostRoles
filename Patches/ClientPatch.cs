@@ -1,6 +1,9 @@
+using System;
+using System.Reflection;
 using AmongUs.Data;
 using EHR.Modules;
 using HarmonyLib;
+using Il2CppInterop.Runtime.InteropTypes;
 using InnerNet;
 using TMPro;
 using UnityEngine;
@@ -158,7 +161,6 @@ static class CheckOnlinePermissionsPatch
     }
 }
 
-#if !ANDROID
 [HarmonyPatch]
 internal static class AuthTimeoutPatch
 {
@@ -177,20 +179,34 @@ internal static class AuthTimeoutPatch
 
     // If you don't patch this, you still need to wait for 5 s.
     // I have no idea why this is happening
-    [HarmonyPatch(typeof(AmongUsClient._CoJoinOnlinePublicGame_d__49), nameof(AmongUsClient._CoJoinOnlinePublicGame_d__49.MoveNext))]
-    [HarmonyPrefix]
-    public static void EnableUdpMatchmakingPrefix(AmongUsClient._CoJoinOnlinePublicGame_d__49 __instance)
+    [HarmonyPatch]
+    public static class EnableUdpPatch
     {
-        // Skip to state 1, which just calls CoJoinOnlineGameDirect
-        if (__instance.__1__state == 0 && !ServerManager.Instance.IsHttp)
+        public static MethodBase TargetMethod()
         {
-            __instance.__1__state = 1;
+            return Utils.GetStateMachineMoveNext<AmongUsClient>(nameof(AmongUsClient.CoJoinOnlinePublicGame))!;
+        }
 
-            __instance.__8__1 = new()
+        public static void Prefix(Il2CppObjectBase __instance)
+        {
+            var stateMachine = new StateMachineWrapper<AmongUsClient>(__instance);
+
+            // Skip to state 1 which just calls CoJoinOnlineGameDirect
+            if (stateMachine.State == 0 && !ServerManager.Instance.IsHttp)
             {
-                matchmakerToken = string.Empty
-            };
+                stateMachine.State = 1;
+                var lambdaType = stateMachine.GetParameter<Il2CppObjectBase>("__8__1").GetType();
+                var newDisplayClass = Activator.CreateInstance(lambdaType);
+                if (newDisplayClass == null)
+                {
+                    throw new InvalidOperationException($"Could not create display class of type '{lambdaType}'.");
+                }
+
+                var displayClass = new CompilerGeneratedObjectWrapper(newDisplayClass);
+                displayClass.SetField("matchmakerToken", string.Empty);
+
+                stateMachine.SetParameter("__8__1", newDisplayClass);
+            }
         }
     }
 }
-#endif
