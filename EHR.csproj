@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <Import Project="local.props" Condition="Exists('local.props')" /> 
     <PropertyGroup>
-        <TargetFramework Condition="'$(Configuration)' == 'Android'">net8.0</TargetFramework>
-        <TargetFramework Condition="'$(Configuration)' != 'Android'">net6.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
         <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
         <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
@@ -12,11 +11,11 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Optimize>True</Optimize>
         <AssemblyName>$(MSBuildProjectName)</AssemblyName>
-        <Configurations>Debug;Release;Android</Configurations>
+        <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU</Platforms>
         <RepositoryUrl>https://github.com/Gurge44/EndlessHostRoles</RepositoryUrl>
     </PropertyGroup>
-    
+
     <PropertyGroup Condition="'$(AmongUs)' == ''">
         <AmongUs>D:\SteamLibrary\steamapps\common\Among Us</AmongUs>
     </PropertyGroup>
@@ -32,8 +31,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AmongUs.GameLibs.Steam" Version="2025.11.18" PrivateAssets="all" Condition="'$(Configuration)' == 'Release' Or '$(Configuration)' == 'Debug'" />
-        <PackageReference Include="AmongUs.GameLibs.Android" Version="2025.10.14" PrivateAssets="all" Condition="'$(Configuration)' == 'Android'"/>
+        <PackageReference Include="AmongUs.GameLibs.Steam" Version="2025.11.18" PrivateAssets="all" />
         <PackageReference Include="BepInEx.IL2CPP.MSBuild" Version="2.1.0-rc.1"/>
         <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.735" Private="false" ExcludeAssets="runtime;native"/>
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
@@ -55,7 +53,7 @@
     <Target Name="Roles" AfterTargets="Build">
         <Copy SourceFiles="CustomRoles.cs" DestinationFolder="CTA/CustomTeamAssigner/"/>
     </Target>
-    <Target Name="Copy" AfterTargets="Build" Condition="'$(AmongUs)' != '' And '$(Configuration)' != 'Android'">
+    <Target Name="Copy" AfterTargets="Build" Condition="'$(AmongUs)' != ''">
         <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(AmongUs)/BepInEx/plugins/"/>
     </Target>
 </Project>
