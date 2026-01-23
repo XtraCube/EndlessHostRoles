@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using AmongUs.GameOptions;
-using EHR.AddOns.Common;
-using EHR.Crewmate;
+using EHR.Gamemodes;
 using EHR.Modules;
-using EHR.Neutral;
+using EHR.Roles;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -32,6 +31,7 @@ internal static class HudManagerPatch
 
     public static void ClearLowerInfoText()
     {
+        if (LowerInfoText == null) return;
         LowerInfoText.text = string.Empty;
     }
 
@@ -384,7 +384,8 @@ internal static class HudManagerPatch
                     __instance.ImpostorVentButton?.Hide();
                     __instance.KillButton?.Hide();
                     __instance.AbilityButton?.Show();
-                    __instance.AbilityButton?.OverrideText(GetString(StringNames.HauntAbilityName));
+                    __instance.AbilityButton?.SetEnabled();
+                    __instance.AbilityButton?.OverrideText(GetString(player.GetRoleTypes() == RoleTypes.GuardianAngel ? StringNames.ProtectAbility : StringNames.HauntAbilityName));
                 }
             }
 
@@ -715,7 +716,7 @@ internal static class HudManagerStartPatch
         while (!HudManager.Instance)
             yield return null;
 
-        yield return new WaitForSeconds(0.01f);
+        yield return new WaitForSecondsRealtime(0.01f);
         ResizeUI(Main.UIScaleFactor.Value);
     }
 

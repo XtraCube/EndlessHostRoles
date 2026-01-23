@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="local.props" Condition="Exists('local.props')" /> 
     <PropertyGroup>
         <TargetFramework Condition="'$(Configuration)' == 'Android'">net8.0</TargetFramework>
         <TargetFramework Condition="'$(Configuration)' != 'Android'">net6.0</TargetFramework>
@@ -7,7 +8,7 @@
         <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
         <Description>EHR</Description>
         <Authors>Gurge44</Authors>
-        <langVersion>preview</langVersion>
+        <LangVersion>preview</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Optimize>True</Optimize>
         <AssemblyName>$(MSBuildProjectName)</AssemblyName>

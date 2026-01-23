@@ -1,7 +1,6 @@
 ﻿using System;
 using AmongUs.GameOptions;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
@@ -106,7 +105,7 @@ public static class PhantomRoleUseAbilityPatch
     {
         if (!AmongUsClient.Instance.AmHost || !HudManager.InstanceExists) return true;
 
-        if (__instance.Player.AmOwner && !__instance.Player.Data.IsDead && __instance.Player.moveable && !Minigame.Instance && !__instance.IsCoolingDown && !__instance.fading)
+        if (__instance.Player.AmOwner && !__instance.Player.Data.IsDead && __instance.Player.IsAlive() && __instance.Player.moveable && !Minigame.Instance && !__instance.IsCoolingDown && !__instance.fading)
         {
             bool RoleEffectAnimation(RoleEffectAnimation x) => x.effectType == global::RoleEffectAnimation.EffectType.Vanish_Charge;
 

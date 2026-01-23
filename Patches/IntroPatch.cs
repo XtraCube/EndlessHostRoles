@@ -3,10 +3,10 @@ using System.Collections;
 using System.Linq;
 using AmongUs.GameOptions;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
-using EHR.AddOns.Common;
+using EHR.Gamemodes;
 using EHR.Modules;
-using EHR.Neutral;
 using EHR.Patches;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using UnityEngine;
@@ -78,7 +78,6 @@ static class CoShowIntroPatch
         {
             while (!ShipStatus.Instance || !HudManager.InstanceExists) yield return null;
 
-            RPC.RpcVersionCheck();
             GameStates.InGame = true;
 
             __instance.IsIntroDisplayed = true;
@@ -104,6 +103,8 @@ static class CoShowIntroPatch
             __instance.SetHudActive(true);
             __instance.CrewmatesKilled.gameObject.SetActive(GameManager.Instance.ShowCrewmatesKilled());
             GameManager.Instance.StartGame();
+            
+            RPC.RpcVersionCheck();
         }
 
         IEnumerator CoBegin(IntroCutscene introCutscene)
@@ -1177,8 +1178,12 @@ internal static class IntroCutsceneDestroyPatch
 
             switch (Options.CurrentGameMode)
             {
+                case CustomGameMode.SoloPVP when SoloPVP.SoloPVP_ChatDuringGame.GetBool():
                 case CustomGameMode.FFA when FreeForAll.FFAChatDuringGame.GetBool():
+                case CustomGameMode.Mingle when Mingle.ChatDuringGameOption.GetBool():
                 case CustomGameMode.Quiz when Quiz.Chat:
+                case CustomGameMode.HideAndSeek when CustomHnS.Chat:
+                case CustomGameMode.NaturalDisasters when NaturalDisasters.Chat:
                     Utils.SetChatVisibleForAll();
                     break;
             }

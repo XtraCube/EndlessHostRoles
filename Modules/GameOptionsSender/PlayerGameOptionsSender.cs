@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Linq;
 using AmongUs.GameOptions;
-using EHR.AddOns.Common;
-using EHR.AddOns.Crewmate;
-using EHR.AddOns.GhostRoles;
-using EHR.AddOns.Impostor;
-using EHR.Coven;
-using EHR.Crewmate;
-using EHR.Impostor;
-using EHR.Neutral;
+using EHR.Roles;
 using Hazel;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using Mathf = UnityEngine.Mathf;
+using EHR.Gamemodes;
 
 // ReSharper disable ForCanBeConvertedToForeach
 
@@ -513,7 +507,7 @@ public sealed class PlayerGameOptionsSender(PlayerControl player) : GameOptionsS
 
             bool energeticIncreaseSpeed = false, energeticDecreaseCooldown = false;
 
-            if (state.SubRoles.Contains(CustomRoles.Energetic))
+            if (state.SubRoles.Contains(CustomRoles.Energetic) || Empress.Encouraged.Contains(player.PlayerId))
             {
                 if (player.CanUseKillButton())
                     energeticDecreaseCooldown = true;
@@ -600,7 +594,7 @@ public sealed class PlayerGameOptionsSender(PlayerControl player) : GameOptionsS
             }
 
             state.TaskState.HasTasks = Utils.HasTasks(player.Data, false);
-            if (Options.GhostCanSeeOtherVotes.GetBool() && player.Data.IsDead) opt.SetBool(BoolOptionNames.AnonymousVotes, false);
+            if (Options.GhostCanSeeOtherVotes.GetBool() && !player.IsAlive()) opt.SetBool(BoolOptionNames.AnonymousVotes, false);
 
             if (Options.AdditionalEmergencyCooldown.GetBool() &&
                 Options.AdditionalEmergencyCooldownThreshold.GetInt() <= Utils.AllAlivePlayersCount)

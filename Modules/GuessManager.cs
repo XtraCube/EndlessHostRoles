@@ -5,18 +5,15 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using AmongUs.GameOptions;
-using EHR.AddOns.Common;
-using EHR.Coven;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Roles;
 using EHR.Modules;
-using EHR.Neutral;
 using HarmonyLib;
 using Hazel;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using static EHR.Translator;
+using EHR.Gamemodes;
 
 namespace EHR;
 
@@ -39,8 +36,10 @@ public static class GuessManager
         return Main.AllPlayerControls.Aggregate(GetString("PlayerIdList"), (current, pc) => current + $"\n{pc.PlayerId.ToString()} → {pc.GetRealName()}");
     }
 
-    private static bool CheckCommand(ref string msg, string command, bool exact = true)
+    public static bool CheckCommand(ref string msg, string command, bool exact, out bool spamRequired)
     {
+        Utils.CheckServerCommand(ref msg, out spamRequired);
+        
         string[] comList = command.Split('|');
 
         foreach (string str in comList)
@@ -75,8 +74,8 @@ public static class GuessManager
         int operate; // 1: ID, 2: Guess
         msg = msg.ToLower().TrimStart().TrimEnd();
 
-        if (CheckCommand(ref msg, "id|guesslist|gl编号|玩家编号|玩家id|id列表|玩家列表|列表|所有id|全部id")) operate = 1;
-        else if (CheckCommand(ref msg, "shoot|guess|bet|st|bt|猜|赌", false)) operate = 2;
+        if (CheckCommand(ref msg, "id|guesslist|gl编号|玩家编号|玩家id|id列表|玩家列表|列表|所有id|全部id", true, out bool spamRequired)) operate = 1;
+        else if (CheckCommand(ref msg, "shoot|guess|bet|st|bt|猜|赌", false, out spamRequired)) operate = 2;
         else return false;
 
         Logger.Msg(msg, "Msg Guesser");
@@ -122,13 +121,12 @@ public static class GuessManager
 
                 SkipCheck:
 
-                if (!isUI && !ssMenu && (pc.GetCustomRole() is CustomRoles.Decryptor or CustomRoles.NecroGuesser ||
+                if (!isUI && !ssMenu && spamRequired && (pc.GetCustomRole() is CustomRoles.Decryptor or CustomRoles.NecroGuesser ||
                      (pc.Is(CustomRoles.NiceGuesser) && Options.GGTryHideMsg.GetBool()) ||
                      (pc.Is(CustomRoles.EvilGuesser) && Options.EGTryHideMsg.GetBool()) ||
                      (pc.Is(CustomRoles.Doomsayer) && Doomsayer.DoomsayerTryHideMsg.GetBool()) ||
                      (pc.Is(CustomRoles.Guesser) && Guesser.GTryHideMsg.GetBool()) || (Options.GuesserMode.GetBool() && Options.HideGuesserCommands.GetBool())))
                     ChatManager.SendPreviousMessagesToAll();
-                else if (pc.AmOwner && !isUI && !ssMenu) Utils.SendMessage(originMsg, 255, pc.GetRealName());
 
                 if (!MsgToPlayerAndRole(msg, out byte targetId, out CustomRoles role, out string error))
                 {
@@ -219,6 +217,7 @@ public static class GuessManager
 
                     switch (pc.GetCustomRole())
                     {
+                        case CustomRoles.Augur when !((Augur)Main.PlayerStates[pc.PlayerId].Role).CanGuess:
                         case CustomRoles.Augur when Main.GuesserGuessed[pc.PlayerId] >= Augur.MaxGuessesPerGame.GetInt():
                         case CustomRoles.Augur when Main.GuesserGuessedMeeting[pc.PlayerId] >= Augur.MaxGuessesPerMeeting.GetInt():
                         case CustomRoles.NiceGuesser when Main.GuesserGuessed[pc.PlayerId] >= Options.GGCanGuessTime.GetInt():
@@ -487,7 +486,8 @@ public static class GuessManager
 
                         Doomsayer.GuessesCountPerMeeting++;
 
-                        if (Doomsayer.GuessesCountPerMeeting >= Doomsayer.MaxNumberOfGuessesPerMeeting.GetInt()) Doomsayer.CantGuess = true;
+                        if (Doomsayer.GuessesCountPerMeeting >= Doomsayer.MaxNumberOfGuessesPerMeeting.GetInt())
+                            Doomsayer.CantGuess = true;
 
                         if (!Doomsayer.KillCorrectlyGuessedPlayers.GetBool() && pc.PlayerId != dp.PlayerId)
                         {
@@ -520,6 +520,13 @@ public static class GuessManager
                         }
                     }
 
+                    if (pc.Is(CustomRoles.Augur) && pc.PlayerId == dp.PlayerId)
+                    {
+                        ShowMessage("Augur.IncorrectGuess");
+                        ((Augur)Main.PlayerStates[pc.PlayerId].Role).CanGuess = false;
+                        return true;
+                    }
+
                     string name = dp.GetRealName();
                     if (!Options.DisableKillAnimationOnGuess.GetBool()) CustomSoundsManager.RPCPlayCustomSoundAll("Gunfire");
 
@@ -539,7 +546,8 @@ public static class GuessManager
                             Doomsayer.GuessingToWin[pc.PlayerId]++;
                             Doomsayer.SendRPC(pc);
 
-                            if (!Doomsayer.GuessedRoles.Contains(role)) Doomsayer.GuessedRoles.Add(role);
+                            if (!Doomsayer.GuessedRoles.Contains(role))
+                                Doomsayer.GuessedRoles.Add(role);
 
                             Doomsayer.CheckCountGuess(pc);
                         }
@@ -1363,6 +1371,9 @@ public static class GuessManager
                 StringBuilder sb = new();
                 int textIndex = 0;
 
+                int messages = 0;
+                int packingLimit = AmongUsClient.Instance.GetMaxMessagePackingLimit();
+                
                 var skipped = false;
                 PlayerControl guesser = guesserId.GetPlayer();
                 MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
@@ -1391,8 +1402,9 @@ public static class GuessManager
                     if (textIndex % 3 == 0) sb.AppendLine();
                     else sb.Append(' ');
 
-                    if (writer.Length > 500)
+                    if (writer.Length > 500 || messages + 2 > packingLimit)
                     {
+                        messages = 0;
                         writer.EndMessage();
                         AmongUsClient.Instance.SendOrDisconnect(writer);
                         writer.Clear(SendOption.Reliable);
@@ -1415,6 +1427,8 @@ public static class GuessManager
                     writer.Write(namePlateId);
                     writer.Write(pc.GetNextRpcSequenceId(RpcCalls.SetNamePlateStr));
                     writer.EndMessage();
+
+                    messages += 2;
                 }
 
                 writer.EndMessage();

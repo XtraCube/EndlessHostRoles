@@ -4,11 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
-using EHR.AddOns.Common;
-using EHR.AddOns.GhostRoles;
-using EHR.Impostor;
+using EHR.Gamemodes;
 using EHR.Modules;
-using EHR.Neutral;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
@@ -361,13 +359,6 @@ internal static class GameEndChecker
         try { LobbySharingAPI.NotifyLobbyStatusChanged(LobbyStatus.Ended); }
         catch (Exception e) { ThrowException(e); }
 
-        string msg = GetString("NotifyGameEnding");
-
-        Main.AllPlayerControls
-            .Where(x => x.GetClient() != null && !x.Data.Disconnected)
-            .Select(x => new Message("\n", x.PlayerId, msg))
-            .SendMultipleMessages();
-
         SetEverythingUpPatch.LastWinsReason = WinnerTeam is CustomWinner.Crewmate or CustomWinner.Impostor ? GetString($"GameOverReason.{reason}") : string.Empty;
         var self = AmongUsClient.Instance;
         self.StartCoroutine(CoEndGame(self, reason).WrapToIl2Cpp());
@@ -417,7 +408,7 @@ internal static class GameEndChecker
         self.FinishRpcImmediately(winnerWriter);
 
         // Delay to ensure that resuscitation is delivered after the ghost roll setting
-        yield return new WaitForSeconds(EndGameDelay);
+        yield return new WaitForSecondsRealtime(EndGameDelay);
 
         if (playersToRevive.Count > 0)
         {
@@ -433,7 +424,7 @@ internal static class GameEndChecker
             }
 
             // Delay to ensure that the end of the game is delivered at the end of the game
-            yield return new WaitForSeconds(EndGameDelay);
+            yield return new WaitForSecondsRealtime(EndGameDelay);
         }
 
         // Start End Game
@@ -628,7 +619,7 @@ internal static class GameEndChecker
 
             foreach (PlayerState playerState in statesCoutingAsCrew)
             {
-                if (playerState.IsDead || !Options.CrewAdvancedGameEndCheckingSettings.TryGetValue(playerState.MainRole, out var option) || !option.GetBool()) continue;
+                if (!Options.CrewAdvancedGameEndCheckingSettings.TryGetValue(playerState.MainRole, out var option) || !option.GetBool() || playerState.SubRoles.Exists(x => x == CustomRoles.Madmate || x.IsConverted())) continue;
                 playerState.Role.ManipulateGameEndCheckCrew(playerState, out bool keepGameGoing, out int countsAs);
                 crewKeepsGameGoing |= keepGameGoing;
                 crew += countsAs - 1;
@@ -754,11 +745,12 @@ internal static class GameEndChecker
                     return true;
             }
 
-            if (winner != null) ResetAndSetWinner((CustomWinner)winner);
+            if (winner.HasValue)
+                ResetAndSetWinner(winner.Value);
 
-            if (rl != null)
+            if (rl.HasValue)
             {
-                WinnerRoles.Add((CustomRoles)rl);
+                WinnerRoles.Add(rl.Value);
                 WinnerIds.UnionWith(Main.AllPlayerControls.Where(x => x.GetCustomRole() == rl).Select(x => x.PlayerId));
             }
 

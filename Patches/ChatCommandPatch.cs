@@ -7,12 +7,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using AmongUs.GameOptions;
 using Assets.CoreScripts;
-using EHR.AddOns.Common;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Gamemodes;
 using EHR.Modules;
-using EHR.Neutral;
 using EHR.Patches;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
@@ -126,6 +124,8 @@ internal static class ChatCommands
     private static string CurrentAnagram = string.Empty;
 
     public static bool HasMessageDuringEjectionScreen;
+
+    private static bool WaitingToSend;
 
     public static void LoadCommands()
     {
@@ -403,6 +403,9 @@ internal static class ChatCommands
 
         if (text.StartsWith('/'))
         {
+            if (AmongUsClient.Instance.AmHost && text.StartsWith("/cmd"))
+                text = "/" + text[4..].TrimStart();
+            
             foreach ((string key, Command command) in Command.AllCommands)
             {
                 if (!command.IsThisCommand(text)) continue;
@@ -453,7 +456,7 @@ internal static class ChatCommands
                 if (!Main.AllPlayerNames.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out string name))
                     Utils.ApplySuffix(PlayerControl.LocalPlayer, out name);
 
-                Utils.SendMessage(text.Insert(0, new('\n', name.Count(x => x == '\n'))), title: name, addtoHistory: false);
+                Utils.SendMessage(text.Insert(0, new('\n', name.Count(x => x == '\n'))), title: name, addToHistory: false);
 
                 canceled = true;
                 __instance.freeChatField.textArea.Clear();
@@ -467,6 +470,22 @@ internal static class ChatCommands
 
         if (text.Contains("666") && PlayerControl.LocalPlayer.Is(CustomRoles.Demon))
             Achievements.Type.WhatTheHell.Complete();
+
+        if (!canceled && AmongUsClient.Instance.AmHost && Utils.TempReviveHostRunning)
+        {
+            if (!WaitingToSend) Main.Instance.StartCoroutine(Wait());
+            return false;
+            
+            IEnumerator Wait()
+            {
+                WaitingToSend = true;
+                while (Utils.TempReviveHostRunning && AmongUsClient.Instance.AmHost) yield return null;
+                yield return new WaitForSecondsRealtime(0.5f);
+                if (GameStates.IsEnded || GameStates.IsLobby) yield break;
+                WaitingToSend = false;
+                if (HudManager.InstanceExists) HudManager.Instance.Chat.SendChat();
+            }
+        }
 
         return !canceled;
     }
@@ -569,6 +588,12 @@ internal static class ChatCommands
     
     private static void ConfirmAuthCommand(PlayerControl player, string commandKey, string text, string[] args)
     {
+        if (!AmongUsClient.Instance.AmHost)
+        {
+            RequestCommandProcessingFromHost(text, commandKey);
+            return;
+        }
+
         if (GameStates.CurrentServerType != GameStates.ServerType.Vanilla)
         {
             Utils.SendMessage("\n", player.PlayerId, GetString("ConfirmAuth.ErrorNotVanilla"));
@@ -861,7 +886,7 @@ internal static class ChatCommands
             return;
         }
         
-        if (!player.IsHost() || args.Length < 3 || !GetRoleByName(args[1], out CustomRoles role1) || !GetRoleByName(args[2], out CustomRoles role2))
+        if ((!player.IsHost() && !IsPlayerAdmin(player.FriendCode)) || args.Length < 3 || !GetRoleByName(args[1], out CustomRoles role1) || !GetRoleByName(args[2], out CustomRoles role2))
         {
             Utils.SendMessage(string.Join('\n', Main.XORRoles.ConvertAll(x => $"{x.Item1.ToColoredString()} ⊕ {x.Item2.ToColoredString()}")), player.PlayerId, GetString("XORListTitle"));
             return;
@@ -1403,7 +1428,8 @@ internal static class ChatCommands
         DraftResult = [];
 
         byte[] allPlayerIds = Main.AllPlayerControls.Select(x => x.PlayerId).ToArray();
-        List<CustomRoles> allRoles = Main.CustomRoleValues.Where(x => x < CustomRoles.NotAssigned && x.IsEnable() && !x.IsForOtherGameMode() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsVanilla() && x is not CustomRoles.GM).ToList();
+        bool rollSpawnChance = Options.DraftAffectedByRoleSpawnChances.GetBool();
+        List<CustomRoles> allRoles = Main.CustomRoleValues.Where(x => x < CustomRoles.NotAssigned && x.IsEnable() && !x.IsForOtherGameMode() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsVanilla() && x is not CustomRoles.GM && (!rollSpawnChance || IRandom.Instance.Next(100) < x.GetMode())).Shuffle();
 
         if (allRoles.Count < allPlayerIds.Length)
         {
@@ -1412,8 +1438,8 @@ internal static class ChatCommands
         }
 
         IEnumerable<CustomRoles> impRoles = allRoles.Where(x => x.IsImpostor()).Shuffle().Take(Options.FactionMinMaxSettings[Team.Impostor].MaxSetting.GetInt());
-        IEnumerable<CustomRoles> nkRoles = allRoles.Where(x => x.IsNK()).Shuffle().Take(Options.RoleSubCategoryLimits[RoleOptionType.Neutral_Killing][2].GetInt());
-        IEnumerable<CustomRoles> nnkRoles = allRoles.Where(x => x.IsNonNK()).Shuffle().Take(Options.MaxNNKs.GetInt());
+        IEnumerable<CustomRoles> nkRoles = allRoles.Where(x => x.IsNK()).Shuffle().Take(Math.Min(Options.FactionMinMaxSettings[Team.Neutral].MaxSetting.GetInt(), Options.RoleSubCategoryLimits[RoleOptionType.Neutral_Killing][2].GetInt()));
+        IEnumerable<CustomRoles> nnkRoles = allRoles.Where(x => x.IsNonNK()).Shuffle().Take(Math.Min(Options.FactionMinMaxSettings[Team.Neutral].MaxSetting.GetInt() - Options.RoleSubCategoryLimits[RoleOptionType.Neutral_Killing][2].GetInt(), Options.MaxNNKs.GetInt()));
         IEnumerable<CustomRoles> covenRoles = allRoles.Where(x => x.IsCoven()).Shuffle().Take(Options.FactionMinMaxSettings[Team.Coven].MaxSetting.GetInt());
 
         allRoles.RemoveAll(x => x.IsImpostor());
@@ -1449,7 +1475,7 @@ internal static class ChatCommands
 
                 messages.SendMultipleMessages(index == 0 ? SendOption.Reliable : SendOption.None);
 
-                yield return new WaitForSeconds(20f);
+                yield return new WaitForSecondsRealtime(20f);
                 if (DraftResult.Count >= DraftRoles.Count || !GameStates.IsLobby || GameStates.InGame) yield break;
             }
         }
@@ -1693,7 +1719,7 @@ internal static class ChatCommands
             while (!GameStates.IsMeeting && GameStates.InGame) yield return null;
             if (!GameStates.InGame) yield break;
 
-            if (!meeting) yield return new WaitForSeconds(7f);
+            if (!meeting) yield return new WaitForSecondsRealtime(7f);
 
             PlayerControl killer = player.GetRealKiller();
             if (killer == null && id != 3) yield break;
@@ -1794,7 +1820,7 @@ internal static class ChatCommands
 
             string result = winners.Length == 1
                 ? string.Format(GetString("Poll.Winner"), winners[0].Key, PollAnswers[winners[0].Key], winners[0].Value) +
-                  PollVotes.Where(x => x.Key != winners[0].Key).Aggregate("", (s, t) => s + $"{t.Key} - {t.Value} {PollAnswers[t.Key]}\n")
+                  PollVotes.Where(x => x.Key != winners[0].Key).Aggregate("<size=70%>", (s, t) => s + $"{t.Key} - {t.Value} {PollAnswers[t.Key]}\n")
                 : string.Format(GetString("Poll.Tie"), string.Join(" & ", winners.Select(x => $"{x.Key}{PollAnswers[x.Key]}")), maxVotes);
 
             Utils.SendMessage(result, title: Utils.ColorString(new(0, 255, 165, 255), GetString("PollResultTitle")));
@@ -2564,7 +2590,7 @@ internal static class ChatCommands
             return;
         }
 
-        if (!player.IsHost() || args.Length < 4)
+        if ((!player.IsHost() && !IsPlayerAdmin(player.FriendCode)) || args.Length < 4)
         {
             if (Main.AlwaysSpawnTogetherCombos.Count == 0 && Main.NeverSpawnTogetherCombos.Count == 0) return;
 
@@ -3637,6 +3663,8 @@ internal static class ChatCommands
 
         if (text.StartsWith('/') && !player.IsModdedClient() && (!GameStates.IsMeeting || MeetingHud.Instance.state is not MeetingHud.VoteStates.Results and not MeetingHud.VoteStates.Proceeding))
         {
+            Utils.CheckServerCommand(ref text, out bool spamRequired);
+            
             foreach ((string key, Command command) in Command.AllCommands)
             {
                 if (!command.IsThisCommand(text)) continue;
@@ -3650,7 +3678,7 @@ internal static class ChatCommands
                     break;
                 }
 
-                if (command.AlwaysHidden) ChatManager.SendPreviousMessagesToAll();
+                if (command.AlwaysHidden && spamRequired) ChatManager.SendPreviousMessagesToAll();
                 command.Action(player, key, text, args);
                 if (command.IsCanceled) canceled = command.AlwaysHidden || !Options.HostSeesCommandsEnteredByOthers.GetBool();
                 break;
@@ -3708,7 +3736,7 @@ internal static class ChatUpdatePatch
 
     internal static bool SendLastMessages(ref CustomRpcSender sender)
     {
-        PlayerControl player = GameStates.IsLobby ? Main.AllPlayerControls.Without(PlayerControl.LocalPlayer).RandomElement() : Main.AllAlivePlayerControls.MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+        PlayerControl player = GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : GameStates.IsLobby ? Main.AllPlayerControls.Without(PlayerControl.LocalPlayer).RandomElement() : Main.AllAlivePlayerControls.MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
         if (player == null) return false;
 
         bool wasCleared = false;

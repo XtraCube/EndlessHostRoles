@@ -2,15 +2,15 @@ using System;
 using System.Collections;
 using System.Linq;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
-using EHR.AddOns.GhostRoles;
 using EHR.Modules;
 using EHR.Patches;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using EHR.Roles;
+using EHR.Gamemodes;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 // ReSharper disable PossibleLossOfFraction
 
@@ -817,7 +817,7 @@ public static class StringOptionPatch
                 IEnumerator CoRoutine()
                 {
                     while (HelpShowEndTS > Utils.TimeStamp)
-                        yield return new WaitForSeconds(1f);
+                        yield return new WaitForSecondsRealtime(1f);
 
                     GameObject gameObject = GameObject.Find("PlayerOptionsMenu(Clone)");
 
@@ -1199,14 +1199,26 @@ public static class GameSettingMenuPatch
 
         Vector3 gameSettingsLabelPos = gameSettingsLabel.transform.localPosition;
 
-        CustomGameMode[] gms = Enum.GetValues<CustomGameMode>()[..^1];
-        gms = gms.Without(CustomGameMode.TheMindGame).ToArray();
-        if (SubmergedCompatibility.Loaded && Main.NormalOptions.MapId == 6) gms = gms.Where(SubmergedCompatibility.IsSupported).ToArray();
-        int totalCols = Mathf.Max(1, Mathf.CeilToInt(gms.Length / 7f));
+        var gms = Enum.GetValues<CustomGameMode>()[..^1].ToList();
+        gms.Remove(CustomGameMode.TheMindGame);
+        
+        if (SubmergedCompatibility.Loaded && Main.NormalOptions.MapId == 6)
+            gms.RemoveAll(SubmergedCompatibility.IsNotSupported);
+
+        if (Main.LIMap)
+        {
+            gms.Remove(CustomGameMode.CaptureTheFlag);
+            gms.Remove(CustomGameMode.Quiz);
+            gms.Remove(CustomGameMode.TheMindGame);
+            gms.Remove(CustomGameMode.BedWars);
+            gms.Remove(CustomGameMode.Deathrace);
+        }
+        
+        const int totalCols = 3;
 
         GMButtons = [];
 
-        for (var index = 0; index < gms.Length; index++)
+        for (var index = 0; index < gms.Count; index++)
         {
             CustomGameMode gm = gms[index];
 

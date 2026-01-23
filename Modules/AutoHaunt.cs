@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
-using EHR.GameMode.HideAndSeekRoles;
+using EHR.Gamemodes;
+using EHR.Roles;
 using UnityEngine;
 
 namespace EHR.Modules;
@@ -58,7 +59,7 @@ public static class AutoHaunt
                     }
                 }
 
-                yield return new WaitForSeconds(5f);
+                yield return new WaitForSecondsRealtime(5f);
             }
 
             if (GameStates.IsInTask && !ExileController.Instance && !AntiBlackout.SkipTasks && !PlayerControl.LocalPlayer.IsAlive() && HauntMenuMinigameStartPatch.Instance != null)

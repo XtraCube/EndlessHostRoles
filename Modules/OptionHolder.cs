@@ -6,9 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
-using EHR.AddOns;
-using EHR.AddOns.GhostRoles;
+using EHR.Gamemodes;
 using EHR.Modules;
+using EHR.Roles;
 using HarmonyLib;
 using UnityEngine;
 
@@ -614,6 +614,7 @@ public static class Options
     public static OptionItem CommsCamouflageLimitMaxTimesPerGame;
     public static OptionItem CommsCamouflageLimitMaxTimesPerRound;
     public static OptionItem CommsCamouflageSetSameSpeed;
+    public static OptionItem CommsCamouflagePreventRound1;
     public static OptionItem DisableReportWhenCC;
     public static OptionItem SabotageTimeControl;
     public static OptionItem SkeldReactorTimeLimit;
@@ -743,6 +744,7 @@ public static class Options
     public static OptionItem EnableAutoMessage;
     public static OptionItem AutoMessageSendInterval;
     public static OptionItem DraftMaxRolesPerPlayer;
+    public static OptionItem DraftAffectedByRoleSpawnChances;
     public static OptionItem LargerRoleTextSize;
     public static OptionItem DynamicTaskCountColor;
     public static OptionItem ShowTaskCountWhenAlive;
@@ -2113,6 +2115,10 @@ public static class Options
         CommsCamouflageSetSameSpeed = new BooleanOptionItem(22211, "CommsCamouflageSetSameSpeed", true, TabGroup.GameSettings)
             .SetGameMode(CustomGameMode.Standard)
             .SetColor(new Color32(243, 96, 96, byte.MaxValue));
+        
+        CommsCamouflagePreventRound1 = new BooleanOptionItem(22212, "CommsCamouflagePreventRound1", true, TabGroup.GameSettings)
+            .SetGameMode(CustomGameMode.Standard)
+            .SetColor(new Color32(243, 96, 96, byte.MaxValue));
 
         DisableReportWhenCC = new BooleanOptionItem(22300, "DisableReportWhenCC", false, TabGroup.GameSettings)
             .SetGameMode(CustomGameMode.Standard)
@@ -3009,6 +3015,9 @@ public static class Options
 
         DraftMaxRolesPerPlayer = new IntegerOptionItem(19431, "DraftMaxRolesPerPlayer", new(1, 30, 1), 5, TabGroup.GameSettings)
             .SetGameMode(CustomGameMode.Standard)
+            .SetColor(new Color32(193, 255, 209, byte.MaxValue));
+        
+        DraftAffectedByRoleSpawnChances = new BooleanOptionItem(19435, "DraftAffectedByRoleSpawnChances", false, TabGroup.GameSettings)
             .SetColor(new Color32(193, 255, 209, byte.MaxValue));
 
         LargerRoleTextSize = new BooleanOptionItem(24451, "LargerRoleTextSize", false, TabGroup.GameSettings)

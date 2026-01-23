@@ -1,13 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using EHR.AddOns.Common;
-using EHR.AddOns.GhostRoles;
-using EHR.Coven;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Roles;
 using EHR.Modules;
-using EHR.Neutral;
 using Hazel;
+using EHR.Gamemodes;
 
 namespace EHR;
 
@@ -213,6 +209,7 @@ public static class NameColorManager
             CustomRoles.Crewpostor when seer.Is(CustomRoleTypes.Impostor) && Options.AlliesKnowCrewpostor.GetBool() => Main.RoleColors[CustomRoles.Madmate],
             CustomRoles.Hypocrite when seer.Is(CustomRoleTypes.Impostor) && Hypocrite.AlliesKnowHypocrite.GetBool() => Main.RoleColors[CustomRoles.Madmate],
             CustomRoles.President when ((President)targetRoleClass).IsRevealed => Main.RoleColors[CustomRoles.President],
+            CustomRoles.Quarry when ((Quarry)targetRoleClass).TargetId == seer.PlayerId => "000000",
             _ => color
         };
 

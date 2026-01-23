@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
-using EHR.AddOns.Common;
-using EHR.Impostor;
-using EHR.Neutral;
+using EHR.Gamemodes;
+using EHR.Roles;
 
 namespace EHR.Modules;
 
@@ -104,6 +103,9 @@ internal static class CustomRoleSelector
 
             switch (role)
             {
+                case CustomRoles.Ventriloquist when GameStates.CurrentServerType == GameStates.ServerType.Vanilla:
+                case CustomRoles.Weatherman when Main.LIMap || GameStates.CurrentServerType == GameStates.ServerType.Vanilla:
+                case CustomRoles.RoomRusher when Main.LIMap:
                 case CustomRoles.Doctor when Options.EveryoneSeesDeathReasons.GetBool():
                 case CustomRoles.LovingCrewmate or CustomRoles.LovingImpostor when !loversData.Spawning:
                 case CustomRoles.Commander when optImpNum <= 1 && Commander.CannotSpawnAsSoloImp.GetBool():
@@ -438,7 +440,11 @@ internal static class CustomRoleSelector
         
         static RoleAssignInfo PickWeighted(List<RoleAssignInfo> pool, IRandom rng)
         {
-            int totalWeight = pool.Sum(t => t.SpawnChance);
+            int totalWeight = 0;
+
+            foreach (var info in pool)
+                totalWeight += info.SpawnChance * (info.MaxCount - info.AssignedCount);
+
             if (totalWeight <= 0) return null;
 
             int roll = rng.Next(totalWeight);
@@ -446,7 +452,7 @@ internal static class CustomRoleSelector
 
             foreach (var info in pool)
             {
-                cumulative += info.SpawnChance;
+                cumulative += info.SpawnChance * (info.MaxCount - info.AssignedCount);
                 if (roll < cumulative) return info;
             }
 

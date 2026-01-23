@@ -5,20 +5,15 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using AmongUs.GameOptions;
-using EHR.AddOns.Common;
-using EHR.AddOns.Crewmate;
-using EHR.AddOns.Impostor;
-using EHR.Coven;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Roles;
 using EHR.Modules;
-using EHR.Neutral;
 using Hazel;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using UnityEngine;
 using static EHR.Translator;
 using static EHR.Utils;
+using EHR.Gamemodes;
 
 namespace EHR;
 
@@ -407,26 +402,30 @@ internal static class ExtendedPlayerControl
     // If you use vanilla RpcSetRole, it will block further SetRole calls until the next game starts.
     public static void RpcSetRoleGlobal(this PlayerControl player, RoleTypes roleTypes, bool setRoleMap = false)
     {
-        if (!AmongUsClient.Instance.AmHost) return;
-        if (AmongUsClient.Instance.AmClient) player.StartCoroutine(player.CoSetRole(roleTypes, true));
-        MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SetRole, SendOption.Reliable);
-        writer.Write((ushort)roleTypes);
-        writer.Write(true);
-        AmongUsClient.Instance.FinishRpcImmediately(writer);
-        Logger.Info($" {player.GetNameWithRole()} => {roleTypes}", "RpcSetRoleGlobal");
-
-        if (setRoleMap)
+        try
         {
-            foreach ((byte seerID, byte targetID) in StartGameHostPatch.RpcSetRoleReplacer.RoleMap.Keys.ToArray())
+            if (!AmongUsClient.Instance.AmHost) return;
+            if (AmongUsClient.Instance.AmClient) try { player.StartCoroutine(player.CoSetRole(roleTypes, true)); } catch { }
+            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SetRole, SendOption.Reliable);
+            writer.Write((ushort)roleTypes);
+            writer.Write(true);
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
+            Logger.Info($" {player.GetNameWithRole()} => {roleTypes}", "RpcSetRoleGlobal");
+
+            if (setRoleMap)
             {
-                if (targetID == player.PlayerId)
+                foreach ((byte seerID, byte targetID) in StartGameHostPatch.RpcSetRoleReplacer.RoleMap.Keys.ToArray())
                 {
-                    var value = StartGameHostPatch.RpcSetRoleReplacer.RoleMap[(seerID, targetID)];
-                    value.RoleType = roleTypes;
-                    StartGameHostPatch.RpcSetRoleReplacer.RoleMap[(seerID, targetID)] = value;
+                    if (targetID == player.PlayerId)
+                    {
+                        var value = StartGameHostPatch.RpcSetRoleReplacer.RoleMap[(seerID, targetID)];
+                        value.RoleType = roleTypes;
+                        StartGameHostPatch.RpcSetRoleReplacer.RoleMap[(seerID, targetID)] = value;
+                    }
                 }
             }
         }
+        catch (Exception e) { ThrowException(e); }
     }
 
     public static void RpcSetRoleDesync(this PlayerControl player, RoleTypes role, int clientId, bool setRoleMap = false)
@@ -529,7 +528,7 @@ internal static class ExtendedPlayerControl
                 IEnumerator DelayBasisChange()
                 {
                     while (AntiBlackout.SkipTasks || ExileController.Instance) yield return null;
-                    yield return new WaitForSeconds(1f);
+                    yield return new WaitForSecondsRealtime(1f);
                     Logger.Msg($"Now that the anti-blackout processing or ejection screen showing is complete, the role basis of {player.GetNameWithRole()} will be changed", "RpcChangeRoleBasis");
                     player.RpcChangeRoleBasis(newCustomRole, loggerRoleMap);
                 }
@@ -707,9 +706,9 @@ internal static class ExtendedPlayerControl
     }
 
     // https://github.com/Ultradragon005/TownofHost-Enhanced/blob/ea5f1e8ea87e6c19466231c305d6d36d511d5b2d/Modules/Utils.cs
-    public static void SyncGeneralOptions(this CustomRpcSender sender, PlayerControl player)
+    public static bool SyncGeneralOptions(this CustomRpcSender sender, PlayerControl player)
     {
-        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || !DoRPC) return;
+        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || !DoRPC) return false;
 
         sender.AutoStartRpc(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SyncGeneralOptions);
         sender.Write(player.PlayerId);
@@ -719,6 +718,8 @@ internal static class ExtendedPlayerControl
         sender.Write(Main.AllPlayerKillCooldown[player.PlayerId]);
         sender.Write(Main.AllPlayerSpeed[player.PlayerId]);
         sender.EndRpc();
+        
+        return true;
     }
 
     // Next 3: https://github.com/0xDrMoe/TownofHost-Enhanced/blob/12487ce1aa7e4f5087f2300be452b5af7c04d1ff/Modules/ExtendedPlayerControl.cs#L239
@@ -1187,7 +1188,7 @@ internal static class ExtendedPlayerControl
                     yield break;
                 }
 
-                yield return new WaitForSeconds(pc.IsAlive() ? 1f : 3f);
+                yield return new WaitForSecondsRealtime(pc.IsAlive() ? 1f : 3f);
 
                 if (!GameStates.InGame || GameStates.IsEnded)
                 {
@@ -1575,7 +1576,7 @@ internal static class ExtendedPlayerControl
             if (pc.AmOwner || pc == player || (!phantom && pc.IsModdedClient()) || (phantom && pc.IsImpostor())) continue;
             
             var sender = CustomRpcSender.Create("RpcMakeInvisible", SendOption.Reliable);
-            sender.StartMessage(pc.GetClientId());
+            sender.StartMessage(pc.OwnerId);
             sender.StartRpc(player.NetTransform.NetId, RpcCalls.SnapTo)
                 .WriteVector2(new Vector2(50f, 50f))
                 .Write(player.NetTransform.lastSequenceId)
@@ -1624,7 +1625,7 @@ internal static class ExtendedPlayerControl
             if (pc.AmOwner || pc == player || (!phantom && pc.IsModdedClient()) || (phantom && pc.IsImpostor())) continue;
             
             var sender = CustomRpcSender.Create("RpcMakeVisible", SendOption.Reliable);
-            sender.StartMessage(pc.GetClientId());
+            sender.StartMessage(pc.OwnerId);
             sender.StartRpc(player.NetTransform.NetId, RpcCalls.SnapTo)
                 .WriteVector2(new Vector2(50f, 50f))
                 .Write((ushort)(player.NetTransform.lastSequenceId + 32767))
@@ -1657,7 +1658,7 @@ internal static class ExtendedPlayerControl
             if (pc.AmOwner || pc == player || (!phantom && pc.IsModdedClient()) || (phantom && pc.IsImpostor())) continue;
             
             var sender = CustomRpcSender.Create("RpcResetInvisibility", SendOption.Reliable);
-            sender.StartMessage(pc.GetClientId());
+            sender.StartMessage(pc.OwnerId);
             sender.StartRpc(player.NetId, RpcCalls.Exiled)
                 .EndRpc();
             RoleTypes role = Utils.GetRoleMap(pc.PlayerId, player.PlayerId).RoleType;

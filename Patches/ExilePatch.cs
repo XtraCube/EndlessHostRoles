@@ -2,12 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using AmongUs.Data;
-using EHR.AddOns.Crewmate;
-using EHR.AddOns.Impostor;
-using EHR.Crewmate;
-using EHR.Impostor;
 using EHR.Modules;
-using EHR.Neutral;
+using EHR.Roles;
 using HarmonyLib;
 
 namespace EHR.Patches;
@@ -208,6 +204,8 @@ internal static class ExileControllerWrapUpPatch
     {
         public static void Postfix(ExileController __instance)
         {
+            if (Main.LIMap) return;
+            
             try { WrapUpPostfix(__instance.initData.networkedPlayer); }
             finally { WrapUpFinalizer(); }
         }
@@ -231,6 +229,8 @@ internal static class ExileControllerWrapUpPatch
     {
         public static void Postfix(AirshipExileController._WrapUpAndSpawn_d__11 __instance, ref bool __result)
         {
+            if (Main.LIMap) return;
+
             if (__result) return;
 
             try { WrapUpPostfix(__instance.__4__this.initData.networkedPlayer); }

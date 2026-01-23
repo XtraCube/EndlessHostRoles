@@ -1,15 +1,15 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.InnerNet.GameDataMessages;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Gamemodes;
 using EHR.Modules;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
 using UnityEngine;
-using Tree = EHR.Crewmate.Tree;
 
 // Credit: https://github.com/Rabek009/MoreGamemodes/blob/e054eb498094dfca0a365fc6b6fea8d17f9974d7/Modules/AllObjects
 // Huge thanks to Rabek009 for this code!
@@ -188,11 +188,11 @@ namespace EHR
                 {
                     Main.Instance.StartCoroutine(CoRoutine());
                     
-                    System.Collections.IEnumerator CoRoutine()
+                    IEnumerator CoRoutine()
                     {
                         Logger.Info("Delaying CNO Spawn", "CustomNetObject.CreateNetObject");
                         while (GameStates.InGame && !GameStates.IsEnded && (!Main.IntroDestroyed || Utils.TimeStamp - IntroCutsceneDestroyPatch.IntroDestroyTS < 10)) yield return null;
-                        yield return new WaitForSeconds(3f);
+                        yield return new WaitForSecondsRealtime(3f);
                         if (!GameStates.InGame || GameStates.IsEnded || GameStates.IsMeeting || ExileController.Instance || AntiBlackout.SkipTasks) yield break;
                         CreateNetObject(sprite, position);
                     }
@@ -367,10 +367,11 @@ namespace EHR
             Main.Instance.StartCoroutine(WaitForMeetingEnd());
             return;
 
-            System.Collections.IEnumerator WaitForMeetingEnd()
+            IEnumerator WaitForMeetingEnd()
             {
+                yield return new WaitForSecondsRealtime(5f);
                 while (ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting || ExileController.Instance || AntiBlackout.SkipTasks) yield return null;
-                yield return new WaitForSeconds(1f);
+                yield return new WaitForSecondsRealtime(1f);
                 while (ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting || ExileController.Instance || AntiBlackout.SkipTasks) yield return null;
                 if (GameStates.IsEnded || !GameStates.InGame || GameStates.IsLobby) yield break;
 
@@ -421,7 +422,7 @@ namespace EHR
                 }
                 catch (Exception e) { Utils.ThrowException(e); }
 
-                yield return new WaitForSeconds(0.1f);
+                yield return new WaitForSecondsRealtime(0.1f);
 
                 try
                 {
@@ -458,7 +459,7 @@ namespace EHR
                 }
                 catch (Exception e) { Utils.ThrowException(e); }
 
-                yield return new WaitForSeconds(0.1f);
+                yield return new WaitForSecondsRealtime(0.1f);
 
                 try
                 {
@@ -897,7 +898,7 @@ namespace EHR
     {
         public FallenTree(Vector2 position)
         {
-            CreateNetObject(Tree.FallenSprite, position);
+            CreateNetObject(Roles.Tree.FallenSprite, position);
         }
     }
 

@@ -289,6 +289,7 @@ public enum CustomRoles
 
     // Neutrals
 
+    Accumulator,
     Agitator,
     Amnesiac,
     Amogus,
@@ -358,6 +359,7 @@ public enum CustomRoles
     Pulse,
     Pursuer,
     Pyromaniac,
+    Quarry,
     QuizMaster,
     Reckless,
     Revolutionist,
@@ -414,6 +416,7 @@ public enum CustomRoles
     CovenMember,
     Death, // Reaper changes to Death
     Dreamweaver,
+    Empress,
     Enchanter,
     Goddess,
     Illusionist,

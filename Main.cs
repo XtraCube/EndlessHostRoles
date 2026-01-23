@@ -15,7 +15,7 @@ using BepInEx.Unity.IL2CPP;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR;
 using EHR.Modules;
-using EHR.Neutral;
+using EHR.Roles;
 using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
@@ -43,8 +43,8 @@ public class Main : BasePlugin
     private const string DebugKeyHash = "c0fd562955ba56af3ae20d7ec9e64c664f0facecef4b3e366e109306adeae29d";
     private const string DebugKeySalt = "59687b";
     private const string PluginGuid = "com.gurge44.endlesshostroles";
-    public const string PluginVersion = "7.0.2";
-    public const string PluginDisplayVersion = "7.0.2";
+    public const string PluginVersion = "7.1.6";
+    public const string PluginDisplayVersion = "7.1.6";
     public const bool TestBuild = false;
 
     public const string NeutralColor = "#ffab1b";
@@ -299,6 +299,8 @@ public class Main : BasePlugin
     public static NetworkedPlayerInfo LastVotedPlayerInfo { get; set; }
 
     public static MapNames CurrentMap => (MapNames)NormalOptions.MapId;
+
+    public static bool LIMap => NormalOptions is { MapId: 7 };
 
     public override void Load()
     {
@@ -580,6 +582,8 @@ public class Main : BasePlugin
                 { CustomRoles.Thanos, "#F9D401" },
                 { CustomRoles.Berserker, "#50538F" },
                 { CustomRoles.SerialKiller, "#233fcc" },
+                { CustomRoles.Quarry, "#c1fb2b" },
+                { CustomRoles.Accumulator, "#2bfbae" },
                 { CustomRoles.Spider, "#C9E44C" },
                 { CustomRoles.SoulCollector, "#6021A0" },
                 { CustomRoles.Sharpshooter, "#5901D4" },
@@ -1084,6 +1088,8 @@ public enum CustomWinner
     Necromancer = CustomRoles.Necromancer,
     Wraith = CustomRoles.Wraith,
     SerialKiller = CustomRoles.SerialKiller,
+    Quarry = CustomRoles.Quarry,
+    Accumulator = CustomRoles.Accumulator,
     Spider = CustomRoles.Spider,
     SoulCollector = CustomRoles.SoulCollector,
     Berserker = CustomRoles.Berserker,

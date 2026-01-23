@@ -6,14 +6,10 @@ using AmongUs.Data;
 using AmongUs.GameOptions;
 using Assets.CoreScripts;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
-using EHR.AddOns.Common;
-using EHR.AddOns.Crewmate;
-using EHR.AddOns.Impostor;
-using EHR.Crewmate;
-using EHR.Impostor;
+using EHR.Gamemodes;
 using EHR.Modules;
-using EHR.Neutral;
 using EHR.Patches;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
@@ -303,7 +299,7 @@ internal static class ChangeRoleSettings
             ShipStatusFixedUpdatePatch.CanUseClosestVent = [];
 
             RandomSpawn.CustomNetworkTransformHandleRpcPatch.HasSpawned = [];
-            Coven.Coven.CovenMeetingStartPatch.MeetingNum = 0;
+            CovenBase.CovenMeetingStartPatch.MeetingNum = 0;
 
             AFKDetector.ShieldedPlayers.Clear();
             Main.Invisible.Clear();
@@ -1177,7 +1173,7 @@ internal static class StartGameHostPatch
         RpcSetRoleReplacer.EndReplace();
 
 
-        yield return new WaitForSeconds(1.2f);
+        yield return new WaitForSecondsRealtime(1.2f);
 
         foreach (PlayerControl pc in PlayerControl.AllPlayerControls)
         {
