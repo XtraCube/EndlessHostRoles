@@ -266,12 +266,6 @@ public abstract class OptionItem
                 strOpt.ValueText.text = GetString();
                 strOpt.oldValue = strOpt.Value = CurrentValue;
                 break;
-            
-            case NumberOption numOpt:
-                numOpt.TitleText.text = GetName();
-                numOpt.ValueText.text = GetString();
-                numOpt.oldValue = numOpt.Value = CurrentValue;
-                break;
         }
     }
 
