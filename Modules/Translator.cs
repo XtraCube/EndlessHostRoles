@@ -16,6 +16,8 @@ public static class Translator
     private const string LanguageFolderName = "Language";
     private static Dictionary<string, Dictionary<int, string>> TranslateMaps;
     public static Dictionary<CustomRoles, Dictionary<SupportedLangs, string>> OriginalRoleNames;
+    
+    public static readonly StringNames[] AllStringNames = Enum.GetValues<StringNames>();
 
     public static void Init()
     {
@@ -166,7 +168,7 @@ public static class Translator
             if (TranslateMaps.TryGetValue(str, out Dictionary<int, string> dic) && (!dic.TryGetValue((int)langId, out res) || string.IsNullOrEmpty(res) || (langId is not SupportedLangs.SChinese and not SupportedLangs.TChinese && Regex.IsMatch(res, @"[\u4e00-\u9fa5]") && res == GetString(str, SupportedLangs.SChinese))))
                 res = langId == SupportedLangs.English ? $"*{str}" : GetString(str, SupportedLangs.English);
 
-            if (!TranslateMaps.ContainsKey(str) && Enum.GetValues<StringNames>().FindFirst(x => x.ToString() == str, out StringNames stringNames))
+            if (!TranslateMaps.ContainsKey(str) && AllStringNames.FindFirst(x => x.ToString() == str, out StringNames stringNames))
                 res = GetString(stringNames);
         }
         catch (Exception ex)
