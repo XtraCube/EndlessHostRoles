@@ -59,7 +59,7 @@ internal class Arsonist : RoleBase
     public override void Add(byte playerId)
     {
         On = true;
-        foreach (PlayerControl ar in Main.AllPlayerControls) IsDoused.Add((playerId, ar.PlayerId), false);
+        foreach (PlayerControl ar in Main.EnumeratePlayerControls()) IsDoused.Add((playerId, ar.PlayerId), false);
     }
 
     public override void Init()
@@ -145,7 +145,7 @@ internal class Arsonist : RoleBase
                         pc.Suicide(PlayerState.DeathReason.Torched, physics.myPlayer);
                 }
 
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                     pc.KillFlash();
 
                 if (CustomWinnerHolder.WinnerTeam is CustomWinner.Crewmate or CustomWinner.Impostor)

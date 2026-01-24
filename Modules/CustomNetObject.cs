@@ -313,7 +313,7 @@ namespace EHR
 
             LateTask.New(() =>
             {
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     if (pc.AmOwner) continue;
 
@@ -907,7 +907,7 @@ namespace EHR
         public ShapeshiftMenuElement(byte visibleTo)
         {
             CreateNetObject(string.Empty, new Vector2(0f, 0f));
-            LateTask.New(() => Main.AllPlayerControls.DoIf(x => x.PlayerId != visibleTo, Hide), 0.7f);
+            LateTask.New(() => Main.EnumeratePlayerControls().DoIf(x => x.PlayerId != visibleTo, Hide), 0.7f);
         }
     }
 

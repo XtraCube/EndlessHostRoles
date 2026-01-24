@@ -519,7 +519,7 @@ internal static class ChatCommands
             return;
         }
 
-        VotedToStart.UnionWith(Main.AllPlayerControls.Select(x => x.PlayerId));
+        VotedToStart.UnionWith(Main.EnumeratePlayerControls().Select(x => x.PlayerId));
     }
     
     private static void FabricateCommand(PlayerControl player, string commandKey, string text, string[] args)
@@ -929,7 +929,7 @@ internal static class ChatCommands
 
         pc.FixBlackScreen();
 
-        if (Main.AllPlayerControls.All(x => x.IsAlive()))
+        if (Main.EnumeratePlayerControls().All(x => x.IsAlive()))
             Logger.SendInGame(GetString("FixBlackScreenWaitForDead"), Color.yellow);
     }
 
@@ -1387,13 +1387,13 @@ internal static class ChatCommands
             {
                 if (!GameStates.IsLobby) yield break;
 
-                if (Main.AllPlayerControls.Select(x => x.PlayerId).All(ReadyPlayers.Contains)) break;
+                if (Main.EnumeratePlayerControls().Select(x => x.PlayerId).All(ReadyPlayers.Contains)) break;
 
                 timer -= Time.deltaTime;
                 yield return null;
             }
 
-            byte[] notReadyPlayers = Main.AllPlayerControls.Select(x => x.PlayerId).Except(ReadyPlayers).ToArray();
+            byte[] notReadyPlayers = Main.EnumeratePlayerControls().Select(x => x.PlayerId).Except(ReadyPlayers).ToArray();
 
             if (notReadyPlayers.Length == 0)
                 Utils.SendMessage("\n", player.PlayerId, GetString("EveryoneReadyTitle"));
@@ -1427,7 +1427,7 @@ internal static class ChatCommands
 
         DraftResult = [];
 
-        byte[] allPlayerIds = Main.AllPlayerControls.Select(x => x.PlayerId).ToArray();
+        byte[] allPlayerIds = Main.EnumeratePlayerControls().Select(x => x.PlayerId).ToArray();
         bool rollSpawnChance = Options.DraftAffectedByRoleSpawnChances.GetBool();
         List<CustomRoles> allRoles = Main.CustomRoleValues.Where(x => x < CustomRoles.NotAssigned && x.IsEnable() && !x.IsForOtherGameMode() && !CustomHnS.AllHnSRoles.Contains(x) && !x.IsVanilla() && x is not CustomRoles.GM && (!rollSpawnChance || IRandom.Instance.Next(100) < x.GetMode())).Shuffle();
 
@@ -2067,7 +2067,7 @@ internal static class ChatCommands
         }
 
         string msgText = GetString("PlayerIdList");
-        msgText = Main.AllPlayerControls.Aggregate(msgText, (current, pc) => $"{current}\n{pc.PlayerId} \u2192 {pc.GetRealName()}");
+        msgText = Main.EnumeratePlayerControls().Aggregate(msgText, (current, pc) => $"{current}\n{pc.PlayerId} \u2192 {pc.GetRealName()}");
 
         Utils.SendMessage(msgText, player.PlayerId);
     }
@@ -3736,7 +3736,7 @@ internal static class ChatUpdatePatch
 
     internal static bool SendLastMessages(ref CustomRpcSender sender)
     {
-        PlayerControl player = GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : GameStates.IsLobby ? Main.AllPlayerControls.Without(PlayerControl.LocalPlayer).RandomElement() : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+        PlayerControl player = GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : GameStates.IsLobby ? Main.EnumeratePlayerControls().Without(PlayerControl.LocalPlayer).RandomElement() : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.EnumeratePlayerControls().MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
         if (player == null) return false;
 
         bool wasCleared = false;

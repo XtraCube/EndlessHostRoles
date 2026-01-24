@@ -73,7 +73,7 @@ internal static class HotPotato
     {
         HotPotatoState = (byte.MaxValue, byte.MaxValue, Time.GetInt() + 8, 1);
         SurvivalTimes = [];
-        foreach (PlayerControl pc in Main.AllPlayerControls) SurvivalTimes[pc.PlayerId] = 0;
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls()) SurvivalTimes[pc.PlayerId] = 0;
 
         DefaultSpeed = Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod);
     }

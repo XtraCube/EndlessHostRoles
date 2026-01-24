@@ -469,11 +469,11 @@ internal static class CustomHnS
 
             TimeLeft--;
 
-            PlayerRoles = PlayerRoles.IntersectBy(Main.AllPlayerControls.Select(x => x.PlayerId), x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            PlayerRoles = PlayerRoles.IntersectBy(Main.EnumeratePlayerControls().Select(x => x.PlayerId), x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 
             try
             {
-                Dictionary<byte, Vector2> idPosPairs = PlayerRoles.Join(Main.AllPlayerControls, x => x.Key, x => x.PlayerId, (role, pc) => (role.Key, pc)).ToDictionary(x => x.Key, x => x.pc.Pos());
+                Dictionary<byte, Vector2> idPosPairs = PlayerRoles.Join(Main.EnumeratePlayerControls(), x => x.Key, x => x.PlayerId, (role, pc) => (role.Key, pc)).ToDictionary(x => x.Key, x => x.pc.Pos());
                 Dictionary<byte, Vector2> imps = PlayerRoles.Where(x => x.Value.Interface.Team == Team.Impostor).ToDictionary(x => x.Key, x => idPosPairs[x.Key]);
                 KeyValuePair<byte, (IHideAndSeekRole Interface, CustomRoles Role)>[] nonImps = PlayerRoles.Where(x => x.Value.Interface.Team is Team.Crewmate or Team.Neutral).ToArray();
                 ClosestImpostor = nonImps.ToDictionary(x => x.Key, x => imps.MinBy(y => Vector2.Distance(y.Value, idPosPairs[x.Key])).Key);

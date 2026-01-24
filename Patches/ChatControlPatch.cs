@@ -289,7 +289,7 @@ public static class ChatManager
     public static void ClearChat(params PlayerControl[] targets)
     {
         if (!AmongUsClient.Instance.AmHost) return;
-        PlayerControl player = GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+        PlayerControl player = GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.EnumeratePlayerControls().MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
         if (player == null) return;
 
         if (GameStates.CurrentServerType == GameStates.ServerType.Vanilla)
@@ -323,7 +323,7 @@ public static class ChatManager
     public static void ClearChat(IReadOnlyList<PlayerControl> targets)
     {
         if (!AmongUsClient.Instance.AmHost) return;
-        PlayerControl player = Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+        PlayerControl player = Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.EnumeratePlayerControls().MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
         if (player == null) return;
 
         if (targets.Count == 0 || targets.Count == PlayerControl.AllPlayerControls.Count) SendEmptyMessage(null);

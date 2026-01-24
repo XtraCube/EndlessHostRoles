@@ -289,7 +289,7 @@ public static class CaptureTheFlag
         TeamData = [];
         WinnerData = (Color.white, "No one wins");
         PlayerData = Main.PlayerStates.Keys.ToDictionary(x => x, _ => new CTFPlayerData());
-        DefaultOutfits = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, x => x.Data.DefaultOutfit);
+        DefaultOutfits = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, x => x.Data.DefaultOutfit);
         TemporarilyOutPlayers = [];
         ValidTag = false;
         SendRPC();
@@ -430,7 +430,7 @@ public static class CaptureTheFlag
             data.Players.ToValidPlayers().MassTP(flagBase);
         }
         
-        Main.AllPlayerControls.Do(x => TargetArrow.RemoveAllTarget(x.PlayerId));
+        Main.EnumeratePlayerControls().Do(x => TargetArrow.RemoveAllTarget(x.PlayerId));
     }
 
     public static void OnCheckMurder(PlayerControl killer, PlayerControl target)
@@ -616,7 +616,7 @@ public static class CaptureTheFlag
 
                 if (Vector2.Distance(Flag.Position, enemy.GetFlagBase().Position) <= 2f)
                 {
-                    Main.AllPlayerControls.NotifyPlayers(Translator.GetString($"CTF_{enemy}TeamWonThisRound"));
+                    Main.EnumeratePlayerControls().NotifyPlayers(Translator.GetString($"CTF_{enemy}TeamWonThisRound"));
                     CTFTeamData enemyTeam = TeamData[enemy];
 
                     if (++enemyTeam.RoundsWon >= PointsToWin.GetInt() && GameEndCriteria.GetValue() == 1)

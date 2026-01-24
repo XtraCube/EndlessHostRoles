@@ -324,11 +324,11 @@ internal static class ChangeRoleSettings
             Camouflage.BlockCamouflage = false;
             Camouflage.Init();
 
-            Main.NumEmergencyMeetingsUsed = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => 0);
+            Main.NumEmergencyMeetingsUsed = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, _ => 0);
 
             if (AmongUsClient.Instance.AmHost)
             {
-                string[] invalidColor = Main.AllPlayerControls.Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId).Select(p => $"{p.name}").ToArray();
+                string[] invalidColor = Main.EnumeratePlayerControls().Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId).Select(p => $"{p.name}").ToArray();
 
                 if (invalidColor.Length > 0)
                 {
@@ -342,16 +342,16 @@ internal static class ChangeRoleSettings
 
             RoleResult = [];
 
-            foreach (PlayerControl target in Main.AllPlayerControls)
+            foreach (PlayerControl target in Main.EnumeratePlayerControls())
             {
-                foreach (PlayerControl seer in Main.AllPlayerControls)
+                foreach (PlayerControl seer in Main.EnumeratePlayerControls())
                 {
                     (byte, byte) pair = (target.PlayerId, seer.PlayerId);
                     Main.LastNotifyNames[pair] = target.name;
                 }
             }
 
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 int colorId = pc.Data.DefaultOutfit.ColorId;
                 if (AmongUsClient.Instance.AmHost && Options.FormatNameMode.GetInt() == 1)
@@ -728,7 +728,7 @@ internal static class StartGameHostPatch
 
                 if (nimbleSpawn || physicistSpawn || finderSpawn || noisySpawn || bloodlustSpawn || examinerSpawn || venomSpawn)
                 {
-                    foreach (PlayerControl player in Main.AllPlayerControls)
+                    foreach (PlayerControl player in Main.EnumeratePlayerControls())
                     {
                         if (IsBasisChangingPlayer(player.PlayerId, CustomRoles.Bloodlust)) continue;
 
@@ -866,7 +866,7 @@ internal static class StartGameHostPatch
 
         try
         {
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 if (!Main.PlayerStates.ContainsKey(pc.PlayerId)) Main.PlayerStates[pc.PlayerId] = new PlayerState(pc.PlayerId);
                 
@@ -984,7 +984,7 @@ internal static class StartGameHostPatch
                 }
             }
 
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 try
                 {
@@ -993,7 +993,7 @@ internal static class StartGameHostPatch
 
                     if (pc.AmOwner && pc.GetCustomRole().GetDYRole() is RoleTypes.Shapeshifter or RoleTypes.Phantom)
                     {
-                        foreach (PlayerControl target in Main.AllPlayerControls)
+                        foreach (PlayerControl target in Main.EnumeratePlayerControls())
                         {
                             target.Data.Role.CanBeKilled = true;
 
@@ -1057,7 +1057,7 @@ internal static class StartGameHostPatch
 
             HudManager.Instance.SetHudActive(true);
 
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 pc.ResetKillCooldown(false);
 
 
@@ -1135,7 +1135,7 @@ internal static class StartGameHostPatch
                 ChatCommands.DraftResult = [];
                 ChatCommands.DraftRoles = [];
 
-                if (Main.LoversPlayers.Count == 0) Main.LoversPlayers = Main.AllPlayerControls.Where(x => x.Is(CustomRoles.Lovers) || x.GetCustomRole() is CustomRoles.LovingCrewmate or CustomRoles.LovingImpostor).ToList();
+                if (Main.LoversPlayers.Count == 0) Main.LoversPlayers = Main.EnumeratePlayerControls().Where(x => x.Is(CustomRoles.Lovers) || x.GetCustomRole() is CustomRoles.LovingCrewmate or CustomRoles.LovingImpostor).ToList();
             }, 7f, log: false);
 
             if (Main.CurrentMap == MapNames.Airship && AmongUsClient.Instance.AmHost && Main.GM.Value) LateTask.New(() => PlayerControl.LocalPlayer.NetTransform.SnapTo(new(15.5f, 0.0f), (ushort)(PlayerControl.LocalPlayer.NetTransform.lastSequenceId + 8)), 15f, "GM Auto-TP Failsafe"); // TP to Main Hall
@@ -1168,7 +1168,7 @@ internal static class StartGameHostPatch
         yield return loadingBarManager.WaitAndSmoothlyUpdate(95f, 100f, 1f, GetString("LoadingBarText.1"));
         loadingBarManager.ToggleLoadingBar(false);
 
-        Main.AllPlayerControls.Do(SetRoleSelf);
+        Main.EnumeratePlayerControls().Do(SetRoleSelf);
 
         RpcSetRoleReplacer.EndReplace();
 
@@ -1205,7 +1205,7 @@ internal static class StartGameHostPatch
             RoleTypes othersRole = isHost ? RoleTypes.Crewmate : RoleTypes.Scientist;
 
             // Set Desync role for self and for others
-            foreach (PlayerControl target in Main.AllPlayerControls)
+            foreach (PlayerControl target in Main.EnumeratePlayerControls())
             {
                 try
                 {
@@ -1220,7 +1220,7 @@ internal static class StartGameHostPatch
             }
 
             // Set Desync role for others
-            foreach (PlayerControl seer in Main.AllPlayerControls)
+            foreach (PlayerControl seer in Main.EnumeratePlayerControls())
             {
                 try
                 {
@@ -1246,9 +1246,9 @@ internal static class StartGameHostPatch
     {
         try
         {
-            foreach (PlayerControl seer in Main.AllPlayerControls)
+            foreach (PlayerControl seer in Main.EnumeratePlayerControls())
             {
-                foreach (PlayerControl target in Main.AllPlayerControls)
+                foreach (PlayerControl target in Main.EnumeratePlayerControls())
                 {
                     try
                     {
@@ -1329,11 +1329,11 @@ internal static class StartGameHostPatch
         {
             if (Lovers.LegacyLovers.GetBool())
             {
-                Main.LoversPlayers = Main.AllPlayerControls.Where(x => x.GetCustomRole() is CustomRoles.LovingCrewmate or CustomRoles.LovingImpostor).Take(2).ToList();
+                Main.LoversPlayers = Main.EnumeratePlayerControls().Where(x => x.GetCustomRole() is CustomRoles.LovingCrewmate or CustomRoles.LovingImpostor).Take(2).ToList();
                 return;
             }
 
-            List<PlayerControl> allPlayers = Main.AllPlayerControls.Where(pc => (!Main.NeverSpawnTogetherCombos.TryGetValue(OptionItem.CurrentPreset, out Dictionary<CustomRoles, List<CustomRoles>> bannedCombos) || bannedCombos.All(x => !pc.Is(x.Key) || !x.Value.Contains(CustomRoles.Lovers))) && !pc.Is(CustomRoles.GM) && (!pc.HasSubRole() || pc.GetCustomSubRoles().Count < Options.NoLimitAddonsNumMax.GetInt()) && !pc.Is(CustomRoles.Dictator) && !pc.Is(CustomRoles.God) && !pc.Is(CustomRoles.Hater) && !pc.Is(CustomRoles.Bomber) && !pc.Is(CustomRoles.Nuker) && !pc.Is(CustomRoles.Curser) && !pc.Is(CustomRoles.Provocateur) && !pc.Is(CustomRoles.Altruist) && (!pc.IsCrewmate() || Lovers.CrewCanBeInLove.GetBool()) && (!pc.GetCustomRole().IsNeutral() || Lovers.NeutralCanBeInLove.GetBool()) && (!pc.Is(CustomRoleTypes.Coven) || Lovers.CovenCanBeInLove.GetBool()) && (!pc.IsImpostor() || Lovers.ImpCanBeInLove.GetBool())).ToList();
+            List<PlayerControl> allPlayers = Main.EnumeratePlayerControls().Where(pc => (!Main.NeverSpawnTogetherCombos.TryGetValue(OptionItem.CurrentPreset, out Dictionary<CustomRoles, List<CustomRoles>> bannedCombos) || bannedCombos.All(x => !pc.Is(x.Key) || !x.Value.Contains(CustomRoles.Lovers))) && !pc.Is(CustomRoles.GM) && (!pc.HasSubRole() || pc.GetCustomSubRoles().Count < Options.NoLimitAddonsNumMax.GetInt()) && !pc.Is(CustomRoles.Dictator) && !pc.Is(CustomRoles.God) && !pc.Is(CustomRoles.Hater) && !pc.Is(CustomRoles.Bomber) && !pc.Is(CustomRoles.Nuker) && !pc.Is(CustomRoles.Curser) && !pc.Is(CustomRoles.Provocateur) && !pc.Is(CustomRoles.Altruist) && (!pc.IsCrewmate() || Lovers.CrewCanBeInLove.GetBool()) && (!pc.GetCustomRole().IsNeutral() || Lovers.NeutralCanBeInLove.GetBool()) && (!pc.Is(CustomRoleTypes.Coven) || Lovers.CovenCanBeInLove.GetBool()) && (!pc.IsImpostor() || Lovers.ImpCanBeInLove.GetBool())).ToList();
             const CustomRoles role = CustomRoles.Lovers;
             int count = Math.Clamp(rawCount, 0, allPlayers.Count);
             if (rawCount == -1) count = Math.Clamp(role.GetCount(), 0, allPlayers.Count);
@@ -1387,7 +1387,7 @@ internal static class StartGameHostPatch
         {
             try
             {
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     try
                     {
@@ -1469,7 +1469,7 @@ internal static class StartGameHostPatch
                             StoragedData[playerId] = roleType;
                             doneIds.Add(playerId);
 
-                            foreach (PlayerControl target in Main.AllPlayerControls)
+                            foreach (PlayerControl target in Main.EnumeratePlayerControls())
                             {
                                 try
                                 {
@@ -1494,7 +1494,7 @@ internal static class StartGameHostPatch
 
                 try
                 {
-                    foreach (PlayerControl pc in Main.AllPlayerControls)
+                    foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                     {
                         try
                         {
@@ -1502,7 +1502,7 @@ internal static class StartGameHostPatch
                             {
                                 StoragedData[pc.PlayerId] = RoleTypes.Crewmate;
 
-                                foreach (PlayerControl target in Main.AllPlayerControls)
+                                foreach (PlayerControl target in Main.EnumeratePlayerControls())
                                 {
                                     try
                                     {

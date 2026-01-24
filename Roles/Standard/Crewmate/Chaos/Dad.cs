@@ -343,7 +343,7 @@ public class Dad : RoleBase
             {
                 pc.TPToRandomVent();
                 CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Crewmate);
-                CustomWinnerHolder.WinnerIds.UnionWith(Main.AllPlayerControls.Where(x => x.Is(Team.Crewmate)).Select(x => x.PlayerId));
+                CustomWinnerHolder.WinnerIds.UnionWith(Main.EnumeratePlayerControls().Where(x => x.Is(Team.Crewmate)).Select(x => x.PlayerId));
             }
         }
 

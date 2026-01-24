@@ -1078,7 +1078,7 @@ internal static class TaskPanelBehaviourPatch
             case CustomGameMode.HotPotato:
             {
                 List<string> SummaryText4 = [];
-                SummaryText4.AddRange(from pc in Main.AllPlayerControls let alive = pc.IsAlive() select $"{(!alive ? "<size=90%><#777777>" : "<size=90%>")}{HotPotato.GetIndicator(pc.PlayerId)}{pc.PlayerId.ColoredPlayerName()}{(!alive ? $"</color>  <#ff0000>{GetString("Dead")}</color></size>" : "</size>")}");
+                SummaryText4.AddRange(from pc in Main.EnumeratePlayerControls() let alive = pc.IsAlive() select $"{(!alive ? "<size=90%><#777777>" : "<size=90%>")}{HotPotato.GetIndicator(pc.PlayerId)}{pc.PlayerId.ColoredPlayerName()}{(!alive ? $"</color>  <#ff0000>{GetString("Dead")}</color></size>" : "</size>")}");
                 finalText += $"\r\n\r\n{string.Join('\n', SummaryText4)}";
                 break;
             }
@@ -1094,7 +1094,7 @@ internal static class TaskPanelBehaviourPatch
             }
             case CustomGameMode.NaturalDisasters:
             {
-                finalText += Main.AllPlayerControls
+                finalText += Main.EnumeratePlayerControls()
                     .Select(x => (pc: x, alive: x.IsAlive(), time: NaturalDisasters.SurvivalTime(x.PlayerId)))
                     .OrderByDescending(x => x.alive)
                     .ThenByDescending(x => x.time)
@@ -1107,7 +1107,7 @@ internal static class TaskPanelBehaviourPatch
             {
                 if (!RoomRush.PointsSystem)
                 {
-                    finalText += Main.AllPlayerControls
+                    finalText += Main.EnumeratePlayerControls()
                         .Select(x => (pc: x, alive: x.IsAlive(), time: RoomRush.GetSurvivalTime(x.PlayerId)))
                         .OrderByDescending(x => x.alive)
                         .ThenByDescending(x => x.time)
@@ -1115,7 +1115,7 @@ internal static class TaskPanelBehaviourPatch
                 }
                 else
                 {
-                    finalText += Main.AllPlayerControls
+                    finalText += Main.EnumeratePlayerControls()
                         .Select(x => (pc: x, points_string: RoomRush.GetPoints(x.PlayerId), points_int: int.TryParse(RoomRush.GetPoints(x.PlayerId).Split('/')[0], out int points) ? points : 0))
                         .OrderByDescending(x => x.points_int)
                         .Aggregate("<size=80%>", (s, x) => $"{s}\r\n{x.pc.PlayerId.ColoredPlayerName()} - {x.points_string}");

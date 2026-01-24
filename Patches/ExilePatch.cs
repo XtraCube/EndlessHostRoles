@@ -25,7 +25,7 @@ internal static class ExileControllerWrapUpPatch
             Main.PlayerStates[exiled.PlayerId].deathReason = PlayerState.DeathReason.Vote;
             CustomRoles role = exiled.GetCustomRole();
 
-            if (Main.AllPlayerControls.Any(x => x.Is(CustomRoles.Innocent) && !x.IsAlive() && x.GetRealKiller()?.PlayerId == exiled.PlayerId))
+            if (Main.EnumeratePlayerControls().Any(x => x.Is(CustomRoles.Innocent) && !x.IsAlive() && x.GetRealKiller()?.PlayerId == exiled.PlayerId))
             {
                 if (!Options.InnocentCanWinByImp.GetBool() && role.IsImpostor())
                     Logger.Info("The exiled player is an impostor, but the Innocent cannot win due to the settings", "Exeiled Winner Check");
@@ -33,7 +33,7 @@ internal static class ExileControllerWrapUpPatch
                 {
                     CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Innocent);
 
-                    Main.AllPlayerControls
+                    Main.EnumeratePlayerControls()
                         .Where(x => x.Is(CustomRoles.Innocent) && !x.IsAlive() && x.GetRealKiller()?.PlayerId == exiled.PlayerId)
                         .Do(x => CustomWinnerHolder.WinnerIds.Add(x.PlayerId));
 
@@ -76,7 +76,7 @@ internal static class ExileControllerWrapUpPatch
 
         Swapper.OnExileFinish();
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             if (pc.Is(CustomRoles.Warlock))
             {
@@ -92,7 +92,7 @@ internal static class ExileControllerWrapUpPatch
         if (Options.RandomSpawn.GetBool() && Main.CurrentMap != MapNames.Airship)
         {
             var map = RandomSpawn.SpawnMap.GetSpawnMap();
-            Main.EnumerateAlivePlayerControls().Do(player => map.RandomTeleport(player));
+            Main.AllAlivePlayerControls.Do(player => map.RandomTeleport(player));
         }
 
         FallFromLadder.Reset();

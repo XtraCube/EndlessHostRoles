@@ -33,7 +33,7 @@ public static class GuessManager
 
     public static string GetFormatString()
     {
-        return Main.AllPlayerControls.Aggregate(GetString("PlayerIdList"), (current, pc) => current + $"\n{pc.PlayerId.ToString()} → {pc.GetRealName()}");
+        return Main.EnumeratePlayerControls().Aggregate(GetString("PlayerIdList"), (current, pc) => current + $"\n{pc.PlayerId.ToString()} → {pc.GetRealName()}");
     }
 
     public static bool CheckCommand(ref string msg, string command, bool exact, out bool spamRequired)
@@ -561,8 +561,8 @@ public static class GuessManager
                         LateTask.New(() => Utils.SendMessage(string.Format(GetString("GuessKill"), Main.AllPlayerNames.GetValueOrDefault(dp.PlayerId, name)), 255, Utils.ColorString(Utils.GetRoleColor(CustomRoles.NiceGuesser), GetString("GuessKillTitle"))), 0.6f, "Guess Msg");
 
                         if (pc.Is(CustomRoles.Doomsayer) && pc.PlayerId != dp.PlayerId) LateTask.New(() => Utils.SendMessage(string.Format(GetString("DoomsayerGuessCountMsg"), Doomsayer.GuessingToWin[pc.PlayerId]), pc.PlayerId, Utils.ColorString(Utils.GetRoleColor(CustomRoles.Doomsayer), GetString("DoomsayerGuessCountTitle"))), 0.7f, "Doomsayer Guess Msg 2");
-                        if (pc.Is(CustomRoles.Stealer) && pc.PlayerId != dp.PlayerId) LateTask.New(() => Utils.SendMessage(string.Format(GetString("StealerGetVote"), (int)(Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == pc.PlayerId) * Options.VotesPerKill.GetFloat())), pc.PlayerId), 0.7f, log: false);
-                        if (pc.Is(CustomRoles.Pickpocket) && pc.PlayerId != dp.PlayerId) LateTask.New(() => Utils.SendMessage(string.Format(GetString("PickpocketGetVote"), (int)(Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == pc.PlayerId) * Pickpocket.VotesPerKill.GetFloat())), pc.PlayerId), 0.7f, log: false);
+                        if (pc.Is(CustomRoles.Stealer) && pc.PlayerId != dp.PlayerId) LateTask.New(() => Utils.SendMessage(string.Format(GetString("StealerGetVote"), (int)(Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == pc.PlayerId) * Options.VotesPerKill.GetFloat())), pc.PlayerId), 0.7f, log: false);
+                        if (pc.Is(CustomRoles.Pickpocket) && pc.PlayerId != dp.PlayerId) LateTask.New(() => Utils.SendMessage(string.Format(GetString("PickpocketGetVote"), (int)(Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == pc.PlayerId) * Pickpocket.VotesPerKill.GetFloat())), pc.PlayerId), 0.7f, log: false);
                     }, 0.2f, "Guesser Kill");
 
                     if (guesserSuicide && pc.AmOwner)
@@ -1164,7 +1164,7 @@ public static class GuessManager
 
         private static void InitializeGuesserPlayers()
         {
-            Dictionary<Team, List<PlayerControl>> players = Main.AllPlayerControls
+            Dictionary<Team, List<PlayerControl>> players = Main.EnumeratePlayerControls()
                 .GroupBy(x => x.GetTeam())
                 .ToDictionary(x => x.Key, x => x.Shuffle());
 

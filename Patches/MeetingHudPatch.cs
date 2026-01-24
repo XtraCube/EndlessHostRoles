@@ -206,13 +206,13 @@ internal static class CheckForEndVotingPatch
 
                 if (CheckRole(ps.TargetPlayerId, CustomRoles.Stealer))
                 {
-                    var count = (int)(Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Options.VotesPerKill.GetFloat());
+                    var count = (int)(Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Options.VotesPerKill.GetFloat());
                     Loop.Times(count, _ => AddVote());
                 }
 
                 if (CheckRole(ps.TargetPlayerId, CustomRoles.Pickpocket))
                 {
-                    var count = (int)(Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Pickpocket.VotesPerKill.GetFloat());
+                    var count = (int)(Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Pickpocket.VotesPerKill.GetFloat());
                     Loop.Times(count, _ => AddVote());
                 }
 
@@ -466,7 +466,7 @@ internal static class CheckForEndVotingPatch
             decidedWinner = true;
         }
 
-        if (Main.AllPlayerControls.Any(x => x.Is(CustomRoles.Innocent) && !x.IsAlive() && x.GetRealKiller()?.PlayerId == exileId))
+        if (Main.EnumeratePlayerControls().Any(x => x.Is(CustomRoles.Innocent) && !x.IsAlive() && x.GetRealKiller()?.PlayerId == exileId))
         {
             if (!(!Options.InnocentCanWinByImp.GetBool() && crole.IsImpostor()))
             {
@@ -646,8 +646,8 @@ internal static class ExtendedMeetingHud
                 if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Shifter) && !Shifter.CanVote.GetBool()) voteNum = 0;
                 if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Vindicator)) voteNum += Options.VindicatorAdditionalVote.GetInt();
                 if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Schizophrenic) && Options.DualVotes.GetBool()) voteNum += voteNum;
-                if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Stealer)) voteNum += (int)(Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Options.VotesPerKill.GetFloat());
-                if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Pickpocket)) voteNum += (int)(Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Pickpocket.VotesPerKill.GetFloat());
+                if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Stealer)) voteNum += (int)(Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Options.VotesPerKill.GetFloat());
+                if (CheckForEndVotingPatch.CheckRole(ps.TargetPlayerId, CustomRoles.Pickpocket)) voteNum += (int)(Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == ps.TargetPlayerId) * Pickpocket.VotesPerKill.GetFloat());
 
                 switch (Main.PlayerStates[ps.TargetPlayerId].Role)
                 {
@@ -777,7 +777,7 @@ internal static class MeetingHudStartPatch
 
         var mimicMsg = string.Empty;
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             if (pc.Is(CustomRoles.Nemesis) && !pc.IsAlive()) AddMsg(GetString("NemesisDeadMsg"), pc.PlayerId);
 
@@ -825,7 +825,7 @@ internal static class MeetingHudStartPatch
         {
             mimicMsg = GetString("MimicDeadMsg") + "\n" + mimicMsg;
 
-            foreach (PlayerControl ipc in Main.AllPlayerControls)
+            foreach (PlayerControl ipc in Main.EnumeratePlayerControls())
             {
                 if (ipc.GetCustomRole().IsImpostorTeam())
                     AddMsg(mimicMsg, ipc.PlayerId, Utils.ColorString(Utils.GetRoleColor(CustomRoles.Mimic), GetString("MimicMsgTitle")));
@@ -851,7 +851,7 @@ internal static class MeetingHudStartPatch
     {
         Logger.Info("------------Meeting Start------------", "Phase");
         GameStates.AlreadyDied |= !Utils.IsAllAlive;
-        Main.AllPlayerControls.Do(x => ReportDeadBodyPatch.WaitReport[x.PlayerId].Clear());
+        Main.EnumeratePlayerControls().Do(x => ReportDeadBodyPatch.WaitReport[x.PlayerId].Clear());
         MeetingStates.MeetingCalled = true;
         MeetingStates.MeetingNum++;
         CheckForEndVotingPatch.TempExiledPlayer = null;
@@ -1000,11 +1000,11 @@ internal static class MeetingHudStartPatch
             {
                 var sender = CustomRpcSender.Create("RpcSetNameEx on meeting start", SendOption.Reliable);
 
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     string name = pc.GetRealName(true);
 
-                    foreach (PlayerControl seerPc in Main.AllPlayerControls)
+                    foreach (PlayerControl seerPc in Main.EnumeratePlayerControls())
                     {
                         try { Main.LastNotifyNames[(pc.PlayerId, seerPc.PlayerId)] = name; }
                         catch { }
@@ -1259,7 +1259,7 @@ internal static class MeetingHudUpdatePatch
         {
             Logger.Fatal(ex.ToString(), "MeetingHudUpdatePatch.Postfix");
             Logger.Warn("All Players and their info:", "Debug for Fatal Error");
-            foreach (PlayerControl pc in Main.AllPlayerControls) Logger.Info($" {(pc.IsAlive() ? "Alive" : $"Dead ({Main.PlayerStates[pc.PlayerId].deathReason})")}, {Utils.GetProgressText(pc)}, {Utils.GetVitalText(pc.PlayerId)}", $"{pc.GetNameWithRole()} / {pc.PlayerId}");
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls()) Logger.Info($" {(pc.IsAlive() ? "Alive" : $"Dead ({Main.PlayerStates[pc.PlayerId].deathReason})")}, {Utils.GetProgressText(pc)}, {Utils.GetVitalText(pc.PlayerId)}", $"{pc.GetNameWithRole()} / {pc.PlayerId}");
 
             Logger.Warn("-----------------", "Debug for Fatal Error");
             Logger.SendInGame("An error occured with this meeting. Please use /dump and send the log to the developer.\nSorry for the inconvenience.", Color.red);

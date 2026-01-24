@@ -226,34 +226,15 @@ public class Main : BasePlugin
     
     public static readonly CustomRoles[] CustomRoleValues = Enum.GetValues<CustomRoles>();
 
-    private static PlayerControl[] _allPlayerControlsCache = new PlayerControl[byte.MaxValue];
 
-    public static PlayerControl[] AllPlayerControls
+    public static PlayerControl[] AllPlayerControls => EnumeratePlayerControls().ToArray();
+
+    public static IEnumerable<PlayerControl> EnumeratePlayerControls()
     {
-        get
+        foreach (var pc in PlayerControl.AllPlayerControls)
         {
-            var allPlayers = PlayerControl.AllPlayerControls;
-            int count = allPlayers.Count;
-
-            if (_allPlayerControlsCache.Length < count)
-                _allPlayerControlsCache = new PlayerControl[count];
-
-            int i = 0;
-            foreach (PlayerControl pc in allPlayers)
-            {
-                if (pc == null || pc.PlayerId >= 254) continue;
-                _allPlayerControlsCache[i++] = pc;
-            }
-
-            if (i == 0) return [];
-
-            // Only resize if needed, reuses existing array otherwise
-            if (i == _allPlayerControlsCache.Length)
-                return _allPlayerControlsCache;
-
-            var result = new PlayerControl[i];
-            Array.Copy(_allPlayerControlsCache, result, i);
-            return result;
+            if (pc == null || pc.PlayerId >= 254) continue;
+            yield return pc;
         }
     }
 

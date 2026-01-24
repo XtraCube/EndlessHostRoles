@@ -190,13 +190,13 @@ public static class GameStartManagerPatch
             if (GameStates.IsCountDown) return;
             if ((GameData.Instance?.PlayerCount < MinPlayer || timer > MinWait) && timer > MaxWait && !votedToStart) return;
 
-            PlayerControl[] invalidColor = Main.AllPlayerControls.Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId).ToArray();
+            PlayerControl[] invalidColor = Main.EnumeratePlayerControls().Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId).ToArray();
 
             if (invalidColor.Length > 0)
             {
                 Main.UpdateTime = -100;
                 
-                Main.AllPlayerControls
+                Main.EnumeratePlayerControls()
                     .Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId)
                     .Do(p => AmongUsClient.Instance.KickPlayer(p.OwnerId, false));
 
@@ -511,7 +511,7 @@ public static class GameStartRandomMap
 {
     public static bool Prefix(GameStartManager __instance)
     {
-        PlayerControl[] invalidColor = Main.AllPlayerControls.Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId).ToArray();
+        PlayerControl[] invalidColor = Main.EnumeratePlayerControls().Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId).ToArray();
 
         if (invalidColor.Length > 0)
         {

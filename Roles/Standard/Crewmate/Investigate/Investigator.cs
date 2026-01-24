@@ -58,7 +58,7 @@ public class Investigator : RoleBase
     {
         On = true;
 
-        foreach (PlayerControl ar in Main.AllPlayerControls) IsRevealed[(playerId, ar.PlayerId)] = false;
+        foreach (PlayerControl ar in Main.EnumeratePlayerControls()) IsRevealed[(playerId, ar.PlayerId)] = false;
 
         RandomRole[playerId] = GetRandomCrewRoleString();
     }

@@ -256,7 +256,7 @@ public static class KingOfTheZones
         SpawnProtectionTimes = [];
         TimeLeft = 0;
 
-        DefaultOutfits = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, x => x.Data.DefaultOutfit);
+        DefaultOutfits = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, x => x.Data.DefaultOutfit);
 
         List<byte> ids = Main.PlayerStates.Keys.Shuffle();
         if (Main.GM.Value) ids.Remove(0);

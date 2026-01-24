@@ -152,7 +152,7 @@ public class GrabOxygenMaskSabotage : CustomSabotage
 
         if (HasMask.IsSupersetOf(aapc.Select(x => x.PlayerId)))
         {
-            Main.AllPlayerControls.Do(x => LocateArrow.Remove(x.PlayerId, RoomPosition));
+            Main.EnumeratePlayerControls().Do(x => LocateArrow.Remove(x.PlayerId, RoomPosition));
             Fix();
             return;
         }
@@ -161,7 +161,7 @@ public class GrabOxygenMaskSabotage : CustomSabotage
 
         if (DeteriorateTS + TimeLimit <= now)
         {
-            Main.AllPlayerControls.Do(x => LocateArrow.Remove(x.PlayerId, RoomPosition));
+            Main.EnumeratePlayerControls().Do(x => LocateArrow.Remove(x.PlayerId, RoomPosition));
             aapc.ExceptBy(HasMask, x => x.PlayerId).Do(x => x.Suicide(PlayerState.DeathReason.OutOfOxygen));
             Fix();
             return;

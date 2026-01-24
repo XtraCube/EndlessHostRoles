@@ -144,7 +144,7 @@ public static class OptionsMenuBehaviourStartPatch
                 HorseMode.UpdateToggle();
                 LongMode.UpdateToggle();
 
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     pc.MyPhysics.SetBodyType(pc.BodyType);
                     if (pc.BodyType == PlayerBodyTypes.Normal) pc.cosmetics.currentBodySprite.BodySprite.transform.localScale = new(0.5f, 0.5f, 1f);
@@ -162,7 +162,7 @@ public static class OptionsMenuBehaviourStartPatch
                 HorseMode.UpdateToggle();
                 LongMode.UpdateToggle();
 
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     pc.MyPhysics.SetBodyType(pc.BodyType);
                     if (pc.BodyType == PlayerBodyTypes.Normal) pc.cosmetics.currentBodySprite.BodySprite.transform.localScale = new(0.5f, 0.5f, 1f);
@@ -174,7 +174,7 @@ public static class OptionsMenuBehaviourStartPatch
         {
             ShowPlayerInfoInLobby = ClientOptionItem.Create("ShowPlayerInfoInLobby", Main.ShowPlayerInfoInLobby, __instance, ShowPlayerInfoInLobbyButtonToggle);
 
-            static void ShowPlayerInfoInLobbyButtonToggle() => Utils.DirtyName.UnionWith(Main.AllPlayerControls.Select(x => x.PlayerId));
+            static void ShowPlayerInfoInLobbyButtonToggle() => Utils.DirtyName.UnionWith(Main.EnumeratePlayerControls().Select(x => x.PlayerId));
         }
 
         if (LobbyMusic == null || LobbyMusic.ToggleButton == null)

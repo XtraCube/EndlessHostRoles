@@ -298,7 +298,7 @@ public class Alchemist : RoleBase
             {
                 case < 0:
                     int ventId = ventedId == -10 ? Main.LastEnteredVent[player.PlayerId].Id : ventedId;
-                    Main.AllPlayerControls.Without(player).Do(x => player.MyPhysics.RpcExitVentDesync(ventId, x));
+                    Main.EnumeratePlayerControls().Without(player).Do(x => player.MyPhysics.RpcExitVentDesync(ventId, x));
                     player.Notify(GetString("SwooperInvisStateOut"));
                     SendRPC();
                     refresh = true;

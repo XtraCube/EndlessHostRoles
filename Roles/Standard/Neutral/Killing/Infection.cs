@@ -322,7 +322,7 @@ public class Infection : RoleBase
         {
             InfectActive = false;
 
-            PlayerControl pd = Main.AllPlayerControls.FirstOrDefault(x => x.Is(CustomRoles.Infection));
+            PlayerControl pd = Main.EnumeratePlayerControls().FirstOrDefault(x => x.Is(CustomRoles.Infection));
 
             foreach (PlayerControl player in Main.EnumerateAlivePlayerControls())
             {
@@ -332,7 +332,7 @@ public class Infection : RoleBase
 
             CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Infection);
 
-            foreach (PlayerControl infection in Main.AllPlayerControls)
+            foreach (PlayerControl infection in Main.EnumeratePlayerControls())
             {
                 if (infection.Is(CustomRoles.Infection))
                     CustomWinnerHolder.WinnerIds.Add(infection.PlayerId);

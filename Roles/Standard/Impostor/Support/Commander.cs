@@ -224,7 +224,7 @@ internal class Commander : RoleBase
             Utils.NotifyRoles(SpecifySeer: pc, SpecifyTarget: pc);
         }
 
-        if (Main.AllPlayerControls.Where(x => x.Is(Team.Impostor)).All(x => TargetArrow.GetArrows(x, CommanderId) == string.Empty))
+        if (Main.EnumeratePlayerControls().Where(x => x.Is(Team.Impostor)).All(x => TargetArrow.GetArrows(x, CommanderId) == string.Empty))
         {
             IsWhistling = false;
             SendRPC();

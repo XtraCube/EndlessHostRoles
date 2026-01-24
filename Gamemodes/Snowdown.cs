@@ -223,7 +223,7 @@ public static class Snowdown
         PointsToReach = PointsToReachOption.GetInt();
         PowerUpPrices = PowerUpPriceOptions.ToDictionary(x => x.Key, x => x.Value.GetInt());
         
-        Data = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => new PlayerData());
+        Data = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, _ => new PlayerData());
         Snowballs = [];
         
         Dictionary<SystemTypes, Vector2>.ValueCollection rooms = RandomSpawn.SpawnMap.GetSpawnMap().Positions?.Values;

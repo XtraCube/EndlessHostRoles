@@ -271,7 +271,7 @@ public static class TextBoxPatch
 
                     if (additionalInfo.Length == 0 && argName.Replace('[', '{').Replace(']', '}') is "{id}" or "{id1}" or "{id2}")
                     {
-                        Dictionary<string, byte> allIds = Main.AllPlayerControls.ToDictionary(x => x.PlayerId.ColoredPlayerName(), x => x.PlayerId);
+                        Dictionary<string, byte> allIds = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId.ColoredPlayerName(), x => x.PlayerId);
                         additionalInfo = $"<b><u>{Translator.GetString("PlayerIdList").TrimEnd(' ')}</u></b>\n{string.Join('\n', allIds.Select(x => $"<b>{x.Key}</b> \uffeb <b>{x.Value}</b>"))}";
                         OptionShower.CurrentPage = 0;
                     }
@@ -281,7 +281,7 @@ public static class TextBoxPatch
                     bool IsInvalidArg() =>
                         arg != argName && argName switch
                         {
-                            "{id}" or "{id1}" or "{id2}" => !byte.TryParse(arg, out byte id) || Main.AllPlayerControls.All(x => x.PlayerId != id),
+                            "{id}" or "{id1}" or "{id2}" => !byte.TryParse(arg, out byte id) || Main.EnumeratePlayerControls().All(x => x.PlayerId != id),
                             "{number}" or "{level}" or "{duration}" or "{number1}" or "{number2}" => !int.TryParse(arg, out int num) || num < 0,
                             "{team}" => arg is not "crew" and not "imp",
                             "{role}" => !ChatCommands.GetRoleByName(arg, out _),
@@ -296,7 +296,7 @@ public static class TextBoxPatch
                         argName switch
                         {
                             "{sourcepreset}" or "{targetpreset}" => int.TryParse(arg, out int preset) && preset is >= 1 and <= 10,
-                            "{id}" or "{id1}" or "{id2}" => byte.TryParse(arg, out byte id) && Main.AllPlayerControls.Any(x => x.PlayerId == id),
+                            "{id}" or "{id1}" or "{id2}" => byte.TryParse(arg, out byte id) && Main.EnumeratePlayerControls().Any(x => x.PlayerId == id),
                             "{team}" => arg is "crew" or "imp",
                             "{role}" or "[role]" => ChatCommands.GetRoleByName(arg, out _),
                             "{addon}" => ChatCommands.GetRoleByName(arg, out CustomRoles role) && role.IsAdditionRole(),

@@ -368,7 +368,7 @@ internal static class ShipStatusBeginPatch
     {
         if (RolesIsAssigned && !Main.IntroDestroyed)
         {
-            foreach (PlayerControl player in Main.AllPlayerControls) Main.PlayerStates[player.PlayerId].InitTask(player);
+            foreach (PlayerControl player in Main.EnumeratePlayerControls()) Main.PlayerStates[player.PlayerId].InitTask(player);
 
             GameData.Instance.RecomputeTaskCounts();
             TaskState.InitialTotalTasks = GameData.Instance.TotalTasks;

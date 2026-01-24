@@ -527,7 +527,7 @@ internal static class CheckMurderPatch
 
         if (Crusader.ForCrusade.Contains(target.PlayerId))
         {
-            foreach (PlayerControl player in Main.AllPlayerControls)
+            foreach (PlayerControl player in Main.EnumeratePlayerControls())
             {
                 if (player.Is(CustomRoles.Crusader) && player.IsAlive())
                 {
@@ -731,10 +731,10 @@ internal static class MurderPlayerPatch
                 Speedrun.ResetTimer(killer);
 
             if (killer.Is(CustomRoles.Stealer) && killer.PlayerId != target.PlayerId)
-                killer.Notify(string.Format(GetString("StealerGetVote"), ((Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == killer.PlayerId) + 1) * Options.VotesPerKill.GetFloat()).ToString("0.0#####")));
+                killer.Notify(string.Format(GetString("StealerGetVote"), ((Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == killer.PlayerId) + 1) * Options.VotesPerKill.GetFloat()).ToString("0.0#####")));
 
             if (killer.Is(CustomRoles.Pickpocket) && killer.PlayerId != target.PlayerId)
-                killer.Notify(string.Format(GetString("PickpocketGetVote"), ((Main.AllPlayerControls.Count(x => x.GetRealKiller()?.PlayerId == killer.PlayerId) + 1) * Pickpocket.VotesPerKill.GetFloat()).ToString("0.0#####")));
+                killer.Notify(string.Format(GetString("PickpocketGetVote"), ((Main.EnumeratePlayerControls().Count(x => x.GetRealKiller()?.PlayerId == killer.PlayerId) + 1) * Pickpocket.VotesPerKill.GetFloat()).ToString("0.0#####")));
 
             if (killer.Is(CustomRoles.Deadlined)) Deadlined.SetDone(killer);
 
@@ -1264,7 +1264,7 @@ internal static class ReportDeadBodyPatch
 
             if (QuizMaster.On)
             {
-                if (MeetingStates.FirstMeeting) QuizMaster.Data.NumPlayersDeadFirstRound = Main.AllPlayerControls.Count(x => !x.IsAlive() && !x.Is(CustomRoles.GM));
+                if (MeetingStates.FirstMeeting) QuizMaster.Data.NumPlayersDeadFirstRound = Main.EnumeratePlayerControls().Count(x => !x.IsAlive() && !x.Is(CustomRoles.GM));
                 QuizMaster.Data.NumMeetings++;
             }
 
@@ -1285,7 +1285,7 @@ internal static class ReportDeadBodyPatch
         }
         catch (Exception e) { ThrowException(e); }
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             try
             {
@@ -1367,7 +1367,7 @@ internal static class ReportDeadBodyPatch
         {
             Main.ProcessShapeshifts = false;
 
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 try
                 {
@@ -1551,7 +1551,7 @@ internal static class FixedUpdatePatch
                         if (!BanManager.TempBanWhiteList.Contains(hashedPuid)) BanManager.TempBanWhiteList.Add(hashedPuid);
                     }
 
-                    if (!Main.AllPlayerControls.All(x => x.Data.PlayerLevel <= 1))
+                    if (!Main.EnumeratePlayerControls().All(x => x.Data.PlayerLevel <= 1))
                     {
                         string msg = string.Format(GetString("KickBecauseLowLevel"), player.GetRealName().RemoveHtmlTags());
                         Logger.SendInGame(msg, Color.yellow);
@@ -1686,7 +1686,7 @@ internal static class FixedUpdatePatch
 
             if (self && GameStates.IsInGame && Main.RefixCooldownDelay <= 0)
             {
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     if (pc.Is(CustomRoles.Vampire) || pc.Is(CustomRoles.Warlock) || pc.Is(CustomRoles.Ninja) || pc.Is(CustomRoles.Undertaker) || pc.Is(CustomRoles.Poisoner))
                         Main.AllPlayerKillCooldown[pc.PlayerId] = Options.AdjustedDefaultKillCooldown * 2;

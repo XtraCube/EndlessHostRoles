@@ -138,7 +138,7 @@ public class ToiletMaster : RoleBase
         IEnumerable<PlayerControl> hideList = ToiletVisible switch
         {
             ToiletVisibilityOptions.Instant => [],
-            _ => Main.AllPlayerControls.Without(pc)
+            _ => Main.EnumeratePlayerControls().Without(pc)
         };
 
         Toilets[pos] = (new(pos, hideList), 0, Utils.TimeStamp);

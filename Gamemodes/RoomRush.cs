@@ -193,7 +193,7 @@ public static class RoomRush
         GameGoing = false;
 
         int ventLimit = VentTimes.GetInt();
-        VentLimit = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => ventLimit);
+        VentLimit = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, _ => ventLimit);
 
         AllRooms = ShipStatus.Instance.AllRooms.Select(x => x.RoomId).ToHashSet();
         AllRooms.Remove(SystemTypes.Hallway);
@@ -206,7 +206,7 @@ public static class RoomRush
         Points = [];
 
         if (WinByPointsInsteadOfDeaths.GetBool())
-            Points = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => 0);
+            Points = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, _ => 0);
 
         Map = RandomSpawn.SpawnMap.GetSpawnMap();
 
@@ -392,8 +392,8 @@ public static class RoomRush
         TimeLimitEndTS = Utils.TimeStamp + time;
         Logger.Info($"Starting a new round - Goal = from: {Translator.GetString(previous.ToString())} ({previous}), to: {Translator.GetString(RoomGoal.ToString())} ({RoomGoal}) - Time: {time}  ({map})", "RoomRush");
 
-        Main.AllPlayerControls.Do(x => LocateArrow.RemoveAllTarget(x.PlayerId));
-        if (DisplayArrowToRoom.GetBool()) Main.AllPlayerControls.Do(x => LocateArrow.Add(x.PlayerId, goalPos));
+        Main.EnumeratePlayerControls().Do(x => LocateArrow.RemoveAllTarget(x.PlayerId));
+        if (DisplayArrowToRoom.GetBool()) Main.EnumeratePlayerControls().Do(x => LocateArrow.Add(x.PlayerId, goalPos));
 
         Utils.NotifyRoles();
         Utils.DirtyName.Add(PlayerControl.LocalPlayer.PlayerId);
@@ -473,8 +473,8 @@ public static class RoomRush
             case 1:
                 PointsToWinValue = PointsToWin.GetInt() * Main.AllAlivePlayerControls.Count;
                 int ventLimit = VentTimes.GetInt();
-                VentLimit = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => ventLimit);
-                if (WinByPointsInsteadOfDeaths.GetBool()) Points = Main.AllPlayerControls.ToDictionary(x => x.PlayerId, _ => 0);
+                VentLimit = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, _ => ventLimit);
+                if (WinByPointsInsteadOfDeaths.GetBool()) Points = Main.EnumeratePlayerControls().ToDictionary(x => x.PlayerId, _ => 0);
                 break;
             case 2:
                 int limit = reader.ReadPackedInt32();

@@ -60,7 +60,7 @@ static class CoShowIntroPatch
                     ShipStatus.Instance.Begin();
 
                     GameOptionsSender.AllSenders.Clear();
-                    foreach (PlayerControl pc in Main.AllPlayerControls) GameOptionsSender.AllSenders.Add(new PlayerGameOptionsSender(pc));
+                    foreach (PlayerControl pc in Main.EnumeratePlayerControls()) GameOptionsSender.AllSenders.Add(new PlayerGameOptionsSender(pc));
                 }
             }
             catch { Logger.Warn($"Game ended? {AmongUsClient.Instance.IsGameOver || GameStates.IsLobby || GameEndChecker.Ended}", "ShipStatus.Begin"); }
@@ -359,7 +359,7 @@ internal static class SetUpRoleTextPatch
 
         sb.Append("------------Display Names------------\n");
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             sb.Append($"{(pc.AmOwner ? "[*]" : string.Empty),-3}{pc.PlayerId,-2}:{pc.name.PadRightV2(20)}:{pc.cosmetics.nameText.text.Trim()} ({Palette.ColorNames[pc.Data.DefaultOutfit.ColorId].ToString().Replace("Color", string.Empty)})\n");
             pc.cosmetics.nameText.text = pc.name;
@@ -369,14 +369,14 @@ internal static class SetUpRoleTextPatch
 
         sb.Append("------------Roles------------\n");
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             sb.Append($"{(pc.AmOwner ? "[*]" : string.Empty),-3}{pc.PlayerId,-2}:{pc.Data?.PlayerName?.PadRightV2(20)}:{pc.GetAllRoleName().RemoveHtmlTags().Replace("\n", " + ")}\n");
 
         yield return null;
 
         sb.Append("------------Platforms------------\n");
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             try
             {
@@ -480,7 +480,7 @@ internal static class BeginCrewmatePatch
         {
             teamToDisplay = new();
 
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 if (pc.Is(Team.Coven))
                     teamToDisplay.Add(pc);
@@ -503,7 +503,7 @@ internal static class BeginCrewmatePatch
             {
                 teamToDisplay = new();
 
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     if (CustomTeamManager.AreInSameCustomTeam(pc.PlayerId, PlayerControl.LocalPlayer.PlayerId))
                         teamToDisplay.Add(pc);
@@ -515,7 +515,7 @@ internal static class BeginCrewmatePatch
         {
             teamToDisplay = new();
 
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 if (FreeForAll.PlayerTeams.TryGetValue(pc.PlayerId, out int team) && team == ffaTeam)
                     teamToDisplay.Add(pc);
@@ -865,7 +865,7 @@ internal static class BeginCrewmatePatch
                 __instance.ImpostorText.gameObject.SetActive(team.RoleRevealScreenSubtitle != "*");
                 __instance.ImpostorText.text = team.RoleRevealScreenSubtitle;
 
-                foreach (PlayerControl pc in Main.AllPlayerControls)
+                foreach (PlayerControl pc in Main.EnumeratePlayerControls())
                 {
                     if (CustomTeamManager.AreInSameCustomTeam(pc.PlayerId, PlayerControl.LocalPlayer.PlayerId))
                         teamToDisplay.Add(pc);
@@ -1050,7 +1050,7 @@ internal static class BeginImpostorPatch
 
         if (PlayerControl.LocalPlayer.IsImpostor() && Options.ImpKnowWhosMadmate.GetBool())
         {
-            foreach (var pc in Main.AllPlayerControls)
+            foreach (var pc in Main.EnumeratePlayerControls())
             {
                 if (pc.IsMadmate() && !pc.AmOwner)
                     yourTeam.Add(pc);
@@ -1064,7 +1064,7 @@ internal static class BeginImpostorPatch
 
             if (Options.MadmateKnowWhosImp.GetBool())
             {
-                foreach (var pc in Main.AllPlayerControls)
+                foreach (var pc in Main.EnumeratePlayerControls())
                 {
                     if (pc.IsImpostor() && !pc.AmOwner)
                         yourTeam.Add(pc);
@@ -1073,7 +1073,7 @@ internal static class BeginImpostorPatch
 
             if (Options.MadmateKnowWhosMadmate.GetBool())
             {
-                foreach (var pc in Main.AllPlayerControls)
+                foreach (var pc in Main.EnumeratePlayerControls())
                 {
                     if (pc.IsMadmate() && !pc.AmOwner)
                         yourTeam.Add(pc);
@@ -1089,7 +1089,7 @@ internal static class BeginImpostorPatch
             yourTeam = new();
             yourTeam.Add(PlayerControl.LocalPlayer);
             
-            foreach (PlayerControl pc in Main.AllPlayerControls.Where(x => !x.AmOwner))
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls().Where(x => !x.AmOwner))
                 yourTeam.Add(pc);
             
             __instance.BeginCrewmate(yourTeam);
@@ -1101,7 +1101,7 @@ internal static class BeginImpostorPatch
         {
             yourTeam = new();
             yourTeam.Add(PlayerControl.LocalPlayer);
-            foreach (PlayerControl pc in Main.AllPlayerControls.Where(x => !x.AmOwner)) yourTeam.Add(pc);
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls().Where(x => !x.AmOwner)) yourTeam.Add(pc);
 
             __instance.BeginCrewmate(yourTeam);
             __instance.BackgroundBar.material.color = new Color32(255, 171, 27, byte.MaxValue);
@@ -1136,11 +1136,11 @@ internal static class IntroCutsceneDestroyPatch
 
         // Set roleAssigned as false for overriding roles for modded players
         // for vanilla clients we use "Data.Disconnected"
-        Main.AllPlayerControls.Do(x => x.roleAssigned = false);
+        Main.EnumeratePlayerControls().Do(x => x.roleAssigned = false);
 
         if (AmongUsClient.Instance.AmHost)
         {
-            Main.AllPlayerControls.DoIf(x => x.Is(CustomRoles.NotAssigned) && ((x.AmOwner && Main.GM.Value) || ChatCommands.Spectators.Contains(x.PlayerId)), x => x.RpcSetCustomRole(CustomRoles.GM));
+            Main.EnumeratePlayerControls().DoIf(x => x.Is(CustomRoles.NotAssigned) && ((x.AmOwner && Main.GM.Value) || ChatCommands.Spectators.Contains(x.PlayerId)), x => x.RpcSetCustomRole(CustomRoles.GM));
             
             var aapc = Main.AllAlivePlayerControls;
 
@@ -1183,7 +1183,7 @@ internal static class IntroCutsceneDestroyPatch
                     break;
             }
 
-            // LateTask.New(() => Main.AllPlayerControls.Do(pc ⇒ pc.RpcSetRoleDesync(RoleTypes.Shapeshifter, -3)), 2f, "SetImpostorForServer");
+            // LateTask.New(() => Main.EnumeratePlayerControls().Do(pc ⇒ pc.RpcSetRoleDesync(RoleTypes.Shapeshifter, -3)), 2f, "SetImpostorForServer");
 
             PlayerControl lp = PlayerControl.LocalPlayer;
 
@@ -1295,7 +1295,7 @@ internal static class IntroCutsceneDestroyPatch
                 {
                     lp.Data.Role.AffectedByLightAffectors = false;
 
-                    foreach (PlayerControl target in Main.AllPlayerControls)
+                    foreach (PlayerControl target in Main.EnumeratePlayerControls())
                     {
                         try
                         {
@@ -1358,7 +1358,7 @@ internal static class IntroCutsceneDestroyPatch
         }
         else
         {
-            foreach (PlayerControl player in Main.AllPlayerControls)
+            foreach (PlayerControl player in Main.EnumeratePlayerControls())
                 Main.PlayerStates[player.PlayerId].InitTask(player);
             
             if (Options.CurrentGameMode == CustomGameMode.Snowdown)

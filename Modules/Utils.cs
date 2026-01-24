@@ -88,7 +88,7 @@ public static class Utils
 
     private static readonly Dictionary<byte, (string Text, int Duration, bool Long)> LongRoleDescriptions = [];
 
-    public static bool DoRPC => AmongUsClient.Instance.AmHost && Main.AllPlayerControls.Any(x => x.IsModdedClient() && !x.IsHost());
+    public static bool DoRPC => AmongUsClient.Instance.AmHost && Main.EnumeratePlayerControls().Any(x => x.IsModdedClient() && !x.IsHost());
     public static int TotalTaskCount => Main.RealOptionsData.GetInt(Int32OptionNames.NumCommonTasks) + Main.RealOptionsData.GetInt(Int32OptionNames.NumLongTasks) + Main.RealOptionsData.GetInt(Int32OptionNames.NumShortTasks);
     private static int AllPlayersCount => Main.PlayerStates.Values.Count(state => state.countTypes != CountTypes.OutOfGame);
     public static int AllAlivePlayersCount => Main.AllAlivePlayerControls.Count(pc => !pc.Is(CountTypes.OutOfGame));
@@ -140,7 +140,7 @@ public static class Utils
 
     public static void CheckAndSetVentInteractions()
     {
-        if (Main.AllPlayerControls.Any(VentilationSystemDeterioratePatch.BlockVentInteraction))
+        if (Main.EnumeratePlayerControls().Any(VentilationSystemDeterioratePatch.BlockVentInteraction))
             SetAllVentInteractions();
     }
 
@@ -338,7 +338,7 @@ public static class Utils
 
         CustomRoles targetRole = target.GetCustomRole();
 
-        foreach (PlayerControl seer in Main.AllPlayerControls)
+        foreach (PlayerControl seer in Main.EnumeratePlayerControls())
         {
             if (KillFlashCheck(killer, target, seer))
             {
@@ -1744,7 +1744,7 @@ public static class Utils
 
         if (taskState.IsTaskFinished && (!Main.PlayerStates[terrorist.PlayerId].IsSuicide || Terrorist.CanTerroristSuicideWin.GetBool()))
         {
-            foreach (PlayerControl pc in Main.AllPlayerControls)
+            foreach (PlayerControl pc in Main.EnumeratePlayerControls())
             {
                 if (pc.Is(CustomRoles.Terrorist))
                     Main.PlayerStates[pc.PlayerId].deathReason = Main.PlayerStates[pc.PlayerId].deathReason == PlayerState.DeathReason.Vote ? PlayerState.DeathReason.etc : PlayerState.DeathReason.Suicide;
@@ -1867,7 +1867,7 @@ public static class Utils
             if (GameStates.CurrentServerType == GameStates.ServerType.Vanilla)
                 text = ReplaceHexColorsWithSafeColors(text);
 
-            PlayerControl sender = !addToHistory || GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.AllPlayerControls.MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
+            PlayerControl sender = !addToHistory || GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.EnumeratePlayerControls().MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
 
             if (sendTo != byte.MaxValue && receiver.AmOwner)
             {
@@ -2547,7 +2547,7 @@ public static class Utils
 
             int charsInOneLine = GetUserTrueLang() is SupportedLangs.Russian or SupportedLangs.SChinese or SupportedLangs.TChinese or SupportedLangs.Japanese or SupportedLangs.Korean ? 35 : 50;
 
-            foreach (PlayerControl seer in Main.AllPlayerControls)
+            foreach (PlayerControl seer in Main.EnumeratePlayerControls())
             {
                 try
                 {
@@ -3743,7 +3743,7 @@ public static class Utils
         }
         catch (Exception e) { ThrowException(e); }
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             try
             {
@@ -3941,7 +3941,7 @@ public static class Utils
                     if (onMeeting)
                     {
                         (
-                            from pc in Main.AllPlayerControls
+                            from pc in Main.EnumeratePlayerControls()
                             where (Options.ImpKnowSuperStarDead.GetBool() || !pc.GetCustomRole().IsImpostor()) && (Options.NeutralKnowSuperStarDead.GetBool() || !pc.GetCustomRole().IsNeutral()) && (Options.CovenKnowSuperStarDead.GetBool() || !pc.Is(CustomRoleTypes.Coven))
                             select new Message(string.Format(GetString("SuperStarDead"), target.GetRealName()), pc.PlayerId, ColorString(GetRoleColor(CustomRoles.SuperStar), GetString("SuperStarNewsTitle")))
                         ).SendMultipleMessages();
@@ -4147,7 +4147,7 @@ public static class Utils
         if (!Main.PlayerStates[playerId].IsDead) max--;
         if (all > max) all = max;
 
-        winnerList = Main.AllPlayerControls.Where(pc => Revolutionist.IsDraw.TryGetValue((playerId, pc.PlayerId), out bool isDraw) && isDraw).ToList();
+        winnerList = Main.EnumeratePlayerControls().Where(pc => Revolutionist.IsDraw.TryGetValue((playerId, pc.PlayerId), out bool isDraw) && isDraw).ToList();
         return (winnerList.Count, all);
     }
 
@@ -4282,7 +4282,7 @@ public static class Utils
 
         if (!impShow && !nkShow && !covenShow && !anonymousCount) return string.Empty;
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             bool exclude = excludeId != byte.MaxValue && pc.PlayerId == excludeId;
 

@@ -527,7 +527,7 @@ internal class Randomizer : RoleBase
         TimeSinceLastMeeting = 0;
         LastEffectPick = [];
         LastTP = [];
-        Main.AllPlayerControls.Do(x => LastTP[x.PlayerId] = now);
+        Main.EnumeratePlayerControls().Do(x => LastTP[x.PlayerId] = now);
         LastDeathEffect = 0;
 
         EffectFrequency = EffectFrequencyOpt.GetInt();
@@ -649,7 +649,7 @@ internal class Randomizer : RoleBase
         Bombs.Clear();
         Utils.SendRPC(CustomRPC.SyncRoleData, PlayerIdList[0], 3);
 
-        foreach (PlayerControl pc in Main.AllPlayerControls)
+        foreach (PlayerControl pc in Main.EnumeratePlayerControls())
         {
             RevertSpeedChangesForPlayer(pc, false);
             RevertVisionChangesForPlayer(pc, false);
