@@ -89,7 +89,7 @@ public class SpellCaster : CovenBase
             if (exileIds.Any(PlayerIdList.Contains))
                 HexedPlayers.Clear();
 
-            PlayerControl spellCaster = Main.AllAlivePlayerControls.First(x => x.Is(CustomRoles.SpellCaster));
+            PlayerControl spellCaster = Main.EnumerateAlivePlayerControls().First(x => x.Is(CustomRoles.SpellCaster));
 
             byte[] curseDeathList = Main.PlayerStates.Keys
                 .Except(Main.AfterMeetingDeathPlayers.Keys)
@@ -137,6 +137,6 @@ public class SpellCaster : CovenBase
 
     private static bool IsWinConditionMet()
     {
-        return PlayerIdList.ToValidPlayers().Any(x => x.IsAlive()) && Main.AllAlivePlayerControls.All(x => x.Is(Team.Coven) || HexedPlayers.ContainsKey(x.PlayerId));
+        return PlayerIdList.ToValidPlayers().Any(x => x.IsAlive()) && Main.EnumerateAlivePlayerControls().All(x => x.Is(Team.Coven) || HexedPlayers.ContainsKey(x.PlayerId));
     }
 }

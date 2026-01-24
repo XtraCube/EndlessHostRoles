@@ -91,7 +91,7 @@ public static class Utils
     public static bool DoRPC => AmongUsClient.Instance.AmHost && Main.EnumeratePlayerControls().Any(x => x.IsModdedClient() && !x.IsHost());
     public static int TotalTaskCount => Main.RealOptionsData.GetInt(Int32OptionNames.NumCommonTasks) + Main.RealOptionsData.GetInt(Int32OptionNames.NumLongTasks) + Main.RealOptionsData.GetInt(Int32OptionNames.NumShortTasks);
     private static int AllPlayersCount => Main.PlayerStates.Values.Count(state => state.countTypes != CountTypes.OutOfGame);
-    public static int AllAlivePlayersCount => Main.AllAlivePlayerControls.Count(pc => !pc.Is(CountTypes.OutOfGame));
+    public static int AllAlivePlayersCount => Main.EnumerateAlivePlayerControls().Count(pc => !pc.Is(CountTypes.OutOfGame));
     public static bool IsAllAlive => Main.PlayerStates.Values.All(state => state.countTypes == CountTypes.OutOfGame || !state.IsDead);
 
     public static long GetTimeStamp(DateTime? dateTime = null)
@@ -774,7 +774,7 @@ public static class Utils
 
     public static bool IsRevivingRoleAlive()
     {
-        return Main.AllAlivePlayerControls.Any(x => x.GetCustomRole() is CustomRoles.Altruist or CustomRoles.Occultist or CustomRoles.TimeMaster) || Main.PlayerStates.Values.Any(x => x.Role is Altruist { ReviveStartTS: > 0 });
+        return Main.EnumerateAlivePlayerControls().Any(x => x.GetCustomRole() is CustomRoles.Altruist or CustomRoles.Occultist or CustomRoles.TimeMaster) || Main.PlayerStates.Values.Any(x => x.Role is Altruist { ReviveStartTS: > 0 });
     }
 
     public static bool HasTasks(NetworkedPlayerInfo p, bool forRecompute = true)
@@ -1760,7 +1760,7 @@ public static class Utils
     {
         try
         {
-            if (Options.CurrentGameMode != CustomGameMode.Standard || deadPlayer == null || deadPlayer.Object.Is(CustomRoles.Renegade) || Main.HasJustStarted || !GameStates.InGame || !Options.SpawnAdditionalRenegadeOnImpsDead.GetBool() || Main.AllAlivePlayerControls.Count < Options.SpawnAdditionalRenegadeMinAlivePlayers.GetInt() || CustomRoles.Renegade.RoleExist(true) || Main.AllAlivePlayerControls == null || Main.AllAlivePlayerControls.Count == 0 || Main.AllAlivePlayerControls.Any(x => x.PlayerId != deadPlayer.PlayerId && (x.Is(CustomRoleTypes.Impostor) || (x.IsNeutralKiller() && !Options.SpawnAdditionalRenegadeWhenNKAlive.GetBool())))) return;
+            if (Options.CurrentGameMode != CustomGameMode.Standard || deadPlayer == null || deadPlayer.Object.Is(CustomRoles.Renegade) || Main.HasJustStarted || !GameStates.InGame || !Options.SpawnAdditionalRenegadeOnImpsDead.GetBool() || Main.AllAlivePlayerControls.Count < Options.SpawnAdditionalRenegadeMinAlivePlayers.GetInt() || CustomRoles.Renegade.RoleExist(true) || Main.AllAlivePlayerControls == null || Main.AllAlivePlayerControls.Count == 0 || Main.EnumerateAlivePlayerControls().Any(x => x.PlayerId != deadPlayer.PlayerId && (x.Is(CustomRoleTypes.Impostor) || (x.IsNeutralKiller() && !Options.SpawnAdditionalRenegadeWhenNKAlive.GetBool())))) return;
 
             PlayerControl[] listToChooseFrom = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != deadPlayer.PlayerId && x.Is(CustomRoleTypes.Crewmate) && !x.Is(CustomRoles.Loyal)).ToArray();
 
@@ -2609,8 +2609,8 @@ public static class Utils
     {
         if (!AmongUsClient.Instance.AmHost || GameStates.IsMeeting) yield break;
 
-        const int frameBudget = 10; // milliseconds per frame
-        var aapc = Main.AllAlivePlayerControls.ToList(); // ToList to prevent modification during iteration
+        const int frameBudget = 4; // milliseconds per frame
+        var aapc = Main.AllAlivePlayerControls;
 
         var stopwatch = new Stopwatch();
 
@@ -4032,7 +4032,7 @@ public static class Utils
     {
         try
         {
-            int aliveImpostorCount = Main.AllAlivePlayerControls.Count(pc => pc.Is(CustomRoleTypes.Impostor));
+            int aliveImpostorCount = Main.EnumerateAlivePlayerControls().Count(pc => pc.Is(CustomRoleTypes.Impostor));
 
             if (Main.AliveImpostorCount != aliveImpostorCount)
             {

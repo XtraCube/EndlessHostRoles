@@ -500,7 +500,7 @@ internal static class CheckForEndVotingPatch
 
                 name += (impnum, neutralnum, covennum) switch
                 {
-                    (0, 0, 0) when sum == 0 && !Main.AllAlivePlayerControls.Any(x => x.IsConverted()) && !(Options.SpawnAdditionalRenegadeOnImpsDead.GetBool() && (Options.SpawnAdditionalRenegadeWhenNKAlive.GetBool() || neutralnum == 0) && Main.AllAlivePlayerControls.Count >= Options.SpawnAdditionalRenegadeMinAlivePlayers.GetInt()) => "\n" + GetString("GG"),
+                    (0, 0, 0) when sum == 0 && !Main.EnumerateAlivePlayerControls().Any(x => x.IsConverted()) && !(Options.SpawnAdditionalRenegadeOnImpsDead.GetBool() && (Options.SpawnAdditionalRenegadeWhenNKAlive.GetBool() || neutralnum == 0) && Main.AllAlivePlayerControls.Count >= Options.SpawnAdditionalRenegadeMinAlivePlayers.GetInt()) => "\n" + GetString("GG"),
                     (0, 0, 0) when sum > 0 => string.Empty,
                     _ => "\n" + Utils.GetRemainingKillers(true, excludeId: exileId)
                 };
@@ -803,7 +803,7 @@ internal static class MeetingHudStartPatch
 
             if (pc.Is(CustomRoles.Mimic) && !pc.IsAlive())
             {
-                Main.AllAlivePlayerControls
+                Main.EnumerateAlivePlayerControls()
                     .Where(x => x.GetRealKiller()?.PlayerId == pc.PlayerId)
                     .Do(x => mimicMsg += $"\n{x.GetNameWithRole(true)}");
             }

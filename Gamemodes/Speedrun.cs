@@ -88,7 +88,7 @@ public static class Speedrun
     public static string GetTaskBarText()
     {
         return string.Join('\n', Main.PlayerStates
-            .Join(Main.AllAlivePlayerControls, x => x.Key, x => x.PlayerId, (kvp, _) => (
+            .Join(Main.EnumerateAlivePlayerControls(), x => x.Key, x => x.PlayerId, (kvp, _) => (
                 Name: kvp.Key.ColoredPlayerName(),
                 CompletedTasks: kvp.Value.TaskState.CompletedTasksCount,
                 AllTasks: kvp.Value.TaskState.AllTasksCount,

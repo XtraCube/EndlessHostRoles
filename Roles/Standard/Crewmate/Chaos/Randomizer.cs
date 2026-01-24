@@ -64,7 +64,7 @@ internal static class EffectExtenstions
 
                     break;
                 case Effect.PullEveryone:
-                    Main.AllAlivePlayerControls.MassTP(randomizer.Pos(), log: true);
+                    Main.EnumerateAlivePlayerControls().MassTP(randomizer.Pos(), log: true);
                     break;
                 case Effect.Twist:
                 {

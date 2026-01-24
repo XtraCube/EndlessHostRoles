@@ -296,7 +296,7 @@ internal class Adventurer : RoleBase
             Utils.NotifyRoles(SpecifySeer: AdventurerPC, SpecifyTarget: AdventurerPC);
         }
 
-        if (LastGroupingResourceTimeStamp + 20 <= now && Main.AllAlivePlayerControls.Count(x => x.PlayerId != pc.PlayerId && Vector2.Distance(x.Pos(), pc.Pos()) < 2f) >= 2)
+        if (LastGroupingResourceTimeStamp + 20 <= now && Main.EnumerateAlivePlayerControls().Count(x => x.PlayerId != pc.PlayerId && Vector2.Distance(x.Pos(), pc.Pos()) < 2f) >= 2)
         {
             if (ResourceLocations.TryGetValue(Resource.Grouping, out Vector2 location))
             {

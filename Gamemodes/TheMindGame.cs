@@ -538,7 +538,7 @@ public static class TheMindGame
             NameNotifyManager.Reset();
 
             int lowestScore = Points.Values.Min();
-            Main.AllAlivePlayerControls.Join(Points, x => x.PlayerId, x => x.Key, (pc, kvp) => (pc, points: kvp.Value)).DoIf(x => x.points == lowestScore, x => x.pc.Suicide());
+            Main.EnumerateAlivePlayerControls().Join(Points, x => x.PlayerId, x => x.Key, (pc, kvp) => (pc, points: kvp.Value)).DoIf(x => x.points == lowestScore, x => x.pc.Suicide());
 
             yield return NotifyEveryone("TMG.Notify.Round3NumPlayersLeft", 3, Main.AllAlivePlayerControls.Count, MaxPlayersForRound4);
             if (Stop) yield break;

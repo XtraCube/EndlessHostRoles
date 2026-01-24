@@ -92,7 +92,7 @@ internal static class ExileControllerWrapUpPatch
         if (Options.RandomSpawn.GetBool() && Main.CurrentMap != MapNames.Airship)
         {
             var map = RandomSpawn.SpawnMap.GetSpawnMap();
-            Main.AllAlivePlayerControls.Do(player => map.RandomTeleport(player));
+            Main.EnumerateAlivePlayerControls().Do(player => map.RandomTeleport(player));
         }
 
         FallFromLadder.Reset();
