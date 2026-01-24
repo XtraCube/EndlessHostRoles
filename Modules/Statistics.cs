@@ -21,12 +21,12 @@ public static class Statistics
     {
         try
         {
-            PlayerControl[] apc = Main.AllPlayerControls;
+            var apc = Main.AllPlayerControls;
             var aapc = Main.AllAlivePlayerControls;
 
             WinCountsForOutro = string.Empty;
 
-            if (CustomWinnerHolder.WinnerTeam is CustomWinner.None or CustomWinner.Draw or CustomWinner.Error || apc.Length <= MinPlayers) return;
+            if (CustomWinnerHolder.WinnerTeam is CustomWinner.None or CustomWinner.Draw or CustomWinner.Error || apc.Count <= MinPlayers) return;
 
             PlayerControl lp = PlayerControl.LocalPlayer;
             CustomRoles role = lp.GetCustomRole();
@@ -227,7 +227,7 @@ public static class Statistics
     {
         try
         {
-            if (Options.CurrentGameMode != CustomGameMode.Standard || Main.AllPlayerControls.Length <= MinPlayers) return;
+            if (Options.CurrentGameMode != CustomGameMode.Standard || Main.AllPlayerControls.Count <= MinPlayers) return;
 
             PlayerControl lp = PlayerControl.LocalPlayer;
 
@@ -287,7 +287,7 @@ public static class Statistics
     {
         try
         {
-            if (!CustomRoleSelector.RoleResult.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out CustomRoles role) || Main.AllPlayerControls.Length <= MinPlayers) return;
+            if (!CustomRoleSelector.RoleResult.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out CustomRoles role) || Main.AllPlayerControls.Count <= MinPlayers) return;
 
             const float delay = 15f;
 
@@ -309,7 +309,7 @@ public static class Statistics
     {
         try
         {
-            if (Options.CurrentGameMode != CustomGameMode.Standard || killer.PlayerId == target.PlayerId || Main.AllPlayerControls.Length <= MinPlayers) return;
+            if (Options.CurrentGameMode != CustomGameMode.Standard || killer.PlayerId == target.PlayerId || Main.AllPlayerControls.Count <= MinPlayers) return;
 
             if (killer.AmOwner)
             {
@@ -367,7 +367,7 @@ public static class Statistics
     {
         try
         {
-            if (Options.CurrentGameMode != CustomGameMode.Standard || Main.AllPlayerControls.Length <= MinPlayers) return;
+            if (Options.CurrentGameMode != CustomGameMode.Standard || Main.AllPlayerControls.Count <= MinPlayers) return;
 
             if (shapeshifter.AmOwner && shapeshifting && animated)
             {

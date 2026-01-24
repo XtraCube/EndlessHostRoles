@@ -1789,7 +1789,7 @@ internal static class ChatCommands
         {
             if (PollVotes.Count == 0) yield break;
 
-            bool notEveryoneVoted = Main.AllPlayerControls.Length - 1 > PollVotes.Values.Sum();
+            bool notEveryoneVoted = Main.AllPlayerControls.Count - 1 > PollVotes.Values.Sum();
 
             var resendTimer = 0f;
 
@@ -1797,7 +1797,7 @@ internal static class ChatCommands
             {
                 if (!GameStates.IsLobby) yield break;
 
-                notEveryoneVoted = Main.AllPlayerControls.Length - 1 > PollVotes.Values.Sum();
+                notEveryoneVoted = Main.AllPlayerControls.Count - 1 > PollVotes.Values.Sum();
                 PollTimer -= Time.deltaTime;
                 resendTimer += Time.deltaTime;
 
@@ -2389,7 +2389,7 @@ internal static class ChatCommands
         string toVote = text[6..].Replace(" ", string.Empty);
         if (!byte.TryParse(toVote, out byte voteId) || MeetingHud.Instance.playerStates?.FirstOrDefault(x => x.TargetPlayerId == player.PlayerId)?.DidVote is true or null) return;
 
-        if (voteId > Main.AllPlayerControls.Length) return;
+        if (voteId > Main.AllPlayerControls.Count) return;
 
         PlayerControl votedPlayer = voteId.GetPlayer();
         if (!player.UsesMeetingShapeshift() && Main.PlayerStates.TryGetValue(player.PlayerId, out PlayerState state) && votedPlayer != null && state.Role.OnVote(player, votedPlayer)) return;

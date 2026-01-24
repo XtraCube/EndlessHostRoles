@@ -227,7 +227,9 @@ public class Main : BasePlugin
     public static readonly CustomRoles[] CustomRoleValues = Enum.GetValues<CustomRoles>();
 
 
-    public static PlayerControl[] AllPlayerControls => EnumeratePlayerControls().ToArray();
+    public static IReadOnlyList<PlayerControl> AllPlayerControls => EnumeratePlayerControls().ToArray();
+
+    public static IReadOnlyList<PlayerControl> AllAlivePlayerControls => EnumerateAlivePlayerControls().ToArray();
 
     public static IEnumerable<PlayerControl> EnumeratePlayerControls()
     {
@@ -240,17 +242,12 @@ public class Main : BasePlugin
 
     public static IEnumerable<PlayerControl> EnumerateAlivePlayerControls()
     {
-        foreach (PlayerControl pc in PlayerControl.AllPlayerControls)
-        {
-            if (pc == null || pc.PlayerId >= 254 || !pc.IsAlive() || pc.Data == null || 
-                (pc.Data.Disconnected && IntroDestroyed) || Pelican.IsEaten(pc.PlayerId)) 
-                continue;
-    
-            yield return pc;
-        }
+        return EnumeratePlayerControls()
+            .Where(pc => pc.IsAlive()
+                         && pc.Data != null
+                         && (!pc.Data.Disconnected || !IntroDestroyed)
+                         && !Pelican.IsEaten(pc.PlayerId));
     }
-
-    public static IReadOnlyList<PlayerControl> AllAlivePlayerControls => EnumerateAlivePlayerControls().ToList();
 
     // ReSharper disable once InconsistentNaming
     public static string Get_TName_Snacks => TranslationController.Instance.currentLanguage.languageID is SupportedLangs.SChinese or SupportedLangs.TChinese ? NameSnacksCn.RandomElement() : NameSnacksEn.RandomElement();

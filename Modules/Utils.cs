@@ -467,7 +467,7 @@ public static class Utils
 
     public static string GetRoleMode(CustomRoles role, bool parentheses = true)
     {
-        if (Options.HideGameSettings.GetBool() && Main.AllPlayerControls.Length > 1) return string.Empty;
+        if (Options.HideGameSettings.GetBool() && Main.AllPlayerControls.Count > 1) return string.Empty;
 
         string mode;
 
@@ -2640,9 +2640,9 @@ public static class Utils
             if (!AmongUsClient.Instance.AmHost) return;
             if (!SetUpRoleTextPatch.IsInIntro && ((SpecifySeer != null && SpecifySeer.IsModdedClient() && (Options.CurrentGameMode == CustomGameMode.Standard || SpecifySeer.IsHost())) || (GameStates.IsMeeting && !ForMeeting) || GameStates.IsLobby)) return;
 
-            PlayerControl[] apc = Main.AllPlayerControls;
-            PlayerControl[] seerList = SpecifySeer != null ? [SpecifySeer] : apc;
-            PlayerControl[] targetList = SpecifyTarget != null ? [SpecifyTarget] : apc;
+            var apc = Main.AllPlayerControls;
+            var seerList = SpecifySeer != null ? [SpecifySeer] : apc;
+            var targetList = SpecifyTarget != null ? [SpecifyTarget] : apc;
 
             var sender = CustomRpcSender.Create("NotifyRoles", SendOption, log: false);
             var hasValue = false;
@@ -2664,8 +2664,8 @@ public static class Utils
 
             if (Options.CurrentGameMode != CustomGameMode.Standard) return;
 
-            string seers = seerList.Length == apc.Length ? "Everyone" : string.Join(", ", seerList.Select(x => x.GetRealName()));
-            string targets = targetList.Length == apc.Length ? "Everyone" : string.Join(", ", targetList.Select(x => x.GetRealName()));
+            string seers = seerList.Count == apc.Count ? "Everyone" : string.Join(", ", seerList.Select(x => x.GetRealName()));
+            string targets = targetList.Count == apc.Count ? "Everyone" : string.Join(", ", targetList.Select(x => x.GetRealName()));
 
             if (seers.Length == 0) seers = "\u2205";
             if (targets.Length == 0) targets = "\u2205";
@@ -2675,7 +2675,7 @@ public static class Utils
         catch (Exception e) { ThrowException(e); }
     }
 
-    public static bool WriteSetNameRpcsToSender(ref CustomRpcSender sender, bool forMeeting, bool noCache, bool forceLoop, bool camouflageIsForMeeting, bool guesserIsForMeeting, bool mushroomMixup, PlayerControl seer, PlayerControl[] seerList, PlayerControl[] targetList, out bool senderWasCleared, SendOption sendOption = SendOption.Reliable)
+    public static bool WriteSetNameRpcsToSender(ref CustomRpcSender sender, bool forMeeting, bool noCache, bool forceLoop, bool camouflageIsForMeeting, bool guesserIsForMeeting, bool mushroomMixup, PlayerControl seer, IReadOnlyList<PlayerControl> seerList, IReadOnlyList<PlayerControl> targetList, out bool senderWasCleared, SendOption sendOption = SendOption.Reliable)
     {
         long now = TimeStamp;
         var hasValue = false;
@@ -2999,7 +2999,7 @@ public static class Utils
             if (onlySelfNameUpdateRequired) return true;
 
             // Run the second loop only when necessary, such as when the seer is dead
-            if (!seer.IsAlive() || noCache || camouflageIsForMeeting || mushroomMixup || IsActive(SystemTypes.MushroomMixupSabotage) || forceLoop || seerList.Length == 1 || targetList.Length == 1)
+            if (!seer.IsAlive() || noCache || camouflageIsForMeeting || mushroomMixup || IsActive(SystemTypes.MushroomMixupSabotage) || forceLoop || seerList.Count == 1 || targetList.Count == 1)
             {
                 foreach (PlayerControl target in targetList)
                 {
@@ -4428,8 +4428,7 @@ public static class Utils
         return null;
     }
 
-    [SuppressMessage("ReSharper", "MustUseReturnValue")]
-    private static unsafe Texture2D LoadTextureFromResources(string path)
+    private static Texture2D LoadTextureFromResources(string path)
     {
         try
         {

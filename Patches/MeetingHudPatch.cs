@@ -270,7 +270,7 @@ internal static class CheckForEndVotingPatch
             if (tie)
             {
                 var target = byte.MaxValue;
-                int playerNum = Main.AllPlayerControls.Length;
+                int playerNum = Main.AllPlayerControls.Count;
 
                 foreach (KeyValuePair<byte, int> data in votingData.Where(x => x.Key < playerNum && x.Value == max))
                 {

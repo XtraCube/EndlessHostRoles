@@ -103,7 +103,7 @@ public static class Speedrun
 
         int time = Timers[pc.PlayerId];
         int alive = Main.AllAlivePlayerControls.Count;
-        int apc = Main.AllPlayerControls.Length;
+        int apc = Main.AllPlayerControls.Count;
         int killers = CanKill.Count;
 
         string arrows = TargetArrow.GetAllArrows(pc.PlayerId);

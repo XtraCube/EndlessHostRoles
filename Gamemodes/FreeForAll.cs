@@ -168,7 +168,7 @@ internal static class FreeForAll
             rank += KillCount.Where(x => x.Value == ms).Select(x => x.Key).ToList().IndexOf(playerId); // In the old version, the struct 'KeyValuePair' was checked for equality using the inefficient runtime-provided implementation
             return rank;
         }
-        catch { return Main.AllPlayerControls.Length; }
+        catch { return Main.AllPlayerControls.Count; }
     }
 
     public static string GetHudText()

@@ -433,7 +433,7 @@ internal static class SetUpRoleTextPatch
         }
 
         sb.Append("-------------Other Information-------------\n");
-        sb.Append($"Number of players: {Main.AllPlayerControls.Length}\n");
+        sb.Append($"Number of players: {Main.AllPlayerControls.Count}\n");
         sb.Append($"Game mode: {GetString(Options.CurrentGameMode.ToString())}\n");
         sb.Append($"Map: {Main.CurrentMap}\n");
         sb.Append($"Server: {Utils.GetRegionName()}");

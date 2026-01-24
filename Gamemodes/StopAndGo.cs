@@ -395,7 +395,7 @@ internal static class StopAndGo
             rank += Main.PlayerStates.Values.Where(x => x.TaskState.CompletedTasksCount == ms).ToList().IndexOf(state);
             return rank;
         }
-        catch { return Main.AllPlayerControls.Length; }
+        catch { return Main.AllPlayerControls.Count; }
     }
 
     public static string GetSuffixText(PlayerControl pc)

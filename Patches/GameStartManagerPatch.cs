@@ -570,7 +570,7 @@ public static class GameStartRandomMap
             _ => 0
         });
         
-        int playerCount = Main.AllPlayerControls.Length;
+        int playerCount = Main.AllPlayerControls.Count;
         if (playerCount < Options.MinPlayersForAirship.GetInt()) chance.Remove(4);
         if (playerCount < Options.MinPlayersForFungle.GetInt()) chance.Remove(5);
         
