@@ -14,6 +14,7 @@
         <Configurations>Debug;Release</Configurations>
         <Platforms>AnyCPU</Platforms>
         <RepositoryUrl>https://github.com/Gurge44/EndlessHostRoles</RepositoryUrl>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(AmongUs)' == ''">
