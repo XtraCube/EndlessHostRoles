@@ -169,7 +169,7 @@ public class Main : BasePlugin
     private static HashAuth DebugKeyAuth { get; set; }
     private static ConfigEntry<string> DebugKeyInput { get; set; }
 
-    private Harmony Harmony { get; } = new(PluginGuid);
+    public Harmony Harmony { get; } = new(PluginGuid);
 
     public static NormalGameOptionsV10 NormalOptions => GameOptionsManager.Instance != null ? GameOptionsManager.Instance.currentNormalGameOptions : null;
 
@@ -647,6 +647,7 @@ public class Main : BasePlugin
                 { CustomRoles.Listener, "#060270" },
                 { CustomRoles.Unbound, "#DFC57B" },
                 { CustomRoles.AntiTP, "#fcba03" },
+                { CustomRoles.Blessed, "#7bfbff" },
                 { CustomRoles.Hidden, "#E2EAF4" },
                 { CustomRoles.Looter, "#F5D866" },
                 { CustomRoles.Tired, "#ff1919" },

@@ -122,7 +122,7 @@ public static class OptionsMenuBehaviourStartPatch
                 {
                     MainMenuManagerPatch.ShowRightPanelImmediately();
 
-                    Harmony.UnpatchAll();
+                    Main.Instance.Harmony.UnpatchSelf();
                     Main.Instance.Unload();
                 }
             }

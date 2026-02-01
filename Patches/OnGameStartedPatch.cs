@@ -254,6 +254,8 @@ internal static class ChangeRoleSettings
             Messenger.Sent = [];
             Lazy.BeforeMeetingPositions = [];
             Introvert.TeleportAwayDelays = [];
+            Onbound.NumBlocked = [];
+            Blessed.ShieldActive = [];
 
             try
             {
