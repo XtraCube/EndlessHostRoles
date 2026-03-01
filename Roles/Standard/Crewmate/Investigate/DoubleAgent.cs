@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using static EHR.Options;
 
@@ -39,6 +38,6 @@ public class DoubleAgent : RoleBase
     public override bool KnowRole(PlayerControl seer, PlayerControl target)
     {
         if (base.KnowRole(seer, target)) return true;
-        return seer.IsImpostor() && Options.ImpKnowAlliesRole.GetBool() && ShownRoles.ContainsKey(target.PlayerId);
+        return seer.IsImpostor() && ImpKnowAlliesRole.GetBool() && ShownRoles.ContainsKey(target.PlayerId);
     }
 }

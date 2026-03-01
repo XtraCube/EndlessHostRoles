@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using AmongUs.Data;
 using AmongUs.GameOptions;
-using EHR.Roles;
-using EHR.Modules;
+using EHR.Gamemodes;
 using EHR.Patches;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
 using TMPro;
 using UnityEngine;
 using static EHR.Translator;
-using EHR.Gamemodes;
 
 namespace EHR;
 
@@ -45,7 +44,7 @@ public static class GameStartManagerPatch
         {
             try
             {
-                if (__instance == null) return;
+                if (!__instance) return;
 
                 GameCountdown = Object.Instantiate(__instance.PlayerCounter, __instance.HostInfoPanel.transform);
                 GameCountdown.text = string.Empty;
@@ -83,7 +82,7 @@ public static class GameStartManagerPatch
                     __instance.ClientViewButton.inactiveSprites.transform.Find("Shine").GetComponent<SpriteRenderer>().color = new(0f, 1f, 1f, 0.5f);
                 }
 
-                if (AmongUsClient.Instance == null || AmongUsClient.Instance.IsGameStarted || GameStates.IsInGame || __instance.startState == GameStartManager.StartingStates.Starting) return;
+                if (!AmongUsClient.Instance || AmongUsClient.Instance.IsGameStarted || GameStates.IsInGame || __instance.startState == GameStartManager.StartingStates.Starting) return;
 
                 __instance.GameRoomNameCode.text = GameCode.IntToGameName(AmongUsClient.Instance.GameId);
                 // Reset lobby countdown timer
@@ -136,28 +135,28 @@ public static class GameStartManagerPatch
                 try { __instance.MinPlayers = 1; }
                 catch (Exception ex) { Logger.Error(ex.ToString(), "Surely this can't be causing an issue, right?"); }
                 
-                if (AmongUsClient.Instance == null) return false;
+                if (!AmongUsClient.Instance) return false;
 
                 if (AmongUsClient.Instance.AmHost) VanillaUpdate(__instance);
 
-                if (AmongUsClient.Instance.IsGameStarted || GameStates.IsInGame || __instance == null || __instance.startState == GameStartManager.StartingStates.Starting) return false;
+                if (AmongUsClient.Instance.IsGameStarted || GameStates.IsInGame || !__instance || __instance.startState == GameStartManager.StartingStates.Starting) return false;
 
                 // Lobby code
                 if (DataManager.Settings != null && DataManager.Settings.Gameplay != null)
                 {
                     if (DataManager.Settings.Gameplay.StreamerMode)
                     {
-                        if (__instance.GameRoomNameCode != null) __instance.GameRoomNameCode.color = new(255, 255, 255, 0);
-                        if (GameStartManagerStartPatch.HideName != null) GameStartManagerStartPatch.HideName.enabled = true;
+                        if (__instance.GameRoomNameCode) __instance.GameRoomNameCode.color = new(255, 255, 255, 0);
+                        if (GameStartManagerStartPatch.HideName) GameStartManagerStartPatch.HideName.enabled = true;
                     }
                     else
                     {
-                        if (__instance.GameRoomNameCode != null) __instance.GameRoomNameCode.color = new(255, 255, 255, 255);
-                        if (GameStartManagerStartPatch.HideName != null) GameStartManagerStartPatch.HideName.enabled = false;
+                        if (__instance.GameRoomNameCode) __instance.GameRoomNameCode.color = new(255, 255, 255, 255);
+                        if (GameStartManagerStartPatch.HideName) GameStartManagerStartPatch.HideName.enabled = false;
                     }
                 }
 
-                if (AmongUsClient.Instance == null || GameData.Instance == null || !AmongUsClient.Instance.AmHost || !GameData.Instance) return true;
+                if (!AmongUsClient.Instance || !GameData.Instance || !AmongUsClient.Instance.AmHost) return true;
 
                 CheckAutoStart(__instance);
             }
@@ -181,7 +180,7 @@ public static class GameStartManagerPatch
 
             float timer = Timer;
             
-            if (timer > 60 && GameSettingMenu.Instance != null) return;
+            if (timer > 60 && GameSettingMenu.Instance) return;
 
             Main.UpdateTime++;
             if (Main.UpdateTime < 50) return;
@@ -203,7 +202,7 @@ public static class GameStartManagerPatch
                 Logger.SendInGame(GetString("Error.InvalidColorPreventStart"), Color.yellow);
                 string msg = GetString("Error.InvalidColor");
                 msg += "\n" + string.Join(",", invalidColor.Select(p => $"{p.GetRealName()}"));
-                Utils.SendMessage(msg, sendOption: SendOption.None);
+                Utils.SendMessage(msg, importance: MessageImportance.Low);
             }
 
             if (Options.RandomMapsMode.GetBool())
@@ -334,7 +333,7 @@ public static class GameStartManagerPatch
         {
             try
             {
-                if (AmongUsClient.Instance == null || AmongUsClient.Instance.IsGameStarted || GameStates.IsInGame || __instance == null || __instance.startState == GameStartManager.StartingStates.Starting) return;
+                if (!AmongUsClient.Instance || AmongUsClient.Instance.IsGameStarted || GameStates.IsInGame || !__instance || __instance.startState == GameStartManager.StartingStates.Starting) return;
 
                 var canStartGame = true;
                 var mismatchedClientName = string.Empty;
@@ -351,10 +350,10 @@ public static class GameStartManagerPatch
                         for (var index = 0; index < allClients.Length; index++)
                         {
                             ClientData client = allClients[index];
-                            if (client.Character == null) continue;
+                            if (!client.Character) continue;
 
                             var dummyComponent = client.Character.GetComponent<DummyBehaviour>();
-                            if (dummyComponent != null && dummyComponent.enabled) continue;
+                            if (dummyComponent && dummyComponent.enabled) continue;
 
                             if (!MatchVersions(client.Character.PlayerId, true))
                             {
@@ -444,7 +443,7 @@ public static class GameStartManagerPatch
                 {
                     float timer = Timer;
 
-                    if (LobbyTimerBg == null) LobbyTimerBg = HudManager.Instance.LobbyTimerExtensionUI.timerText.transform.parent.transform.Find("LabelBackground").GetComponent<SpriteRenderer>();
+                    if (!LobbyTimerBg) LobbyTimerBg = HudManager.Instance.LobbyTimerExtensionUI.timerText.transform.parent.transform.Find("LabelBackground").GetComponent<SpriteRenderer>();
                     LobbyTimerBg.sprite = Utils.LoadSprite("EHR.Resources.Images.LobbyTimerBG.png", 100f);
                     LobbyTimerBg.color = GetTimerColor(timer);
 
@@ -521,7 +520,7 @@ public static class GameStartRandomMap
             Logger.SendInGame(GetString("Error.InvalidColorPreventStart"), Color.yellow);
             string msg = GetString("Error.InvalidColor");
             msg += "\n" + string.Join(",", invalidColor.Select(p => $"{p.GetRealName()}"));
-            Utils.SendMessage(msg, sendOption: SendOption.None);
+            Utils.SendMessage(msg, importance: MessageImportance.Low);
             return false;
         }
         
@@ -565,7 +564,7 @@ public static class GameStartRandomMap
 
     public static byte SelectRandomMap()
     {
-        System.Collections.Generic.Dictionary<byte, int> chance = Enumerable.Range(0, 6).ToDictionary(x => (byte)x, x => x switch
+        Dictionary<byte, int> chance = Enumerable.Range(0, 6).ToDictionary(x => (byte)x, x => x switch
         {
             0 => Options.SkeldChance.GetInt(),
             1 => Options.MiraChance.GetInt(),
@@ -576,7 +575,7 @@ public static class GameStartRandomMap
             _ => 0
         });
         
-        int playerCount = Main.AllPlayerControls.Count;
+        int playerCount = PlayerControl.AllPlayerControls.Count;
         if (playerCount < Options.MinPlayersForAirship.GetInt()) chance.Remove(4);
         if (playerCount < Options.MinPlayersForFungle.GetInt()) chance.Remove(5);
         

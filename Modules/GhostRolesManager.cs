@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using AmongUs.GameOptions;
 using EHR.Roles;
 using HarmonyLib;
@@ -138,6 +137,8 @@ internal static class GhostRolesManager
             AssignedGhostRoles.All(r => r.Value.Role != x) 
             && (CreateGhostRoleInstance(x)?.Team & pc.GetTeam()) != 0);
     }
+    
+    public static readonly Dictionary<CustomRoles, Type> GhostRoleTypes = [];
 
     public static readonly Dictionary<CustomRoles, Type> GhostRoleTypes = new();
 

@@ -8,10 +8,10 @@ public static class AddSteamID
 
     public static void AddSteamAppIdFile()
     {
-        if (OperatingSystem.IsAndroid()) return;
-
         try
         {
+            if (OperatingSystem.IsAndroid()) return;
+            
             if (!File.Exists(FilePath))
             {
                 Logger.Warn("Creating a new steam_appid.txt file", "AddSteamID");

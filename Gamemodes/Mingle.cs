@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
@@ -147,7 +148,7 @@ public static class Mingle
         {
             int count = GetNumPlayersInRoom(room);
 
-            if (plainShipRoom != null && plainShipRoom.RoomId == room)
+            if (plainShipRoom && plainShipRoom.RoomId == room)
                 sb.Append(hud ? "➡ " : "<u>");
             
             if (DisplayCurrentPlayerCountInEachRoom)
@@ -175,7 +176,7 @@ public static class Mingle
                 sb.Append("</color>");
             }
 
-            if (plainShipRoom != null && plainShipRoom.RoomId == room && !hud)
+            if (plainShipRoom && plainShipRoom.RoomId == room && !hud)
                 sb.Append("</u>");
 
             sb.Append('\n');
@@ -193,7 +194,7 @@ public static class Mingle
             if (hud) sb.Append("</size></b>");
         }
         
-        if (plainShipRoom == null || !RequiredPlayerCount.ContainsKey(plainShipRoom.RoomId))
+        if (!plainShipRoom || !RequiredPlayerCount.ContainsKey(plainShipRoom.RoomId))
         {
             sb.Append('\n');
             sb.Append("<#ffff00><size=70%>");
@@ -208,7 +209,7 @@ public static class Mingle
         return sb.ToString();
     }
 
-    public static System.Collections.IEnumerator GameStart()
+    public static IEnumerator GameStart()
     {
         GameGoing = false;
         
@@ -243,7 +244,7 @@ public static class Mingle
 
         yield return new WaitForSecondsRealtime(Main.CurrentMap == MapNames.Airship ? 8f : 3f);
 
-        List<PlayerControl> players = Main.AllAlivePlayerControls.ToList();
+        List<PlayerControl> players = Main.EnumerateAlivePlayerControls().ToList();
         if (Main.GM.Value) players.RemoveAll(x => x.IsHost());
         if (ChatCommands.Spectators.Count > 0) players.RemoveAll(x => ChatCommands.Spectators.Contains(x.PlayerId));
         
@@ -288,13 +289,13 @@ public static class Mingle
 
         TimeEndTS = Utils.TimeStamp + Time;
         Main.AllPlayerSpeed.SetAllValues(Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod));
-        Utils.SyncAllSettings();
+        Utils.MarkEveryoneDirtySettings();
     }
 
     private static void KillPlayers()
     {
         var aapc = Main.AllAlivePlayerControls;
-        Dictionary<PlayerControl, SystemTypes> playerRooms = aapc.Select(x => (pc: x, room: x.GetPlainShipRoom())).ToDictionary(x => x.pc, x => x.room == null ? SystemTypes.Outside : x.room.RoomId);
+        Dictionary<PlayerControl, SystemTypes> playerRooms = aapc.Select(x => (pc: x, room: x.GetPlainShipRoom())).ToDictionary(x => x.pc, x => !x.room ? SystemTypes.Outside : x.room.RoomId);
         Dictionary<SystemTypes, int> playerCount = [];
         HashSet<PlayerControl> toKill = [];
 
@@ -350,30 +351,42 @@ public static class Mingle
             if (LastUpdateTS == now) return;
             LastUpdateTS = now;
 
-            if (TimeEndTS == now)
+            Main.Instance.StartCoroutine(Coroutine());
+            return;
+
+            IEnumerator Coroutine()
             {
-                Main.AllPlayerSpeed.SetAllValues(Main.MinSpeed);
-                Utils.SyncAllSettings();
-            }
-            else if (TimeEndTS < now)
-            {
-                KillPlayers();
-                StartNewRound();
-            }
-            else
-            {
-                Dictionary<SystemTypes, int> numPlayersInRoom = Main.EnumerateAlivePlayerControls().Select(x => (pc: x, room: x.GetPlainShipRoom())).GroupBy(x => x.room == null ? SystemTypes.Outside : x.room.RoomId).ToDictionary(x => x.Key, x => x.Count());
-                
-                if (RequiredPlayerCount.All(x => numPlayersInRoom.GetValueOrDefault(x.Key, 0) == x.Value))
+                if (TimeEndTS == now)
                 {
-                    Main.EnumerateAlivePlayerControls().NotifyPlayers(Utils.ColorString(Color.green, "✓"), 3f);
-                    Time = Math.Max(Time - TimeDecreaseOnNoDeath, MinTime);
-                    StartNewRound();
-                    return;
+                    Main.AllPlayerSpeed.SetAllValues(Main.MinSpeed);
+                    Main.EnumerateAlivePlayerControls().Do(x => x.SyncSettings());
                 }
+                else if (TimeEndTS < now)
+                {
+                    KillPlayers();
+                    yield return null;
+                    StartNewRound();
+                }
+                else
+                {
+                    Dictionary<SystemTypes, int> numPlayersInRoom = Main.EnumerateAlivePlayerControls().Select(x => (pc: x, room: x.GetPlainShipRoom())).GroupBy(x => !x.room ? SystemTypes.Outside : x.room.RoomId).ToDictionary(x => x.Key, x => x.Count());
+
+                    yield return null;
+                    
+                    if (RequiredPlayerCount.All(x => numPlayersInRoom.GetValueOrDefault(x.Key, 0) == x.Value))
+                    {
+                        Main.EnumerateAlivePlayerControls().NotifyPlayers(Utils.ColorString(Color.green, "✓"), 3f);
+                        yield return null;
+                        Time = Math.Max(Time - TimeDecreaseOnNoDeath, MinTime);
+                        StartNewRound();
+                        yield break;
+                    }
+                }
+
+                yield return null;
+                
+                Utils.NotifyRoles();
             }
-            
-            Utils.NotifyRoles();
         }
     }
 }

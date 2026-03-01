@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.Json;
 using EHR.Gamemodes;
 using EHR.Modules;
@@ -653,6 +652,7 @@ public static class Options
     public static OptionItem ImpCanGuessImp;
     public static OptionItem CrewCanGuessCrew;
 
+    public static OptionItem ChatDuringGame;
     public static OptionItem EveryoneCanVent;
     public static OptionItem OverrideOtherCrewBasedRoles;
     public static OptionItem WhackAMole;
@@ -757,6 +757,7 @@ public static class Options
     public static OptionItem IntegrateNaturalDisasters;
     public static OptionItem EnableGameTimeLimit;
     public static OptionItem GameTimeLimit;
+    public static OptionItem GameTimeLimitRunsDuringMeetings;
     public static OptionItem ShowDifferentEjectionMessageForSomeRoles;
     public static OptionItem ShowAntiBlackoutWarning;
     public static OptionItem AllowConsole;
@@ -812,6 +813,7 @@ public static class Options
     public static OptionItem NameDisplayAddonsOnlyInMeetings;
     public static OptionItem AddBracketsToAddons;
     public static OptionItem NoLimitAddonsNumMax;
+    public static OptionItem AddonAssigningRolesIgnoreMaxAddonsLimit;
 
     public static OptionItem CharmedCanBeGuessed;
     public static OptionItem ContagiousCanBeGuessed;
@@ -978,6 +980,10 @@ public static class Options
                 optionItem.CallUpdateValueEvent(value, value);
             }
         }
+        
+        // these settings are hidden now and are not needed thanks to innersloth's /cmd addition
+        UseMeetingShapeshift.SetValue(0);
+        UseMeetingShapeshiftForGuessing.SetValue(0);
 
 #if DEBUG
         // Used for generating the table of roles for the README
@@ -1032,8 +1038,8 @@ public static class Options
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine("| Command | Description | Arguments | Usage Level | Usage Time | Hidden |");
-            sb.AppendLine("|---------|-------------|-----------|-------------|------------|--------|");
+            sb.AppendLine("| Command | Description | Arguments | Usage Level | Usage Time | 'cmd' prefix<br>required |");
+            sb.AppendLine("|---------|-------------|-----------|-------------|------------|-------------|");
 
             foreach (Command command in Command.AllCommands)
             {
@@ -1169,8 +1175,7 @@ public static class Options
 
     private static void GroupAddons()
     {
-        GroupedAddons = 
-            Main.AllTypes
+        GroupedAddons = Main.AllTypes
             .Where(x => x.GetInterfaces().ToList().Contains(typeof(IAddon)))
             .Select(x => (IAddon)Activator.CreateInstance(x))
             .Where(x => x != null)
@@ -1456,6 +1461,9 @@ public static class Options
 
         NoLimitAddonsNumMax = new IntegerOptionItem(211, "NoLimitAddonsNumMax", new(1, 90, 1), 1, TabGroup.Addons)
             .SetGameMode(CustomGameMode.Standard);
+        
+        AddonAssigningRolesIgnoreMaxAddonsLimit = new BooleanOptionItem(214, "AddonAssigningRolesIgnoreMaxAddonsLimit", false, TabGroup.Addons)
+            .SetGameMode(CustomGameMode.Standard);
 
         CharmedCanBeGuessed = new StringOptionItem(213, "ConvertedAddonCanBeGuessed", AddonGuessOptions, 2, TabGroup.Addons)
             .SetHeader(true)
@@ -1499,9 +1507,7 @@ public static class Options
 
         Type IAddonType = typeof(IAddon);
 
-        Type[] assemblyTypes = Main.AllTypes;
-
-        Dictionary<AddonTypes, IAddon[]> addonTypes = assemblyTypes
+        Dictionary<AddonTypes, IAddon[]> addonTypes = Main.AllTypes
             .Where(t => IAddonType.IsAssignableFrom(t) && !t.IsInterface)
             .OrderBy(t => Translator.GetString(t.Name))
             .Select(type => (IAddon)Activator.CreateInstance(type))
@@ -1538,7 +1544,7 @@ public static class Options
 
         Type IVanillaType = typeof(IVanillaSettingHolder);
 
-        assemblyTypes
+        Main.AllTypes
             .Where(t => IVanillaType.IsAssignableFrom(t) && !t.IsInterface)
             .OrderBy(t => Translator.GetString(t.Name))
             .Select(type => (IVanillaSettingHolder)Activator.CreateInstance(type))
@@ -1559,7 +1565,7 @@ public static class Options
 
         Type IType = typeof(IGhostRole);
 
-        assemblyTypes
+        Main.AllTypes
             .Where(t => IType.IsAssignableFrom(t) && !t.IsInterface)
             .OrderBy(t => Translator.GetString(t.Name))
             .Select(type => (IGhostRole)Activator.CreateInstance(type))
@@ -1712,6 +1718,7 @@ public static class Options
             .SetColor(Color.magenta);
 
         KickNotJoinedPlayersRegularly = new BooleanOptionItem(60295, "KickNotJoinedPlayersRegularly", true, TabGroup.SystemSettings)
+            .SetHidden(true)
             .SetColor(Color.yellow);
 
         CheatResponses = new StringOptionItem(19319, "CheatResponses", CheatResponsesName, 4, TabGroup.SystemSettings)
@@ -1768,7 +1775,7 @@ public static class Options
         SendHashedPuidToUseLinkedAccount = new BooleanOptionItem(19501, "SendHashedPuidToUseLinkedAccount", true, TabGroup.SystemSettings)
             .SetParent(PostLobbyCodeToEHRWebsite);
         
-        LobbyUpdateInterval = new IntegerOptionItem(19502, "LobbyUpdateInterval", new(10, 600, 5), 30, TabGroup.SystemSettings)
+        LobbyUpdateInterval = new IntegerOptionItem(19502, "LobbyUpdateInterval", new(10, 30, 5), 30, TabGroup.SystemSettings)
             .SetParent(PostLobbyCodeToEHRWebsite)
             .SetValueFormat(OptionFormat.Seconds);
 
@@ -2472,14 +2479,21 @@ public static class Options
             .SetColor(new Color32(255, 255, 44, byte.MaxValue));
 
         UseMeetingShapeshift = new BooleanOptionItem(23865, "UseMeetingShapeshift", true, TabGroup.TaskSettings)
+            .SetHidden(true)
             .SetGameMode(CustomGameMode.Standard)
             .SetHeader(true)
             .SetColor(Palette.Orange);
 
         UseMeetingShapeshiftForGuessing = new BooleanOptionItem(23866, "UseMeetingShapeshiftForGuessing", false, TabGroup.TaskSettings)
+            .SetHidden(true)
             .SetGameMode(CustomGameMode.Standard)
             .SetParent(UseMeetingShapeshift)
             .SetColor(Palette.Orange);
+
+        ChatDuringGame = new BooleanOptionItem(24015, "FFA_ChatDuringGame", false, TabGroup.TaskSettings)
+         .SetGameMode(CustomGameMode.Standard)
+         .SetHeader(true)
+         .SetColor(Color.blue);
 
         EveryoneCanVent = new BooleanOptionItem(23853, "EveryoneCanVent", false, TabGroup.TaskSettings)
             .SetGameMode(CustomGameMode.Standard)
@@ -3056,6 +3070,10 @@ public static class Options
             .SetColor(new Color32(193, 255, 209, byte.MaxValue))
             .SetParent(EnableGameTimeLimit)
             .SetValueFormat(OptionFormat.Seconds);
+        
+        GameTimeLimitRunsDuringMeetings = new BooleanOptionItem(24457, "GameTimeLimitRunsDuringMeetings", false, TabGroup.GameSettings)
+            .SetColor(new Color32(193, 255, 209, byte.MaxValue))
+            .SetParent(EnableGameTimeLimit);
 
         OverrideVisionInVents = new BooleanOptionItem(19436, "OverrideVisionInVents", false, TabGroup.GameSettings);
 
@@ -3247,7 +3265,7 @@ public static class Options
 
             foreach (CustomGameMode customGameMode in Enum.GetValues<CustomGameMode>()[..^1])
             {
-                OptionItem chanceToSelectGMInGroup = new IntegerOptionItem(id++, $"AGMR.RandomGroup.GMChance", new(0, 100, 5), 50, TabGroup.SystemSettings)
+                OptionItem chanceToSelectGMInGroup = new IntegerOptionItem(id++, "AGMR.RandomGroup.GMChance", new(0, 100, 5), 50, TabGroup.SystemSettings)
                     .SetParent(EnableAutoGMRotation)
                     .SetValueFormat(OptionFormat.Percent)
                     .SetColor(Main.GameModeColors[customGameMode])
@@ -3530,3 +3548,6 @@ public static class Options
 
     // ReSharper restore NotAccessedField.Global
 }
+
+
+

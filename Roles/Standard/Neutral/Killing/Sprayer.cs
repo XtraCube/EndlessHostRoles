@@ -161,7 +161,7 @@ internal class Sprayer : RoleBase
 
         foreach (KeyValuePair<Vector2, SprayedArea> trap in Traps)
         {
-            if (Vector2.Distance(pc.Pos(), trap.Key) <= 2f)
+            if (FastVector2.DistanceWithinRange(pc.Pos(), trap.Key, 2f))
             {
                 byte playerId = pc.PlayerId;
                 float tempSpeed = Main.AllPlayerSpeed[playerId];

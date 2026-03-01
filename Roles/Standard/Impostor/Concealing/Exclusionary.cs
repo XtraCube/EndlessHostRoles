@@ -73,7 +73,7 @@ public class Exclusionary : RoleBase
                 }
 
                 var sender = CustomRpcSender.Create("Exclusionary", SendOption.Reliable);
-                sender.StartMessage(target.GetClientId());
+                sender.StartMessage(target.OwnerId);
 
                 foreach (PlayerControl player in Main.EnumerateAlivePlayerControls())
                 {
@@ -84,7 +84,7 @@ public class Exclusionary : RoleBase
                         Utils.NumSnapToCallsThisRound++;
                         sender.SendMessage();
                         sender = CustomRpcSender.Create("Exclusionary", SendOption.Reliable);
-                        sender.StartMessage(target.GetClientId());
+                        sender.StartMessage(target.OwnerId);
                     }
 
                     sender.StartRpc(player.NetId, RpcCalls.SetPetStr)
@@ -153,7 +153,7 @@ public class Exclusionary : RoleBase
         }
         
         var sender = CustomRpcSender.Create("Exclusionary Revert", SendOption.Reliable);
-        sender.StartMessage(pc.GetClientId());
+        sender.StartMessage(pc.OwnerId);
 
         foreach (PlayerControl player in Main.EnumerateAlivePlayerControls())
         {
@@ -164,7 +164,7 @@ public class Exclusionary : RoleBase
                 Utils.NumSnapToCallsThisRound++;
                 sender.SendMessage();
                 sender = CustomRpcSender.Create("Exclusionary Revert", SendOption.Reliable);
-                sender.StartMessage(pc.GetClientId());
+                sender.StartMessage(pc.OwnerId);
             }
 
             if (Options.UsePets.GetBool())

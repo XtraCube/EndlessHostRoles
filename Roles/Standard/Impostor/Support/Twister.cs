@@ -86,7 +86,9 @@ public class Twister : RoleBase
         List<byte> changePositionPlayers = [shapeshifter.PlayerId];
         shapeshifter.RpcRemoveAbilityUse();
 
-        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
+        var aapc = Main.AllAlivePlayerControls;
+
+        foreach (PlayerControl pc in aapc)
         {
             if (changePositionPlayers.Contains(pc.PlayerId) || Pelican.IsEaten(pc.PlayerId) || pc.onLadder || pc.inMovingPlat || pc.inVent || GameStates.IsMeeting) continue;
 

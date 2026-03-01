@@ -155,7 +155,6 @@ public class Rogue : RoleBase
 
         Count++;
         if (Count < 30) return;
-
         Count = 0;
 
         if (DoCheck && Moving)
@@ -166,7 +165,7 @@ public class Rogue : RoleBase
                 return;
             }
 
-            Moving = Vector2.Distance(pc.Pos(), LastPos.Value) >= 0.1f;
+            Moving = !FastVector2.DistanceWithinRange(pc.Pos(), LastPos.Value, 0.1f);
             LastPos = pc.Pos();
             if (!Moving) pc.Notify(Utils.ColorString(Color.red, "<size=4>x</size>"));
         }
@@ -200,7 +199,7 @@ public class Rogue : RoleBase
         SendRPC();
 
         if (chatMessage)
-            LateTask.New(() => Utils.SendMessage("\n", RoguePC.PlayerId, Translator.GetString("Rogue.TaskCompleted")), 8f, log: false);
+            LateTask.New(() => Utils.SendMessage("\n", RoguePC.PlayerId, Translator.GetString("Rogue.TaskCompleted"), importance: MessageImportance.High), 8f, log: false);
         else
             Utils.NotifyRoles(SpecifySeer: RoguePC, SpecifyTarget: RoguePC);
     }

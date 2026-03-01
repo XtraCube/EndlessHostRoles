@@ -49,6 +49,11 @@ internal static class AllMapIconsPatch
 [HarmonyPatch(typeof(AmongUsClient._CoStartGameHost_d__28), nameof(AmongUsClient._CoStartGameHost_d__28.MoveNext))]
 public static class DleksPatch
 {
+    public static bool Prepare()
+    {
+        return !OperatingSystem.IsAndroid();
+    }
+
     public static bool Prefix(AmongUsClient._CoStartGameHost_d__28 __instance, ref bool __result)
     {
         if (__instance.__1__state != 0) return true;

@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.Data;
-using EHR.Roles;
 using EHR.Patches;
+using EHR.Roles;
 using HarmonyLib;
 using Hazel;
 using InnerNet;
 using UnityEngine;
-using EHR.Gamemodes;
 
 namespace EHR;
 
@@ -42,17 +41,17 @@ internal static class ChatControllerUpdatePatch
             __instance.quickChatField.background.color = new Color32(40, 40, 40, byte.MaxValue);
             __instance.quickChatField.text.color = Color.white;
 
-            if (QuickChatIcon == null)
+            if (!QuickChatIcon)
                 QuickChatIcon = GameObject.Find("QuickChatIcon")?.transform.GetComponent<SpriteRenderer>();
             else
                 QuickChatIcon.sprite = Utils.LoadSprite("EHR.Resources.Images.DarkQuickChat.png", 100f);
 
-            if (OpenBanMenuIcon == null)
+            if (!OpenBanMenuIcon)
                 OpenBanMenuIcon = GameObject.Find("OpenBanMenuIcon")?.transform.GetComponent<SpriteRenderer>();
             else
                 OpenBanMenuIcon.sprite = Utils.LoadSprite("EHR.Resources.Images.DarkReport.png", 100f);
 
-            if (OpenKeyboardIcon == null)
+            if (!OpenKeyboardIcon)
                 OpenKeyboardIcon = GameObject.Find("OpenKeyboardIcon")?.transform.GetComponent<SpriteRenderer>();
             else
                 OpenKeyboardIcon.sprite = Utils.LoadSprite("EHR.Resources.Images.DarkKeyboard.png", 100f);
@@ -170,7 +169,7 @@ public static class ChatManager
         int operate = message switch
         {
             { } str when CheckCommand(ref str, "id|guesslist|gl编号|玩家编号|玩家id|id列表|玩家列表|列表|所有id|全部id|shoot|guess|bet|st|gs|bt|猜|赌|sp|jj|tl|trial|审判|判|审|xp|效颦|效|颦|sw|换票|换|swap", false) || CheckName(ref playername, "系统消息", false) => 1,
-            { } str when CheckCommand(ref str, "up|ask|target|vote|chat|check|decree|assume|note|whisper", false) => 2,
+            { } str when CheckCommand(ref str, "up|ask|target|vote|chat|check|decree|assume|note|whisper|w|summon|fabricate|select|retribute|imitate|choose|forge|daybreak|jailtalk|jt", false) => 2,
             { } str when CheckCommand(ref str, "r|role|m|myrole|n|now") => 4,
             _ => 3
         };
@@ -257,7 +256,7 @@ public static class ChatManager
             for (var j = 2; j < entryParts.Length; j++) senderMessage += ':' + entryParts[j].Trim();
 
             PlayerControl senderPlayer = Utils.GetPlayerById(Convert.ToByte(senderId));
-            if (senderPlayer == null) continue;
+            if (!senderPlayer) continue;
 
             chat.AddChat(senderPlayer, senderMessage);
             SendRPC(writer, senderPlayer, senderMessage);
@@ -286,42 +285,18 @@ public static class ChatManager
     }
 
     // Base from https://github.com/Rabek009/MoreGamemodes/blob/master/Modules/Utils.cs
-    public static void ClearChat(params PlayerControl[] targets)
+    public static void ClearChat(params IReadOnlyList<PlayerControl> targets)
     {
         if (!AmongUsClient.Instance.AmHost) return;
         PlayerControl player = GameStates.CurrentServerType == GameStates.ServerType.Vanilla ? PlayerControl.LocalPlayer : Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.EnumeratePlayerControls().MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
-        if (player == null) return;
-        if (targets.Length == 0 || targets.Length >= Main.AllAlivePlayerControls.Count) SendEmptyMessage(null);
+        if (!player) return;
+        if (targets.Count == 0 || targets.Count >= Main.AllAlivePlayerControls.Count) SendEmptyMessage(null);
         else targets.Do(SendEmptyMessage);
         return;
 
         void SendEmptyMessage(PlayerControl receiver)
         {
-            bool toEveryone = receiver == null;
-            bool toLocalPlayer = !toEveryone && receiver.AmOwner;
-            if (HudManager.InstanceExists && (toLocalPlayer || toEveryone)) HudManager.Instance.Chat.AddChat(player, "<size=32767>.");
-            if (toLocalPlayer) return;
-            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SendChat, SendOption.Reliable, toEveryone ? -1 : receiver.OwnerId);
-            writer.Write("<size=32767>.");
-            writer.Write(true);
-            AmongUsClient.Instance.FinishRpcImmediately(writer);
-        }
-    }
-
-    // Base from https://github.com/Rabek009/MoreGamemodes/blob/master/Modules/Utils.cs
-    public static void ClearChat(IReadOnlyList<PlayerControl> targets)
-    {
-        if (!AmongUsClient.Instance.AmHost) return;
-        PlayerControl player = Main.EnumerateAlivePlayerControls().MinBy(x => x.PlayerId) ?? Main.EnumeratePlayerControls().MinBy(x => x.PlayerId) ?? PlayerControl.LocalPlayer;
-        if (player == null) return;
-
-        if (targets.Count == 0 || targets.Count == PlayerControl.AllPlayerControls.Count) SendEmptyMessage(null);
-        else targets.Do(SendEmptyMessage);
-        return;
-
-        void SendEmptyMessage(PlayerControl receiver)
-        {
-            bool toEveryone = receiver == null;
+            bool toEveryone = !receiver;
             bool toLocalPlayer = !toEveryone && receiver.AmOwner;
             if (HudManager.InstanceExists && (toLocalPlayer || toEveryone)) HudManager.Instance.Chat.AddChat(player, "<size=32767>.");
             if (toLocalPlayer) return;
@@ -329,7 +304,7 @@ public static class ChatManager
             if (GameStates.CurrentServerType == GameStates.ServerType.Vanilla)
             {
                 byte to = toEveryone ? byte.MaxValue : receiver.PlayerId;
-                Utils.SendMessage("<size=32767>.", to, "\n", force: true, addToHistory: false);
+                Utils.SendMessage("<size=32767>.", to, "\n", force: true, addToHistory: false, importance: MessageImportance.High);
             }
             else
             {

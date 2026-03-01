@@ -127,7 +127,7 @@ public class Stasis : RoleBase
             }
         }
 
-        Utils.SyncAllSettings();
+        Utils.MarkEveryoneDirtySettings();
         Main.Instance.StartCoroutine(Countdown());
         return;
 
@@ -151,7 +151,7 @@ public class Stasis : RoleBase
             ReportDeadBodyPatch.CanReport.SetAllValues(true);
             Main.AllPlayerSpeed.SetAllValues(Main.RealOptionsData.GetFloat(FloatOptionNames.PlayerSpeedMod));
             Main.PlayerStates.Values.Do(x => x.IsBlackOut = false);
-            Utils.SyncAllSettings();
+            Utils.MarkEveryoneDirtySettings();
 
             pc.RpcResetAbilityCooldown();
         }

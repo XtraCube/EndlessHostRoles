@@ -131,7 +131,6 @@ internal static class HotPotato
     //[HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.FixedUpdate))]
     public static class FixedUpdatePatch
     {
-        private static float UpdateDelay;
         private static long LastFixedUpdate;
 
         public static void Postfix(PlayerControl __instance)
@@ -140,7 +139,7 @@ internal static class HotPotato
 
             PlayerControl holder = Utils.GetPlayerById(HotPotatoState.HolderID);
 
-            if (holder == null || holder.Data.Disconnected || !holder.IsAlive())
+            if (!holder || holder.Data.Disconnected || !holder.IsAlive())
             {
                 PassHotPotato();
                 return;
@@ -168,22 +167,17 @@ internal static class HotPotato
                 return;
             }
 
-            if (LastPassTS == now) return;
+            if (CanPassViaKillButton || LastPassTS == now) return;
+            if (HotPotatoState.HolderID != __instance.PlayerId) return;
 
-            var aapc = Main.AllAlivePlayerControls;
-            Vector2 pos = holder.Pos();
-            if (HotPotatoState.HolderID != __instance.PlayerId || !aapc.Any(x => x.PlayerId != HotPotatoState.HolderID && (x.PlayerId != HotPotatoState.LastHolderID || aapc.Count == 2) && Vector2.Distance(x.Pos(), pos) <= Range.GetFloat())) return;
+            Dictionary<byte, Vector2> alivePlayerPositions = Main.EnumerateAlivePlayerControls().ToDictionary(x => x.PlayerId, x => x.Pos());
+            bool allowLastHolder = alivePlayerPositions.Count == 2;
+            Vector2 holderPos = alivePlayerPositions[HotPotatoState.HolderID];
+            float range = Range.GetFloat();
 
-            float wait = aapc.Count <= 2 ? 0.4f : 0f;
-            UpdateDelay += UnityEngine.Time.fixedDeltaTime;
-            if (UpdateDelay < wait) return;
-
-            UpdateDelay = 0;
-
-            PlayerControl target = aapc.OrderBy(x => Vector2.Distance(x.Pos(), pos)).FirstOrDefault(x => x.PlayerId != HotPotatoState.HolderID && (x.PlayerId != HotPotatoState.LastHolderID || aapc.Count == 2));
-            if (target == null) return;
-
-            PassHotPotato(target, false);
+            if (!FastVector2.TryGetClosestInRange(holderPos, alivePlayerPositions, range, out byte passToId)) return;
+            if (!allowLastHolder && passToId == HotPotatoState.LastHolderID) return;
+            PassHotPotato(passToId.GetPlayer(), false);
         }
 
         public static void PassHotPotato(PlayerControl target = null, bool resetTime = true)
@@ -224,7 +218,7 @@ internal static class HotPotato
 
                 PlayerControl lastHolder = Utils.GetPlayerById(HotPotatoState.LastHolderID);
 
-                if (lastHolder != null)
+                if (lastHolder)
                 {
                     if (CanPassViaKillButton && lastHolder.IsAlive()) lastHolder.RpcSetRoleGlobal(RoleTypes.Crewmate);
 

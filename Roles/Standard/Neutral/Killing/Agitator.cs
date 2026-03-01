@@ -105,7 +105,7 @@ public class Agitator : RoleBase
 
         if (AgitatorAutoReportBait.GetBool() && target.Is(CustomRoles.Bait)) return true;
 
-        if (target.Is(CustomRoles.Pestilence) || (target.Is(CustomRoles.Veteran) && Veteran.VeteranInProtect.ContainsKey(target.PlayerId)))
+        if (target.Is(CustomRoles.Pestilence) || (target.Is(CustomRoles.Veteran) && Veteran.VeteranInProtect.Contains(target.PlayerId)))
         {
             target.Kill(killer);
             ResetBomb();
@@ -198,7 +198,7 @@ public class Agitator : RoleBase
                 {
                     KeyValuePair<byte, float> min = targetDistance.OrderBy(c => c.Value).FirstOrDefault();
                     PlayerControl target = Utils.GetPlayerById(min.Key);
-                    float KillRange = NormalGameOptionsV10.KillDistances[Mathf.Clamp(GameOptionsManager.Instance.currentNormalGameOptions.KillDistance, 0, 2)];
+                    float KillRange = GameManager.Instance.LogicOptions.GetKillDistance();
                     if (min.Value <= KillRange && player.CanMove && target.CanMove) PassBomb(player, target);
                 }
             }
@@ -216,7 +216,7 @@ public class Agitator : RoleBase
         if (target.PlayerId == LastBombedPlayer) return;
         if (!AgitatorCanGetBombed.GetBool() && target.Is(CustomRoles.Agitator)) return;
 
-        if (target.Is(CustomRoles.Pestilence) || (target.Is(CustomRoles.Veteran) && Veteran.VeteranInProtect.ContainsKey(target.PlayerId)))
+        if (target.Is(CustomRoles.Pestilence) || (target.Is(CustomRoles.Veteran) && Veteran.VeteranInProtect.Contains(target.PlayerId)))
         {
             target.Kill(player);
             ResetBomb();

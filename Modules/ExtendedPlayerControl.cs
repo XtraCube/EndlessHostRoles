@@ -1,19 +1,21 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using AmongUs.GameOptions;
-using EHR.Roles;
+using EHR.Gamemodes;
 using EHR.Modules;
+using EHR.Modules.Extensions;
+using EHR.Roles;
 using Hazel;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using UnityEngine;
 using static EHR.Translator;
 using static EHR.Utils;
-using EHR.Gamemodes;
 
 namespace EHR;
 
@@ -67,7 +69,7 @@ internal static class ExtendedPlayerControl
 
     public static bool CanUseVent(this PlayerControl player)
     {
-        try { return CanUseVent(player, GetClosestVent(player)?.Id ?? int.MaxValue); }
+        try { return player.CanUseVent(player.GetClosestVent()?.Id ?? int.MaxValue); }
         catch (Exception e)
         {
             ThrowException(e);
@@ -99,19 +101,17 @@ internal static class ExtendedPlayerControl
     }
 
     // Next 2: https://github.com/Rabek009/MoreGamemodes/blob/master/Modules/ExtendedPlayerControl.cs
+    
     public static Vent GetClosestVent(this PlayerControl player)
     {
-        if (ShipStatus.Instance?.AllVents == null)
-        {
-            return null;
-        }
+        if (ShipStatus.Instance?.AllVents == null) return null;
 
         Vector2 pos = player.Pos();
         Vent closest = null;
 
         foreach (var vent in ShipStatus.Instance.AllVents)
         {
-            if (closest == null || Vector2.Distance(pos, vent.transform.position) < Vector2.Distance(pos, closest.transform.position))
+            if (!closest || Vector2.Distance(pos, vent.transform.position) < Vector2.Distance(pos, closest.transform.position))
                 closest = vent;
         }
 
@@ -133,7 +133,7 @@ internal static class ExtendedPlayerControl
             Vector2.Distance(playerpos, v1.transform.position)
                 .CompareTo(Vector2.Distance(playerpos, v2.transform.position)));
 
-        if ((player.walkingToVent || player.inVent) && ResultBuffer.Count > 0 && ResultBuffer[0] != null)
+        if ((player.walkingToVent || player.inVent) && ResultBuffer.Count > 0 && ResultBuffer[0])
         {
             var nearbyVents = ResultBuffer[0].NearbyVents;
             if (nearbyVents != null)
@@ -141,7 +141,7 @@ internal static class ExtendedPlayerControl
                 for (int i = nearbyVents.Length - 1; i >= 0; i--)
                 {
                     var v = nearbyVents[i];
-                    if (v != null)
+                    if (v)
                     {
                         ResultBuffer.Remove(v);
                         ResultBuffer.Insert(0, v);
@@ -187,7 +187,7 @@ internal static class ExtendedPlayerControl
         {
             if (pc == player || pc.AmOwner) continue;
             CustomRpcSender sender = CustomRpcSender.Create($"SnapTo Freeze ({player.GetNameWithRole()})", SendOption.Reliable);
-            sender.StartMessage(pc.GetClientId());
+            sender.StartMessage(pc.OwnerId);
             sender.StartRpc(player.NetTransform.NetId, (byte)RpcCalls.SnapTo)
                 .WriteVector2(player.transform.position)
                 .Write(player.NetTransform.lastSequenceId)
@@ -271,11 +271,6 @@ internal static class ExtendedPlayerControl
         catch { return null; }
     }
 
-    public static int GetClientId(this PlayerControl player)
-    {
-        return !player ? -1 : player.OwnerId;
-    }
-
     public static CustomRoles GetCustomRole(this NetworkedPlayerInfo player)
     {
         return (!player || !player.Object) ? CustomRoles.Crewmate : player.Object.GetCustomRole();
@@ -286,7 +281,7 @@ internal static class ExtendedPlayerControl
     /// </summary>
     public static CustomRoles GetCustomRole(this PlayerControl player)
     {
-        if (player == null)
+        if (!player)
         {
             MethodBase callerMethod = new StackFrame(1, false).GetMethod();
             string callerMethodName = callerMethod?.Name;
@@ -301,7 +296,7 @@ internal static class ExtendedPlayerControl
     {
         if (GameStates.IsLobby) return [];
 
-        if (player == null)
+        if (!player)
         {
             Logger.Warn("The player is null", "GetCustomSubRoles");
             return [];
@@ -312,7 +307,7 @@ internal static class ExtendedPlayerControl
 
     public static CountTypes GetCountTypes(this PlayerControl player)
     {
-        if (player == null)
+        if (!player)
         {
             StackFrame caller = new(1, false);
             MethodBase callerMethod = caller.GetMethod();
@@ -331,9 +326,9 @@ internal static class ExtendedPlayerControl
 
     public static void RpcResetTasks(this PlayerControl player, bool init = true)
     {
-        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || player == null) return;
+        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || !player) return;
 
-        player.Data.RpcSetTasks(new Il2CppStructArray<byte>((long)0));
+        player.Data.RpcSetTasks(new Il2CppStructArray<byte>(0));
         if (init) Main.PlayerStates[player.PlayerId].InitTask(player);
     }
 
@@ -344,12 +339,11 @@ internal static class ExtendedPlayerControl
         if (!AmongUsClient.Instance.AmHost) return;
         if (!TempExiled.Add(pc.PlayerId)) return;
         
-        pc.Exiled();
-        Main.PlayerStates[pc.PlayerId].SetDead();
-        
         pc.RpcSetRoleGlobal(RoleTypes.GuardianAngel);
         LateTask.New(pc.SyncSettings, 0.1f, log: false);
         LateTask.New(pc.RpcResetAbilityCooldown, 0.2f, log: false);
+        
+        Main.PlayerStates[pc.PlayerId].SetDead();
     }
 
     // Saves some RPC calls for vanilla servers to make innersloth's rate limit happy
@@ -431,7 +425,7 @@ internal static class ExtendedPlayerControl
     public static void RpcSetRoleDesync(this PlayerControl player, RoleTypes role, int clientId, bool setRoleMap = false)
     {
         if (!AmongUsClient.Instance.AmHost) return;
-        if (player == null) return;
+        if (!player) return;
 
         if (setRoleMap)
         {
@@ -471,7 +465,7 @@ internal static class ExtendedPlayerControl
     // https://github.com/Ultradragon005/TownofHost-Enhanced/blob/ea5f1e8ea87e6c19466231c305d6d36d511d5b2d/Modules/ExtendedPlayerControl.cs
     public static void RpcRevive(this PlayerControl player)
     {
-        if (player == null) return;
+        if (!player) return;
 
         if (!player.Data.IsDead)
         {
@@ -513,7 +507,7 @@ internal static class ExtendedPlayerControl
     {
         if (!forced)
         {
-            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || player == null || !player.IsAlive()) return;
+            if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || !player || !player.IsAlive()) return;
 
             if (AntiBlackout.SkipTasks || ExileController.Instance)
             {
@@ -704,6 +698,27 @@ internal static class ExtendedPlayerControl
 
         if (!forced) Logger.Info($"{player.GetNameWithRole()}'s role basis was changed to {newRoleType} ({newCustomRole}) (from role: {playerRole}) - oldRoleIsDesync: {oldRoleIsDesync}, newRoleIsDesync: {newRoleIsDesync}", "RpcChangeRoleBasis");
     }
+    
+    public static void RpcShapeshiftDesync(this PlayerControl shapeshifter, PlayerControl target, PlayerControl seer, bool animate)
+    {
+        try
+        {
+            int clientId = seer.OwnerId;
+
+            if (AmongUsClient.Instance.ClientId == clientId)
+            {
+                try { shapeshifter.Shapeshift(target, animate); }
+                catch (Exception e) { ThrowException(e); }
+                return;
+            }
+
+            MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(shapeshifter.NetId, (byte)RpcCalls.Shapeshift, SendOption.Reliable, clientId);
+            writer.WriteNetObject(target);
+            writer.Write(animate);
+            AmongUsClient.Instance.FinishRpcImmediately(writer);
+        }
+        catch (Exception e) { ThrowException(e); }
+    }
 
     // https://github.com/Ultradragon005/TownofHost-Enhanced/blob/ea5f1e8ea87e6c19466231c305d6d36d511d5b2d/Modules/Utils.cs
     public static bool SyncGeneralOptions(this CustomRpcSender sender, PlayerControl player)
@@ -722,11 +737,27 @@ internal static class ExtendedPlayerControl
         return true;
     }
 
+    public static bool SyncGeneralOptions(this PlayerControl player)
+    {
+        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInGame || !DoRPC) return false;
+
+        MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SyncGeneralOptions, SendOption.Reliable);
+        writer.Write(player.PlayerId);
+        writer.WritePacked((int)player.GetCustomRole());
+        writer.Write(Main.PlayerStates[player.PlayerId].IsDead);
+        writer.WritePacked((int)Main.PlayerStates[player.PlayerId].deathReason);
+        writer.Write(Main.AllPlayerKillCooldown[player.PlayerId]);
+        writer.Write(Main.AllPlayerSpeed[player.PlayerId]);
+        AmongUsClient.Instance.FinishRpcImmediately(writer);
+        
+        return true;
+    }
+
     // Next 3: https://github.com/0xDrMoe/TownofHost-Enhanced/blob/12487ce1aa7e4f5087f2300be452b5af7c04d1ff/Modules/ExtendedPlayerControl.cs#L239
 
     public static void RpcExitVentDesync(this PlayerPhysics physics, int ventId, PlayerControl seer)
     {
-        if (physics == null) return;
+        if (!physics) return;
 
         int clientId = seer.OwnerId;
 
@@ -749,7 +780,7 @@ internal static class ExtendedPlayerControl
 
     public static bool IsInsideMap(this PlayerControl player)
     {
-        if (player == null) return false;
+        if (!player) return false;
 
         var results = new Collider2D[10];
         int overlapPointNonAlloc = Physics2D.OverlapPointNonAlloc(player.Pos(), results, Constants.ShipOnlyMask);
@@ -760,9 +791,9 @@ internal static class ExtendedPlayerControl
         {
             MapNames.Fungle when overlapPointNonAlloc >= 2 => true,
             MapNames.MiraHQ when overlapPointNonAlloc >= 1 => true,
-            MapNames.MiraHQ when room != null && room.RoomId is SystemTypes.MedBay or SystemTypes.Comms => true,
+            MapNames.MiraHQ when room && room.RoomId is SystemTypes.MedBay or SystemTypes.Comms => true,
             MapNames.Airship when overlapPointNonAlloc >= 1 => true,
-            MapNames.Skeld or MapNames.Dleks when room != null => true,
+            MapNames.Skeld or MapNames.Dleks when room => true,
             MapNames.Polus when overlapPointNonAlloc >= 1 => true,
             MapNames.Polus when pos.y is >= -26.11f and <= -6.41f && pos.x is >= 3.56f and <= 32.68f => true,
             (MapNames)6 => true,
@@ -772,7 +803,7 @@ internal static class ExtendedPlayerControl
 
     public static void KillFlash(this PlayerControl player)
     {
-        if (GameStates.IsLobby || player == null) return;
+        if (GameStates.IsLobby || !player) return;
 
         // Kill flash (blackout + reactor flash) processing
 
@@ -827,7 +858,7 @@ internal static class ExtendedPlayerControl
             return;
         }
 
-        if (target == null) target = killer;
+        if (!target) target = killer;
 
         // Check Observer
         if (!forObserver && !MeetingStates.FirstMeeting) Main.EnumeratePlayerControls().Where(x => x.Is(CustomRoles.Observer) && killer.PlayerId != x.PlayerId).Do(x => x.RpcGuardAndKill(target, true));
@@ -857,7 +888,7 @@ internal static class ExtendedPlayerControl
 
     public static void AddKCDAsAbilityCD(this PlayerControl pc)
     {
-        AddAbilityCD(pc, (int)Math.Round(Main.AllPlayerKillCooldown.TryGetValue(pc.PlayerId, out float kcd) ? kcd : Options.AdjustedDefaultKillCooldown));
+        pc.AddAbilityCD((int)Math.Round(Main.AllPlayerKillCooldown.TryGetValue(pc.PlayerId, out float kcd) ? kcd : Options.AdjustedDefaultKillCooldown));
     }
 
     public static void AddAbilityCD(this PlayerControl pc, bool includeDuration = true)
@@ -936,10 +967,10 @@ internal static class ExtendedPlayerControl
 
         switch (state.Role)
         {
-            case SchrodingersCat cat when realKiller != null:
+            case SchrodingersCat cat when realKiller:
                 cat.OnCheckMurderAsTarget(realKiller, pc);
                 return;
-            case Veteran when Veteran.VeteranInProtect.ContainsKey(pc.PlayerId):
+            case Veteran when Veteran.VeteranInProtect.Contains(pc.PlayerId):
             case Pestilence:
                 return;
         }
@@ -949,7 +980,7 @@ internal static class ExtendedPlayerControl
 
         Medic.IsDead(pc);
 
-        if (realKiller != null)
+        if (realKiller)
         {
             pc.SetRealKiller(realKiller);
 
@@ -967,7 +998,7 @@ internal static class ExtendedPlayerControl
 
     public static void SetKillCooldown(this PlayerControl player, float time = -1f, PlayerControl target = null, bool forceAnime = false)
     {
-        if (player == null) return;
+        if (!player) return;
 
         if (!Mathf.Approximately(time, -1f) && Commited.ReduceKCD.TryGetValue(player.PlayerId, out float reduction))
             time = Math.Max(time - reduction, 0.01f);
@@ -987,7 +1018,7 @@ internal static class ExtendedPlayerControl
         if (!player.CanUseKillButton() && !AntiBlackout.SkipTasks && !IntroCutsceneDestroyPatch.PreventKill) return;
 
         player.AddKillTimerToDict(cd: time);
-        if (target == null) target = player;
+        if (!target) target = player;
 
         if (time >= 0f)
             Main.AllPlayerKillCooldown[player.PlayerId] = time * 2;
@@ -1077,8 +1108,7 @@ internal static class ExtendedPlayerControl
 
     public static void SyncSettings(this PlayerControl player)
     {
-        PlayerGameOptionsSender.SetDirty(player.PlayerId);
-        GameOptionsSender.SendAllGameOptions();
+        PlayerGameOptionsSender.SendImmediately(player.PlayerId);
     }
 
     public static TaskState GetTaskState(this PlayerControl player)
@@ -1091,9 +1121,10 @@ internal static class ExtendedPlayerControl
         return pc.IsModdedClient() && !pc.IsHost();
     }
 
-    public static string GetDisplayRoleName(this PlayerControl player, bool pure = false, bool seeTargetBetrayalAddons = false)
+    public static string GetDisplayRoleName(this PlayerControl player, PlayerControl target = null, bool pure = false, bool seeTargetBetrayalAddons = false)
     {
-        return Utils.GetDisplayRoleName(player.PlayerId, pure, seeTargetBetrayalAddons);
+        if (!target) target = player;
+        return Utils.GetDisplayRoleName(player.PlayerId, targetId: target.PlayerId, pure: pure, seeTargetBetrayalAddons: seeTargetBetrayalAddons);
     }
 
     public static string GetSubRoleNames(this PlayerControl player, bool forUser = false)
@@ -1134,7 +1165,7 @@ internal static class ExtendedPlayerControl
         catch (Exception e)
         {
             ThrowException(e);
-            return player == null || player.Data == null ? "Unknown Player" : player.Data.PlayerName;
+            return !player || !player.Data ? "Unknown Player" : player.Data.PlayerName;
         }
     }
 
@@ -1150,7 +1181,7 @@ internal static class ExtendedPlayerControl
 
     public static void FixBlackScreen(this PlayerControl pc)
     {
-        if (pc == null || !AmongUsClient.Instance.AmHost) return;
+        if (!pc || !AmongUsClient.Instance.AmHost) return;
 
         if (MeetingStates.FirstMeeting)
         {
@@ -1160,14 +1191,7 @@ internal static class ExtendedPlayerControl
         
         if (pc.IsModdedClient()) return;
 
-        if (GameStates.IsMeeting ||
-            ExileController.Instance ||
-            AntiBlackout.SkipTasks ||
-            pc.inVent ||
-            pc.inMovingPlat ||
-            pc.onLadder ||
-            !Main.EnumeratePlayerControls().FindFirst(x => !x.IsAlive(),
-                out var dummyGhost))
+        if (GameStates.IsMeeting || ExileController.Instance || AntiBlackout.SkipTasks || pc.inVent || pc.inMovingPlat || pc.onLadder || !Main.EnumeratePlayerControls().FindFirst(x => !x.IsAlive(), out var dummyGhost))
         {
             if (BlackScreenWaitingPlayers.Add(pc.PlayerId))
                 Main.Instance.StartCoroutine(Wait());
@@ -1287,7 +1311,7 @@ internal static class ExtendedPlayerControl
 
     public static void ReactorFlash(this PlayerControl pc, float delay = 0f, float flashDuration = float.NaN, bool canBlind = true)
     {
-        if (pc == null) return;
+        if (!pc) return;
 
         Logger.Info($"Reactor Flash for {pc.GetNameWithRole()}", "ReactorFlash");
 
@@ -1332,7 +1356,7 @@ internal static class ExtendedPlayerControl
         }
         catch (NullReferenceException nullReferenceException)
         {
-            Logger.Error($"{nullReferenceException.Message} - player is null? {player == null}", "GetRealName");
+            Logger.Error($"{nullReferenceException.Message} - player is null? {!player}", "GetRealName");
             return string.Empty;
         }
         catch (Exception exception)
@@ -1442,7 +1466,7 @@ internal static class ExtendedPlayerControl
             // Solo PVP
             CustomRoles.Challenger => pc.SoloAlive(),
             // FFA
-            CustomRoles.Killer => pc.IsAlive(),
+            CustomRoles.Killer => true,
             // Stop And Go
             CustomRoles.Tasker => false,
             // Hot Potato
@@ -1471,14 +1495,14 @@ internal static class ExtendedPlayerControl
 
     public static bool CanUseImpostorVentButton(this PlayerControl pc)
     {
-        if (!pc.IsAlive() || pc.Data.Role.Role == RoleTypes.GuardianAngel || Penguin.IsVictim(pc)) return false;
+        if (!Main.IntroDestroyed || !pc.IsAlive() || pc.Data.Role.Role == RoleTypes.GuardianAngel || Penguin.IsVictim(pc)) return false;
 
         if (pc.GetRoleTypes() == RoleTypes.Engineer) return false;
 
         return Options.CurrentGameMode switch
         {
             CustomGameMode.SoloPVP => SoloPVP.CanVent,
-            CustomGameMode.FFA => true,
+            CustomGameMode.FFA => !(FreeForAll.FFADisableVentingWhenKcdIsUp.GetBool() && Main.KillTimers[pc.PlayerId] <= 0) && !(FreeForAll.FFADisableVentingWhenTwoPlayersAlive.GetBool() && Main.AllAlivePlayerControls.Count <= 2),
             CustomGameMode.StopAndGo => false,
             CustomGameMode.HotPotato => false,
             CustomGameMode.Speedrun => false,
@@ -1511,15 +1535,37 @@ internal static class ExtendedPlayerControl
     {
         if (pc.AmOwner) return pc.transform.position;
 
-        var queue = pc.NetTransform.incomingPosQueue;
-        if (queue.Count > 0 && pc.NetTransform.isActiveAndEnabled && !pc.NetTransform.isPaused)
-        {        
-            var array = queue._array;
-            int tail = queue._tail;
-            int index = (tail - 1 + array.Length) % array.Length; // handle wrap-around
-            return array[index];
+        try
+        {
+            var queue = pc.NetTransform.incomingPosQueue;
+        
+            if (queue.Count > 0 && pc.NetTransform.isActiveAndEnabled && !pc.NetTransform.isPaused)
+            {        
+                var array = queue._array;
+                int tail = queue._tail;
+                int index = (tail - 1 + array.Length) % array.Length; // handle wrap-around
+                return array[index];
+            }
         }
+        catch (Exception e) { ThrowException(e); }
+        
         return pc.transform.position;
+    }
+
+    public static RoleTypes GetGhostRoleBasis(this PlayerControl __instance)
+    {
+        RoleTypes roleType;
+        
+        if (GhostRolesManager.AssignedGhostRoles.TryGetValue(__instance.PlayerId, out var ghostRole))
+            roleType = ghostRole.Instance.RoleTypes;
+        else if (GhostRolesManager.ShouldHaveGhostRole(__instance))
+            roleType = RoleTypes.GuardianAngel;
+        else if (!(__instance.Is(CustomRoleTypes.Impostor) && Options.DeadImpCantSabotage.GetBool()) && Main.PlayerStates.TryGetValue(__instance.PlayerId, out var state) && state.Role.CanUseSabotage(__instance))
+            roleType = RoleTypes.ImpostorGhost;
+        else
+            roleType = RoleTypes.CrewmateGhost;
+
+        return roleType;
     }
 
     public static void MakeInvisible(this PlayerControl player)
@@ -1555,8 +1601,8 @@ internal static class ExtendedPlayerControl
     public static void RpcMakeInvisible(this PlayerControl player, bool phantom = false)
     {
         if (!AmongUsClient.Instance.AmHost) return;
-        if (!Main.Invisible.Add(player.PlayerId)) return;
         if (phantom && Options.CurrentGameMode != CustomGameMode.Standard) return;
+        if (!Main.Invisible.Add(player.PlayerId)) return;
         
         player.RpcSetPet("");
         
@@ -1604,8 +1650,8 @@ internal static class ExtendedPlayerControl
     public static void RpcMakeVisible(this PlayerControl player, bool phantom = false)
     {
         if (!AmongUsClient.Instance.AmHost) return;
-        if (!Main.Invisible.Remove(player.PlayerId)) return;
         if (phantom && Options.CurrentGameMode != CustomGameMode.Standard) return;
+        if (!Main.Invisible.Remove(player.PlayerId)) return;
         
         if (Options.UsePets.GetBool()) PetsHelper.SetPet(player, PetsHelper.GetPetId());
         
@@ -1666,7 +1712,9 @@ internal static class ExtendedPlayerControl
             
             var sender = CustomRpcSender.Create("RpcResetInvisibility", SendOption.Reliable);
             sender.StartMessage(pc.OwnerId);
-            sender.StartRpc(player.NetId, RpcCalls.Exiled)
+            sender.StartRpc(player.NetId, RpcCalls.SetRole)
+                .Write((ushort)player.GetGhostRoleBasis())
+                .Write(true)
                 .EndRpc();
             RoleTypes role = Utils.GetRoleMap(pc.PlayerId, player.PlayerId).RoleType;
             sender.StartRpc(player.NetId, RpcCalls.SetRole)
@@ -1723,7 +1771,7 @@ internal static class ExtendedPlayerControl
 
     public static bool IsDousedPlayer(this PlayerControl arsonist, PlayerControl target)
     {
-        if (arsonist == null || target == null || Arsonist.IsDoused == null) return false;
+        if (!arsonist || !target) return false;
 
         Arsonist.IsDoused.TryGetValue((arsonist.PlayerId, target.PlayerId), out bool isDoused);
         return isDoused;
@@ -1731,7 +1779,7 @@ internal static class ExtendedPlayerControl
 
     public static bool IsDrawPlayer(this PlayerControl arsonist, PlayerControl target)
     {
-        if (arsonist == null || target == null || Revolutionist.IsDraw == null) return false;
+        if (!arsonist || !target) return false;
 
         Revolutionist.IsDraw.TryGetValue((arsonist.PlayerId, target.PlayerId), out bool isDraw);
         return isDraw;
@@ -1739,7 +1787,7 @@ internal static class ExtendedPlayerControl
 
     public static bool IsRevealedPlayer(this PlayerControl player, PlayerControl target)
     {
-        if (player == null || target == null || Investigator.IsRevealed == null) return false;
+        if (!player || !target) return false;
 
         Investigator.IsRevealed.TryGetValue((player.PlayerId, target.PlayerId), out bool isDoused);
         return isDoused;
@@ -1882,16 +1930,14 @@ internal static class ExtendedPlayerControl
 
     public static void RpcExileV2(this PlayerControl player)
     {
-        player.Exiled();
-        MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.Exiled, SendOption.Reliable);
-        AmongUsClient.Instance.FinishRpcImmediately(writer);
+        player.RpcSetRoleGlobal(player.GetGhostRoleBasis());
         FixedUpdatePatch.LoversSuicide(player.PlayerId);
     }
 
     public static (Vector2 Location, string RoomName) GetPositionInfo(this PlayerControl pc)
     {
         PlainShipRoom room = pc.GetPlainShipRoom();
-        string roomName = GetString(room == null ? "Outside" : $"{room.RoomId}");
+        string roomName = GetString(!room ? "Outside" : $"{room.RoomId}");
         Vector2 pos = pc.Pos();
         return (pos, roomName);
     }
@@ -1946,7 +1992,7 @@ internal static class ExtendedPlayerControl
         
         if (Options.CurrentGameMode == CustomGameMode.SoloPVP || GameStates.IsLobby || !GameStates.InGame || !Main.IntroDestroyed) return;
 
-        if (target == null) target = killer;
+        if (!target) target = killer;
 
         CheckAndSpawnAdditionalRenegade(target.Data);
 
@@ -1966,7 +2012,7 @@ internal static class ExtendedPlayerControl
         target.SetRealKiller(killer, true);
         
         PlayerControl realKiller = Main.PlayerStates.TryGetValue(target.PlayerId, out PlayerState state) ? state.RealKiller.ID.GetPlayer() ?? killer : killer;
-        if (realKiller == null) realKiller = killer;
+        if (!realKiller) realKiller = killer;
 
         if (target.PlayerId == Godfather.GodfatherTarget)
             realKiller.RpcSetCustomRole(CustomRoles.Renegade);
@@ -2064,11 +2110,11 @@ internal static class ExtendedPlayerControl
                 if (ReportDeadBodyPatch.MeetingStarted || GameStates.IsMeeting) return;
                 Vector2 pos = Object.FindObjectsOfType<DeadBody>().First(x => x.ParentId == target.PlayerId).TruePosition;
 
-                if (Vector2.Distance(pos, Pelican.GetBlackRoomPS()) > 2f)
+                if (!FastVector2.DistanceWithinRange(pos, Pelican.GetBlackRoomPS(), 2f))
                 {
                     foreach (PlayerState ps in Main.PlayerStates.Values)
                     {
-                        if (!ps.IsDead && ps.Role.SeesArrowsToDeadBodies && !ps.SubRoles.Contains(CustomRoles.Blind) && ps.Player != null)
+                        if (!ps.IsDead && ps.Role.SeesArrowsToDeadBodies && !ps.SubRoles.Contains(CustomRoles.Blind) && ps.Player)
                         {
                             LocateArrow.Add(ps.Player.PlayerId, pos);
                             NotifyRoles(SpecifySeer: ps.Player, SpecifyTarget: ps.Player);
@@ -2097,7 +2143,7 @@ internal static class ExtendedPlayerControl
 
     public static bool UsesPetInsteadOfKill(this PlayerControl pc)
     {
-        return pc != null && !pc.Is(CustomRoles.Bloodlust) && pc.GetCustomRole().UsesPetInsteadOfKill();
+        return pc && !pc.Is(CustomRoles.Bloodlust) && pc.GetCustomRole().UsesPetInsteadOfKill();
     }
 
     public static bool IsModdedClient(this PlayerControl player)
@@ -2105,9 +2151,25 @@ internal static class ExtendedPlayerControl
         return player.AmOwner || player.IsHost() || Main.PlayerVersion.ContainsKey(player.PlayerId);
     }
 
+    public static bool IsValidTargetForKillButton(PlayerControl target)
+    {
+        // Code from AU code for kill button check target, without distance check but check colliders
+        if (PlayerControl.LocalPlayer.Data.Role.IsValidTarget(target.Data) && target.Collider.enabled)
+        {
+            Vector2 lpPos = PlayerControl.LocalPlayer.GetTruePosition();
+            Vector2 vector = target.GetTruePosition() - lpPos;
+            float magnitude = vector.magnitude;
+            if (!PhysicsHelpers.AnyNonTriggersBetween(lpPos, vector.normalized, magnitude, Constants.ShipAndObjectsMask))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static List<PlayerControl> GetPlayersInAbilityRangeSorted(this PlayerControl player, bool ignoreColliders = false)
     {
-        return GetPlayersInAbilityRangeSorted(player, _ => true, ignoreColliders);
+        return player.GetPlayersInAbilityRangeSorted(_ => true, ignoreColliders);
     }
 
     public static List<PlayerControl> GetPlayersInAbilityRangeSorted(this PlayerControl player, Predicate<PlayerControl> predicate, bool ignoreColliders = false)
@@ -2182,7 +2244,7 @@ internal static class ExtendedPlayerControl
 
     public static void SetRealKiller(this PlayerControl target, PlayerControl killer, bool notOverRide = false)
     {
-        if (target == null)
+        if (!target)
         {
             Logger.Info("target is null", "SetRealKiller");
             return;
@@ -2191,7 +2253,7 @@ internal static class ExtendedPlayerControl
         PlayerState state = Main.PlayerStates[target.PlayerId];
         if (state.RealKiller.TimeStamp != DateTime.MinValue && notOverRide) return; // Do not overwrite if value already exists
 
-        byte killerId = killer == null ? byte.MaxValue : killer.PlayerId;
+        byte killerId = !killer ? byte.MaxValue : killer.PlayerId;
         RPC.SetRealKiller(target.PlayerId, killerId);
     }
 
@@ -2201,25 +2263,135 @@ internal static class ExtendedPlayerControl
         return killerId == byte.MaxValue ? null : GetPlayerById(killerId);
     }
 
+    private static readonly Dictionary<byte, PlainShipRoom> PlayerRoomCache = [];
+
+    // The Key is the larger room, its bounds overlap the Value room's bounds
+    // Additional check when something is inside the Key room's bounds: also check the Value room's bounds
+    // The Value room's bounds never overlap the Key room's bounds, so the check is only one way (unless it's also specified vice versa)
+    private static readonly Dictionary<MapNames, Dictionary<SystemTypes, SystemTypes>> OverlappingRooms = new()
+    {
+        [MapNames.MiraHQ] = new()
+        {
+            [SystemTypes.LockerRoom] = SystemTypes.Decontamination,
+            [SystemTypes.Cafeteria] = SystemTypes.Storage
+        },
+        [MapNames.Polus] = new()
+        {
+            [SystemTypes.Electrical] = SystemTypes.Security
+        }
+    };
+    private static readonly Dictionary<SystemTypes, SystemTypes> EmptyOverlap = [];
+
+    private static readonly Dictionary<MapNames, List<SystemTypes>> ProblematicRooms = new()
+    {
+        [MapNames.Polus] = [SystemTypes.LifeSupp, SystemTypes.Storage, SystemTypes.Laboratory, SystemTypes.Comms, SystemTypes.Weapons, SystemTypes.Admin, SystemTypes.Decontamination2, SystemTypes.Decontamination3],
+        [MapNames.Airship] = [SystemTypes.Electrical, SystemTypes.Security, SystemTypes.Engine, SystemTypes.Showers, SystemTypes.MainHall],
+        [MapNames.Fungle] = [SystemTypes.Dropship]
+    };
+
+    private static bool IsRoomProblematic(PlainShipRoom room)
+    {
+        if (SubmergedCompatibility.IsSubmerged() || Main.LIMap) return true;
+        return ProblematicRooms.TryGetValue(Main.CurrentMap, out var list) && list.Contains(room.RoomId);
+    }
+
+    private static bool Check(PlainShipRoom toCheck, Collider2D roomArea, PlayerControl pc, Vector2 pos, Dictionary<SystemTypes, SystemTypes> overlappingRooms, out (bool found, PlainShipRoom room) correctRoom)
+    {
+        correctRoom = (false, null);
+        if (IsRoomProblematic(toCheck)) return pc.Collider.IsTouching(roomArea);
+        if (!overlappingRooms.TryGetValue(toCheck.RoomId, out SystemTypes otherRoom)) return true;
+        PlainShipRoom otherRoomClass = otherRoom.GetRoomClass();
+        if (!otherRoomClass) return true;
+        Collider2D area = otherRoomClass.roomArea;
+        if (!area) return true;
+        correctRoom = (true, otherRoomClass);
+        return !area.bounds.Contains2D(pos);
+    }
+
     public static PlainShipRoom GetPlainShipRoom(this PlayerControl pc)
     {
-        if (!pc.IsAlive() || Pelican.IsEaten(pc.PlayerId)) return null;
+        if (!pc.IsAlive()) return null;
 
-        Il2CppReferenceArray<PlainShipRoom> rooms = ShipStatus.Instance.AllRooms;
-        return rooms.Where(room => room.roomArea).FirstOrDefault(room => pc.Collider.IsTouching(room.roomArea));
+        byte id = pc.PlayerId;
+        Vector2 pos = pc.Pos();
+        Dictionary<SystemTypes, SystemTypes> overlappingRooms = OverlappingRooms.GetValueOrDefault(Main.CurrentMap, EmptyOverlap);
+
+        if (PlayerRoomCache.TryGetValue(id, out var cached))
+        {
+            var area = cached.roomArea;
+            if (area && area.bounds.Contains2D(pos))
+            {
+                if (Check(cached, area, pc, pos, overlappingRooms, out (bool found, PlainShipRoom room) correctRoom))
+                    return cached;
+                
+                if (correctRoom.found)
+                {
+                    PlayerRoomCache[id] = correctRoom.room;
+                    return correctRoom.room;
+                }
+            }
+        }
+
+        foreach (var room in ShipStatus.Instance.AllRooms)
+        {
+            if (room.RoomId is SystemTypes.Hallway or SystemTypes.Outside) continue;
+            var area = room.roomArea;
+
+            if (area && area.bounds.Contains2D(pos))
+            {
+                if (Check(room, area, pc, pos, overlappingRooms, out (bool found, PlainShipRoom room) correctRoom))
+                {
+                    PlayerRoomCache[id] = room;
+                    return room;
+                }
+                
+                if (correctRoom.found)
+                {
+                    PlayerRoomCache[id] = correctRoom.room;
+                    return correctRoom.room;
+                }
+            }
+        }
+
+        PlayerRoomCache.Remove(id);
+        return null;
+    }
+
+    // WARNING: INACCURATE WITH NON-RECTANGLE ROOMS
+    public static PlainShipRoom GetPlainShipRoom(this Vector2 pos)
+    {
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var room in ShipStatus.Instance.AllRooms)
+        {
+            if (room.RoomId is SystemTypes.Hallway or SystemTypes.Outside) continue;
+            var area = room.roomArea;
+
+            if (area && area.bounds.Contains2D(pos))
+                return room;
+        }
+
+        return null;
     }
     
     public static bool IsInRoom(this PlayerControl pc, PlainShipRoom room)
     {
-        if (room == null || !room.roomArea) return false;
-        return pc.IsAlive() && pc.Collider.IsTouching(room.roomArea);
+        if (!room) return false;
+        var roomArea = room.roomArea;
+        if (!roomArea) return false;
+        if (!pc.IsAlive()) return false;
+        Vector2 pos = pc.Pos();
+        return roomArea.bounds.Contains2D(pos) && Check(room, roomArea, pc, pos, OverlappingRooms.GetValueOrDefault(Main.CurrentMap, EmptyOverlap), out _);
     }
     
     public static bool IsInRoom(this PlayerControl pc, SystemTypes roomId)
     {
         if (!pc.IsAlive()) return false;
         PlainShipRoom room = roomId.GetRoomClass();
-        return room != null && room.roomArea && pc.Collider.IsTouching(room.roomArea);
+        if (!room) return false;
+        var roomArea = room.roomArea;
+        if (!roomArea) return false;
+        Vector2 pos = pc.Pos();
+        return roomArea.bounds.Contains2D(pos) && Check(room, roomArea, pc, pos, OverlappingRooms.GetValueOrDefault(Main.CurrentMap, EmptyOverlap), out _);
     }
 
     public static PlainShipRoom GetRoomClass(this SystemTypes systemTypes)
@@ -2315,17 +2487,15 @@ internal static class ExtendedPlayerControl
 
     public static bool IsConverted(this PlayerControl target)
     {
-        foreach (var subRole in target.GetCustomSubRoles())
-        {
+        foreach (CustomRoles subRole in target.GetCustomSubRoles())
             if (subRole.IsConverted()) return true;
-        }
-        
+
         return false;
     }
 
     public static bool IsAlive(this PlayerControl target)
     {
-        if (target == null || target.Is(CustomRoles.GM)) return false;
+        if (!target || target.Is(CustomRoles.GM)) return false;
 
         return GameStates.IsLobby || !Main.PlayerStates.TryGetValue(target.PlayerId, out PlayerState ps) || !ps.IsDead;
     }

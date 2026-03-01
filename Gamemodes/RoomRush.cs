@@ -338,7 +338,7 @@ public static class RoomRush
         
         if (!Main.LIMap)
         {
-            Vector2 previousPos = Map.Positions.GetValueOrDefault(previous, initial ? Main.AllAlivePlayerControls.RandomElement().Pos() : previous.GetRoomClass().transform.position);
+            Vector2 previousPos = Map.Positions.GetValueOrDefault(previous, initial ? Main.EnumerateAlivePlayerControls().RandomElement().Pos() : previous.GetRoomClass().transform.position);
             float distance = initial ? 50 : Vector2.Distance(goalPos, previousPos);
             time = (int)Math.Ceiling(distance / speed);
             Dictionary<(SystemTypes, SystemTypes), int> multipliers = Multipliers[map == MapNames.Dleks ? MapNames.Skeld : map];
@@ -421,7 +421,7 @@ public static class RoomRush
 
     public static string GetSuffix(PlayerControl seer)
     {
-        if (!GameGoing || Main.HasJustStarted || seer == null) return string.Empty;
+        if (!GameGoing || Main.HasJustStarted) return string.Empty;
 
         StringBuilder sb = new();
         bool dead = !seer.IsAlive();
@@ -505,7 +505,7 @@ public static class RoomRush
             if (!GameGoing || Main.HasJustStarted || Options.CurrentGameMode != CustomGameMode.RoomRush || !AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || GameStates.IsEnded || !Main.IntroDestroyed) return;
 
             long now = Utils.TimeStamp;
-            var aapc = Main.AllAlivePlayerControls.ToList();
+            var aapc = Main.AllAlivePlayerControls;
 
             if (WinByPointsInsteadOfDeaths.GetBool())
             {

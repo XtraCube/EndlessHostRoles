@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.Data;
@@ -12,11 +11,13 @@ using EHR.Patches;
 using EHR.Roles;
 using HarmonyLib;
 using Hazel;
+using Il2CppSystem.Collections;
 using InnerNet;
 using UnityEngine;
 using UnityEngine.UI;
 using static EHR.Modules.CustomRoleSelector;
 using static EHR.Translator;
+using DateTime = Il2CppSystem.DateTime;
 using Exception = System.Exception;
 
 namespace EHR;
@@ -26,7 +27,7 @@ internal static class ChangeRoleSettings
 {
     public static bool BlockPopulateSkins;
 
-    public static bool Prefix(AmongUsClient __instance, ref Il2CppSystem.Collections.IEnumerator __result)
+    public static bool Prefix(AmongUsClient __instance, ref IEnumerator __result)
     {
         if (!GameStates.IsLocalGame || !HudManager.InstanceExists) return true;
 
@@ -91,7 +92,7 @@ internal static class ChangeRoleSettings
 
             yield return HudManager.Instance.CoFadeFullScreen(Color.clear, Color.black);
             ++DataManager.Player.Ban.BanPoints;
-            DataManager.Player.Ban.PreviousGameStartDate = Il2CppSystem.DateTime.UtcNow;
+            DataManager.Player.Ban.PreviousGameStartDate = DateTime.UtcNow;
             DataManager.Player.Save();
 
             if (amongUsClient.AmHost)
@@ -249,8 +250,6 @@ internal static class ChangeRoleSettings
             Crusader.ForCrusade = [];
             Godfather.GodfatherTarget = byte.MaxValue;
             Crewpostor.TasksDone = [];
-            Express.SpeedNormal = [];
-            Express.SpeedUp = [];
             Messenger.Sent = [];
             Lazy.BeforeMeetingPositions = [];
             Introvert.TeleportAwayDelays = [];
@@ -307,6 +306,7 @@ internal static class ChangeRoleSettings
             Main.Invisible.Clear();
             ChatCommands.MutedPlayers.Clear();
             ExtendedPlayerControl.TempExiled.Clear();
+            Utils.CachedRoleSettings.Clear();
 
             MeetingTimeManager.Init();
             Main.DefaultCrewmateVision = Main.RealOptionsData.GetFloat(FloatOptionNames.CrewLightMod);
@@ -337,7 +337,7 @@ internal static class ChangeRoleSettings
                     string msg = GetString("Error.InvalidColor");
                     Logger.SendInGame(msg, Color.yellow);
                     msg += "\n" + string.Join(",", invalidColor);
-                    Utils.SendMessage(msg, sendOption: SendOption.None);
+                    Utils.SendMessage(msg, importance: MessageImportance.Low);
                     Logger.Error(msg, "CoStartGame");
                 }
             }
@@ -455,7 +455,7 @@ internal static class ChangeRoleSettings
 
         return;
 
-        IEnumerator PopulateSkinItems()
+        System.Collections.IEnumerator PopulateSkinItems()
         {
             while (!ShipStatus.Instance) yield return null;
             BlockPopulateSkins = false;
@@ -499,7 +499,7 @@ internal static class StartGameHostPatch
         };
     }
 
-    private static IEnumerator WaitAndSmoothlyUpdate(this LoadingBarManager loadingBarManager, float startPercent, float targetPercent, float duration, string loadingText)
+    private static System.Collections.IEnumerator WaitAndSmoothlyUpdate(this LoadingBarManager loadingBarManager, float startPercent, float targetPercent, float duration, string loadingText)
     {
         float startTime = Time.time;
 
@@ -528,14 +528,14 @@ internal static class StartGameHostPatch
 
     [HarmonyPatch(typeof(AmongUsClient), nameof(AmongUsClient.CoStartGameHost))]
     [HarmonyPrefix]
-    public static bool CoStartGameHost_Prefix(AmongUsClient __instance, ref Il2CppSystem.Collections.IEnumerator __result)
+    public static bool CoStartGameHost_Prefix(AmongUsClient __instance, ref IEnumerator __result)
     {
         AUClient = __instance;
         __result = StartGameHost().WrapToIl2Cpp();
         return false;
     }
 
-    private static IEnumerator StartGameHost()
+    private static System.Collections.IEnumerator StartGameHost()
     {
         try { PlayerControl.LocalPlayer.RpcSetName(Main.AllPlayerNames[0]); }
         catch (Exception e) { Utils.ThrowException(e); }
@@ -565,17 +565,7 @@ internal static class StartGameHostPatch
 
         if (LobbyBehaviour.Instance)
         {
-            Main.LobbyBehaviourNetId = LobbyBehaviour.Instance.NetId;
             MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
-            writer.StartMessage(5);
-            writer.Write(AUClient.GameId);
-            writer.StartMessage(5);
-            writer.WritePacked(LobbyBehaviour.Instance.NetId);
-            writer.EndMessage();
-            writer.EndMessage();
-            AUClient.SendOrDisconnect(writer);
-            writer.Recycle();
-            writer = MessageWriter.Get(SendOption.Reliable);
             writer.StartMessage(5);
             writer.Write(AUClient.GameId);
             writer.StartMessage(5);
@@ -590,7 +580,6 @@ internal static class StartGameHostPatch
         else
         {
             Logger.Fatal($"LobbyBehaviour.Instance is null in {nameof(StartGameHostPatch)}.{nameof(StartGameHost)}", "StartGameHost");
-            Main.LobbyBehaviourNetId = uint.MaxValue;
         }
 
         if (!ShipStatus.Instance)
@@ -679,7 +668,7 @@ internal static class StartGameHostPatch
         yield return AssignRoles();
     }
 
-    private static IEnumerator AssignRoles()
+    private static System.Collections.IEnumerator AssignRoles()
     {
         if (AmongUsClient.Instance.IsGameOver || GameStates.IsLobby || GameEndChecker.Ended) yield break;
         
@@ -925,12 +914,12 @@ internal static class StartGameHostPatch
                 }
             }
 
-            if (!overrideLovers && CustomRoles.Lovers.IsEnable() && (CustomRoles.Hater.IsEnable() ? -1 : IRandom.Instance.Next(1, 100)) <= Lovers.LoverSpawnChances.GetInt()) AssignLoversRolesFromList();
+            if (!overrideLovers && CustomRoles.Lovers.IsEnable() && (RoleResult.ContainsValue(CustomRoles.Hater) ? -1 : IRandom.Instance.Next(1, 100)) <= Lovers.LoverSpawnChances.GetInt()) AssignLoversRolesFromList();
 
             // Add-on assignment
-            var aapc = Main.AllAlivePlayerControls.Shuffle();
-            if (Main.GM.Value) aapc = aapc.Without(PlayerControl.LocalPlayer).ToList();
-            aapc = aapc.Where(x => !ChatCommands.Spectators.Contains(x.PlayerId)).ToList();
+            var aapc = Main.EnumerateAlivePlayerControls().Shuffle();
+            if (Main.GM.Value) aapc.Remove(PlayerControl.LocalPlayer);
+            aapc.RemoveAll(x => ChatCommands.Spectators.Contains(x.PlayerId));
 
             Dictionary<PlayerControl, int> addonNum = aapc.ToDictionary(x => x, _ => 0);
 
@@ -1277,7 +1266,7 @@ internal static class StartGameHostPatch
     {
         try
         {
-            if (target == null) return;
+            if (!target) return;
 
             int targetClientId = target.OwnerId;
             if (targetClientId == -1) return;
@@ -1335,7 +1324,7 @@ internal static class StartGameHostPatch
                 return;
             }
 
-            List<PlayerControl> allPlayers = Main.EnumeratePlayerControls().Where(pc => (!Main.NeverSpawnTogetherCombos.TryGetValue(OptionItem.CurrentPreset, out Dictionary<CustomRoles, List<CustomRoles>> bannedCombos) || bannedCombos.All(x => !pc.Is(x.Key) || !x.Value.Contains(CustomRoles.Lovers))) && !pc.Is(CustomRoles.GM) && (!pc.HasSubRole() || pc.GetCustomSubRoles().Count < Options.NoLimitAddonsNumMax.GetInt()) && !pc.Is(CustomRoles.Dictator) && !pc.Is(CustomRoles.God) && !pc.Is(CustomRoles.Hater) && !pc.Is(CustomRoles.Bomber) && !pc.Is(CustomRoles.Nuker) && !pc.Is(CustomRoles.Curser) && !pc.Is(CustomRoles.Provocateur) && !pc.Is(CustomRoles.Altruist) && (!pc.IsCrewmate() || Lovers.CrewCanBeInLove.GetBool()) && (!pc.GetCustomRole().IsNeutral() || Lovers.NeutralCanBeInLove.GetBool()) && (!pc.Is(CustomRoleTypes.Coven) || Lovers.CovenCanBeInLove.GetBool()) && (!pc.IsImpostor() || Lovers.ImpCanBeInLove.GetBool())).ToList();
+            List<PlayerControl> allPlayers = Main.EnumeratePlayerControls().Where(pc => (!Main.NeverSpawnTogetherCombos.TryGetValue(OptionItem.CurrentPreset, out Dictionary<CustomRoles, List<CustomRoles>> bannedCombos) || bannedCombos.All(x => !pc.Is(x.Key) || !x.Value.Contains(CustomRoles.Lovers))) && !pc.Is(CustomRoles.GM) && (!pc.HasSubRole() || pc.GetCustomSubRoles().Count < Options.NoLimitAddonsNumMax.GetInt()) && pc.GetCustomRole() is not (CustomRoles.Altruist or CustomRoles.Provocateur or CustomRoles.Dictator or CustomRoles.DoubleAgent or CustomRoles.Nuker or CustomRoles.Bomber or CustomRoles.Curser or CustomRoles.Hater or CustomRoles.God) && (!pc.IsCrewmate() || Lovers.CrewCanBeInLove.GetBool()) && (!pc.GetCustomRole().IsNeutral() || Lovers.NeutralCanBeInLove.GetBool()) && (!pc.Is(CustomRoleTypes.Coven) || Lovers.CovenCanBeInLove.GetBool()) && (!pc.IsImpostor() || Lovers.ImpCanBeInLove.GetBool())).ToList();
             const CustomRoles role = CustomRoles.Lovers;
             int count = Math.Clamp(rawCount, 0, allPlayers.Count);
             if (rawCount == -1) count = Math.Clamp(role.GetCount(), 0, allPlayers.Count);

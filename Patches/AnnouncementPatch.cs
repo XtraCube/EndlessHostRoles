@@ -54,6 +54,8 @@ public static class ModNewsFetcher
 
     public static IEnumerator FetchNews()
     {
+        if (OperatingSystem.IsAndroid()) yield break;
+        
         UnityWebRequest request = UnityWebRequest.Get(NewsUrl);
         request.SetRequestHeader("User-Agent", $"{Main.ModName} v{Main.PluginVersion}");
 
@@ -79,6 +81,11 @@ public static class ModNewsFetcher
 public static class ModNewsHistory
 {
     public static List<ModNews> AllModNews = [];
+
+    public static bool Prepare()
+    {
+        return !OperatingSystem.IsAndroid();
+    }
 
     [HarmonyPatch(typeof(PlayerAnnouncementData), nameof(PlayerAnnouncementData.SetAnnouncements))]
     [HarmonyPrefix]

@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using TMPro;
 using Twitch;
 using UnityEngine;
+using UnityEngine.Events;
 using static EHR.Translator;
 
 namespace EHR;
@@ -24,7 +25,7 @@ public static class ModUpdater
     public static bool IsBroken;
     private static bool IsChecked;
     private static Version LatestVersion;
-    private static string LatestTitleModName = null;
+    private static string LatestTitleModName;
     private static string LatestTitle;
     public static string DownloadUrl;
     private static GenericPopup InfoPopup;
@@ -41,7 +42,7 @@ public static class ModUpdater
             NewVersionCheck();
             DeleteOldFiles();
         }
-
+        
         InfoPopup = Object.Instantiate(TwitchManager.Instance.TwitchPopup);
         InfoPopup.name = "InfoPopup";
         InfoPopup.TextAreaTMP.GetComponent<RectTransform>().sizeDelta = new(2.5f, 2f);
@@ -169,7 +170,6 @@ public static class ModUpdater
     public static void StartUpdate(string url, bool github)
     {
         if (OperatingSystem.IsAndroid()) return;
-
         ShowPopup(GetString("updatePleaseWait"), StringNames.Cancel, true, false);
         _ = !github ? DownloadDLL(url) : DownloadDLLGithub(url);
     }
@@ -351,8 +351,8 @@ public static class ModUpdater
                 firstButtonGetChild.GetComponent<TMP_Text>().text = firstButtonText;
                 firstButton.GetComponent<PassiveButton>().OnClick = new();
                 if (onClickOnFirstButton != null)
-                    firstButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityEngine.Events.UnityAction)(() => { onClickOnFirstButton(); InfoPopupV2.Close();}));
-                else firstButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityEngine.Events.UnityAction)(() => InfoPopupV2.Close()));
+                    firstButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityAction)(() => { onClickOnFirstButton(); InfoPopupV2.Close();}));
+                else firstButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityAction)(() => InfoPopupV2.Close()));
             }
             if (secondButton != null)
             {
@@ -372,8 +372,8 @@ public static class ModUpdater
                 }
                 secondButton.GetComponent<PassiveButton>().OnClick = new();
                 if (onClickOnSecondButton != null)
-                    secondButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityEngine.Events.UnityAction)(() => { onClickOnSecondButton(); InfoPopupV2.Close(); }));
-                else secondButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityEngine.Events.UnityAction)(() => InfoPopupV2.Close()));
+                    secondButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityAction)(() => { onClickOnSecondButton(); InfoPopupV2.Close(); }));
+                else secondButton.GetComponent<PassiveButton>().OnClick.AddListener((UnityAction)(() => InfoPopupV2.Close()));
             }
         }
     }

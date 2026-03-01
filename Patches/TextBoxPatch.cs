@@ -95,7 +95,7 @@ public static class TextBoxPatch
             }
         }
 
-        if (flag) __instance.OnEnter.Invoke();
+        if (flag && !Input.GetKey(KeyCode.LeftShift)) __instance.OnEnter.Invoke();
         __instance.SetPipePosition();
         return false;
     }
@@ -186,8 +186,9 @@ public static class TextBoxPatch
             }
 
             IsInvalidCommand = false;
+            HudManager hud = HudManager.Instance;
 
-            if (PlaceHolderText == null)
+            if (!PlaceHolderText)
             {
                 PlaceHolderText = Object.Instantiate(__instance.outputText, __instance.outputText.transform.parent);
                 PlaceHolderText.name = "PlaceHolderText";
@@ -195,38 +196,34 @@ public static class TextBoxPatch
                 PlaceHolderText.transform.localPosition = __instance.outputText.transform.localPosition;
             }
 
-            if (HudManager.InstanceExists)
-            { 
-                HudManager hud = HudManager.Instance;
-                if (CommandInfoText == null)
-                {
-                    CommandInfoText = Object.Instantiate(hud.KillButton.cooldownTimerText, hud.transform.parent, true);
-                    CommandInfoText.name = "CommandInfoText";
-                    CommandInfoText.alignment = TextAlignmentOptions.Left;
-                    CommandInfoText.verticalAlignment = VerticalAlignmentOptions.Top;
-                    CommandInfoText.transform.localPosition = new(-3.2f, -2.35f, 0f);
-                    CommandInfoText.overflowMode = TextOverflowModes.Overflow;
-                    CommandInfoText.enableWordWrapping = false;
-                    CommandInfoText.color = Color.white;
-                    CommandInfoText.fontSize = CommandInfoText.fontSizeMax = CommandInfoText.fontSizeMin = 1.8f;
-                    CommandInfoText.sortingOrder = 1000;
-                    CommandInfoText.transform.SetAsLastSibling();
-                }
+            if (!CommandInfoText)
+            {
+                CommandInfoText = Object.Instantiate(hud.KillButton.cooldownTimerText, hud.transform.parent, true);
+                CommandInfoText.name = "CommandInfoText";
+                CommandInfoText.alignment = TextAlignmentOptions.Left;
+                CommandInfoText.verticalAlignment = VerticalAlignmentOptions.Top;
+                CommandInfoText.transform.localPosition = new(-3.2f, -2.35f, 0f);
+                CommandInfoText.overflowMode = TextOverflowModes.Overflow;
+                CommandInfoText.enableWordWrapping = false;
+                CommandInfoText.color = Color.white;
+                CommandInfoText.fontSize = CommandInfoText.fontSizeMax = CommandInfoText.fontSizeMin = 1.8f;
+                CommandInfoText.sortingOrder = 1000;
+                CommandInfoText.transform.SetAsLastSibling();
+            }
 
-                if (AdditionalInfoText == null)
-                {
-                    AdditionalInfoText = Object.Instantiate(hud.KillButton.cooldownTimerText, hud.transform.parent, true);
-                    AdditionalInfoText.name = "AdditionalInfoText";
-                    AdditionalInfoText.alignment = TextAlignmentOptions.Left;
-                    AdditionalInfoText.verticalAlignment = VerticalAlignmentOptions.Top;
-                    AdditionalInfoText.transform.localPosition = new(-5f, 0f, 0f);
-                    AdditionalInfoText.overflowMode = TextOverflowModes.Overflow;
-                    AdditionalInfoText.enableWordWrapping = false;
-                    AdditionalInfoText.color = Color.white;
-                    AdditionalInfoText.fontSize = AdditionalInfoText.fontSizeMax = AdditionalInfoText.fontSizeMin = 1.8f;
-                    AdditionalInfoText.sortingOrder = 1000;
-                    AdditionalInfoText.transform.SetAsLastSibling();
-                }
+            if (!AdditionalInfoText)
+            {
+                AdditionalInfoText = Object.Instantiate(hud.KillButton.cooldownTimerText, hud.transform.parent, true);
+                AdditionalInfoText.name = "AdditionalInfoText";
+                AdditionalInfoText.alignment = TextAlignmentOptions.Left;
+                AdditionalInfoText.verticalAlignment = VerticalAlignmentOptions.Top;
+                AdditionalInfoText.transform.localPosition = new(-5f, 0f, 0f);
+                AdditionalInfoText.overflowMode = TextOverflowModes.Overflow;
+                AdditionalInfoText.enableWordWrapping = false;
+                AdditionalInfoText.color = Color.white;
+                AdditionalInfoText.fontSize = AdditionalInfoText.fontSizeMax = AdditionalInfoText.fontSizeMin = 1.8f;
+                AdditionalInfoText.sortingOrder = 1000;
+                AdditionalInfoText.transform.SetAsLastSibling();
             }
 
             string inputForm = input.TrimStart('/');
@@ -285,7 +282,9 @@ public static class TextBoxPatch
                     bool IsInvalidArg() =>
                         arg != argName && argName switch
                         {
+                            "{uuid}" => arg.Length > 16,
                             "{id}" or "{id1}" or "{id2}" => !byte.TryParse(arg, out byte id) || Main.EnumeratePlayerControls().All(x => x.PlayerId != id),
+                            "{ids}" => arg.Split(',').Any(x => !byte.TryParse(x, out _)),
                             "{number}" or "{level}" or "{duration}" or "{number1}" or "{number2}" => !int.TryParse(arg, out int num) || num < 0,
                             "{team}" => arg is not "crew" and not "imp",
                             "{role}" => !ChatCommands.GetRoleByName(arg, out _),
@@ -301,6 +300,7 @@ public static class TextBoxPatch
                         {
                             "{sourcepreset}" or "{targetpreset}" => int.TryParse(arg, out int preset) && preset is >= 1 and <= 10,
                             "{id}" or "{id1}" or "{id2}" => byte.TryParse(arg, out byte id) && Main.EnumeratePlayerControls().Any(x => x.PlayerId == id),
+                            "{ids}" => arg.Split(',').All(x => byte.TryParse(x, out _)),
                             "{team}" => arg is "crew" or "imp",
                             "{role}" or "[role]" => ChatCommands.GetRoleByName(arg, out _),
                             "{addon}" => ChatCommands.GetRoleByName(arg, out CustomRoles role) && role.IsAdditionRole(),
@@ -315,6 +315,7 @@ public static class TextBoxPatch
                             : argName switch
                             {
                                 "{id}" or "{id1}" or "{id2}" => $" ({byte.Parse(arg).ColoredPlayerName()})",
+                                "{ids}" => $" ({string.Join(", ", arg.Split(',').Select(x => byte.Parse(x).ColoredPlayerName()))})",
                                 "{role}" or "{addon}" or "[role]" when ChatCommands.GetRoleByName(arg, out CustomRoles role) => $" ({role.ToColoredString()})",
                                 "{color}" when ColorUtility.TryParseHtmlString($"#{arg}", out Color color) => $" ({Utils.ColorString(color, "COLOR")})",
                                 _ => string.Empty
@@ -342,10 +343,10 @@ public static class TextBoxPatch
 
         void Destroy()
         {
-            if (PlaceHolderText != null) PlaceHolderText.enabled = false;
-            if (CommandInfoText != null) CommandInfoText.enabled = false;
+            if (PlaceHolderText) PlaceHolderText.enabled = false;
+            if (CommandInfoText) CommandInfoText.enabled = false;
 
-            if (AdditionalInfoText != null && HudManager.InstanceExists)
+            if (AdditionalInfoText)
             {
                 bool showLobbyCode = HudManager.Instance?.Chat?.IsOpenOrOpening == true && GameStates.IsLobby && Options.GetSuffixMode() == SuffixModes.Streaming && !Options.HideGameSettings.GetBool() && !DataManager.Settings.Gameplay.StreamerMode;
                 AdditionalInfoText.enabled = showLobbyCode;
@@ -356,12 +357,12 @@ public static class TextBoxPatch
 
     public static void OnTabPress(ChatController __instance)
     {
-        if (PlaceHolderText == null || PlaceHolderText.text == "") return;
+        if (!PlaceHolderText || PlaceHolderText.text == "") return;
 
         __instance.freeChatField.textArea.SetText(PlaceHolderText.text);
         __instance.freeChatField.textArea.compoText = "";
 
-        if (AdditionalInfoText != null && AdditionalInfoText.text != "")
+        if (AdditionalInfoText && AdditionalInfoText.text != "")
             OptionShower.CurrentPage = 0;
     }
 
@@ -375,6 +376,13 @@ public static class TextBoxPatch
             AdditionalInfoText?.gameObject.SetActive(open);
         }
         catch { }
+    }
+
+    public static void OnMeetingStart()
+    {
+        PlaceHolderText?.transform.SetAsLastSibling();
+        CommandInfoText?.transform.SetAsLastSibling();
+        AdditionalInfoText?.transform.SetAsLastSibling();
     }
 
     [HarmonyPatch(typeof(TextBoxTMP), nameof(TextBoxTMP.Update))]

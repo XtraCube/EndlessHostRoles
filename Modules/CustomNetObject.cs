@@ -10,6 +10,7 @@ using HarmonyLib;
 using Hazel;
 using InnerNet;
 using UnityEngine;
+using Tree = EHR.Roles.Tree;
 
 // Credit: https://github.com/Rabek009/MoreGamemodes/blob/e054eb498094dfca0a365fc6b6fea8d17f9974d7/Modules/AllObjects
 // Huge thanks to Rabek009 for this code!
@@ -95,7 +96,7 @@ namespace EHR
 
             try
             {
-                if (playerControl != null)
+                if (playerControl)
                 {
                     MessageWriter writer = MessageWriter.Get(SendOption.Reliable);
                     writer.StartMessage(5);
@@ -431,6 +432,11 @@ namespace EHR
                 finally { Gone = true; }
             }
         }
+
+        public override void OnMeeting()
+        {
+            Despawn();
+        }
     }
 
     internal sealed class PlayerDetector : CustomNetObject
@@ -748,7 +754,7 @@ namespace EHR
     {
         public FallenTree(Vector2 position)
         {
-            CreateNetObject(Roles.Tree.FallenSprite, position);
+            CreateNetObject(Tree.FallenSprite, position);
         }
     }
 

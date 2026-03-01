@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using AmongUs.Data;
 using EHR.Modules;
@@ -30,6 +31,16 @@ internal static class MakePublicPatch
         return true;
     }
 }*/
+
+[HarmonyPatch(typeof(InnerNetClient), nameof(InnerNetClient.StartRpcImmediately))]
+static class StartRpcImmediatelyPatch
+{
+    public static void Postfix(uint targetNetId, byte callId, Hazel.SendOption option, int targetClientId = -1)
+    {
+        if (callId is 21 or 104) return;
+        Logger.Info($"Starting RPC: {callId} ({RPC.GetRpcName(callId)}) as {Main.AllPlayerControls.FirstOrDefault(x => x.NetId == targetNetId)?.GetRealName() ?? targetNetId.ToString()} with SendOption {option} to {Utils.GetClientById(targetClientId)?.Character?.GetRealName() ?? targetClientId.ToString()}", "StartRpcImmediately");
+    }
+}
 
 [HarmonyPatch(typeof(MMOnlineManager), nameof(MMOnlineManager.Start))]
 // ReSharper disable once InconsistentNaming
@@ -77,7 +88,7 @@ internal static class RunLoginPatch
         if (DebugModeManager.AmDebugger) canOnline = true;
 
         try { ModUpdater.ShowAvailableUpdate(); }
-        catch (System.Exception error) { Logger.Error(error.ToString(), "ModUpdater.ShowAvailableUpdate"); }
+        catch (Exception error) { Logger.Error(error.ToString(), "ModUpdater.ShowAvailableUpdate"); }
     }
 }
 
@@ -130,7 +141,7 @@ internal static class SetResolutionManager
 {
     public static void Postfix()
     {
-        if (MainMenuManagerPatch.UpdateButton != null)
+        if (MainMenuManagerPatch.UpdateButton)
             MainMenuManagerPatch.UpdateButton.transform.localPosition = MainMenuManagerPatch.Template.transform.localPosition + new Vector3(0.25f, 0.75f);
     }
 }
@@ -138,16 +149,10 @@ internal static class SetResolutionManager
 [HarmonyPatch(typeof(InnerNetClient), nameof(InnerNetClient.SendAllStreamedObjects))]
 internal static class InnerNetObjectSerializePatch
 {
-    private static int Count;
-    
     public static void Prefix()
     {
-        if (!AmongUsClient.Instance.AmHost) return;
-
-        if (Count++ < 3) return;
-        Count = 0;
-
-        Main.Instance.StartCoroutine(GameOptionsSender.SendAllGameOptionsAsync());
+        if (!AmongUsClient.Instance.AmHost || GameOptionsSender.ActiveCoroutine != null) return;
+        GameOptionsSender.ActiveCoroutine = Main.Instance.StartCoroutine(GameOptionsSender.SendDirtyGameOptionsContinuously());
     }
 }
 

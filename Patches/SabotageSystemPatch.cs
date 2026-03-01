@@ -215,9 +215,9 @@ internal static class SwitchSystemUpdatePatch
         if (Main.CurrentMap == MapNames.Airship)
         {
             Vector2 pos = player.Pos();
-            if (Options.DisableAirshipViewingDeckLightsPanel.GetBool() && Vector2.Distance(pos, new(-12.93f, -11.28f)) <= 2f) return false;
-            if (Options.DisableAirshipGapRoomLightsPanel.GetBool() && Vector2.Distance(pos, new(13.92f, 6.43f)) <= 2f) return false;
-            if (Options.DisableAirshipCargoLightsPanel.GetBool() && Vector2.Distance(pos, new(30.56f, 2.12f)) <= 2f) return false;
+            if (Options.DisableAirshipViewingDeckLightsPanel.GetBool() && FastVector2.DistanceWithinRange(pos, new(-12.93f, -11.28f), 2f)) return false;
+            if (Options.DisableAirshipGapRoomLightsPanel.GetBool() && FastVector2.DistanceWithinRange(pos, new(13.92f, 6.43f), 2f)) return false;
+            if (Options.DisableAirshipCargoLightsPanel.GetBool() && FastVector2.DistanceWithinRange(pos, new(30.56f, 2.12f), 2f)) return false;
         }
 
         if (player.Is(CustomRoles.Fool)) return false;
@@ -309,7 +309,7 @@ internal static class SabotageSystemTypeAnyActivePatch
 {
     public static bool Prefix(SabotageSystemType __instance, ref bool __result)
     {
-        __result = __instance.specials.ToArray().Any(s => s.IsActive) || CustomSabotage.Instances.Count > 0;
+        __result = __instance.specials.Exists((Il2CppSystem.Predicate<IActivatable>)(s => s.IsActive)) || CustomSabotage.Instances.Count > 0;
         return false;
     }
 }

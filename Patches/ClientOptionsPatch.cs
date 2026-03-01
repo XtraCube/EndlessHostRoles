@@ -32,7 +32,6 @@ public static class OptionsMenuBehaviourStartPatch
     private static ClientOptionItem ButtonCooldownInDecimalUnder10s;
     private static ClientOptionItem CancelPetAnimation;
     private static ClientOptionItem TryFixStuttering;
-
 #if DEBUG
     private static ClientOptionItem GodMode;
 #endif
@@ -202,19 +201,19 @@ public static class OptionsMenuBehaviourStartPatch
 
         if (CancelPetAnimation == null || CancelPetAnimation.ToggleButton == null)
             CancelPetAnimation = ClientOptionItem.Create("CancelPetAnimation", Main.CancelPetAnimation, __instance);
-        
-        if (TryFixStuttering == null || TryFixStuttering.ToggleButton == null)
+
+        if (OperatingSystem.IsWindows() && (TryFixStuttering == null || TryFixStuttering.ToggleButton == null))
         {
             TryFixStuttering = ClientOptionItem.Create("TryFixStuttering", Main.TryFixStuttering, __instance, TryFixStutteringButtonToggle);
 
             [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
             static void TryFixStutteringButtonToggle()
             {
-                if (OperatingSystem.IsAndroid()) return;
+                if (!OperatingSystem.IsWindows()) return;
                 
                 if (Main.TryFixStuttering.Value)
                 {
-                    if (Application.platform == RuntimePlatform.WindowsPlayer && Environment.ProcessorCount >= 4)
+                    if (Environment.ProcessorCount >= 4)
                     {
                         var process = Process.GetCurrentProcess();
                         Main.OriginalAffinity = process.ProcessorAffinity;

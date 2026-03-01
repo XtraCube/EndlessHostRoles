@@ -7,7 +7,7 @@ namespace EHR;
 
 public abstract class OptionItem
 {
-    public const int NumPresets = 10;
+    public const int NumPresets = 20;
     public const int PresetId = 0;
     public readonly List<OptionItem> Children;
 
@@ -232,11 +232,15 @@ public abstract class OptionItem
 
     public bool IsCurrentlyHidden()
     {
-        for (OptionItem current = this; current != null; current = current.Parent)
+        try
         {
-            if (Hidden(current))
-                return true;
+            for (OptionItem current = this; current != null; current = current.Parent)
+            {
+                if (Hidden(current))
+                    return true;
+            }
         }
+        catch (Exception e) { Utils.ThrowException(e); }
 
         return false;
 
@@ -259,13 +263,11 @@ public abstract class OptionItem
 
     private void Refresh()
     {
-        switch (OptionBehaviour)
+        if (OptionBehaviour is StringOption opt)
         {
-            case StringOption strOpt:
-                strOpt.TitleText.text = GetName();
-                strOpt.ValueText.text = GetString();
-                strOpt.oldValue = strOpt.Value = CurrentValue;
-                break;
+            opt.TitleText.text = GetName();
+            opt.ValueText.text = GetString();
+            opt.oldValue = opt.Value = CurrentValue;
         }
     }
 
@@ -323,7 +325,7 @@ public abstract class OptionItem
     public static void SyncAllOptions(int targetId = -1)
     {
         if (
-                Main.AllPlayerControls.Count <= 1
+                PlayerControl.AllPlayerControls.Count <= 1
                 || !AmongUsClient.Instance.AmHost
                 || PlayerControl.LocalPlayer == null
             )
@@ -366,7 +368,8 @@ public enum TabGroup
     NeutralRoles,
     CovenRoles,
     Addons,
-    OtherRoles
+    OtherRoles,
+    PresetExplorer
 }
 
 public enum OptionFormat
@@ -382,3 +385,4 @@ public enum OptionFormat
     Health,
     Level
 }
+

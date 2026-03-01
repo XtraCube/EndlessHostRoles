@@ -19,6 +19,7 @@ internal static class EndGamePatch
 {
     public static Dictionary<byte, string> SummaryText = [];
     public static string KillLog = string.Empty;
+    public static string RoleChangeLog = string.Empty;
 
     public static void Postfix()
     {
@@ -67,12 +68,31 @@ internal static class EndGamePatch
             byte killerId = value.GetRealKiller();
             bool gmIsFm = Options.CurrentGameMode is CustomGameMode.FFA or CustomGameMode.StopAndGo;
             bool gmIsFmhh = gmIsFm || Options.CurrentGameMode is CustomGameMode.HotPotato or CustomGameMode.HideAndSeek or CustomGameMode.Speedrun or CustomGameMode.CaptureTheFlag or CustomGameMode.NaturalDisasters or CustomGameMode.RoomRush or CustomGameMode.KingOfTheZones or CustomGameMode.Quiz or CustomGameMode.TheMindGame or CustomGameMode.BedWars or CustomGameMode.Deathrace or CustomGameMode.Mingle or CustomGameMode.Snowdown;
-            sb.Append($"\n{secondsIn / 60:00}:{secondsIn % 60:00} {Main.AllPlayerNames[key]} ({(gmIsFmhh ? string.Empty : Utils.GetDisplayRoleName(key, true))}{(gmIsFm ? string.Empty : Utils.GetSubRolesText(key, summary: true))}) [{Utils.GetVitalText(key)}]");
-            if (killerId != byte.MaxValue && killerId != key) sb.Append($"\n\t⇐ {Main.AllPlayerNames[killerId]} ({(gmIsFmhh ? string.Empty : Utils.GetDisplayRoleName(killerId, true))}{(gmIsFm ? string.Empty : Utils.GetSubRolesText(killerId, summary: true))})");
+            sb.Append($"\n{secondsIn / 60:00}:{secondsIn % 60:00} {Main.AllPlayerNames[key]} ({(gmIsFmhh ? string.Empty : Utils.GetDisplayRoleName(key, pure: true))}{(gmIsFm ? string.Empty : Utils.GetSubRolesText(key, summary: true))}) [{Utils.GetVitalText(key)}]");
+            if (killerId != byte.MaxValue && killerId != key) sb.Append($"\n\t⇐ {Main.AllPlayerNames[killerId]} ({(gmIsFmhh ? string.Empty : Utils.GetDisplayRoleName(killerId, pure: true))}{(gmIsFm ? string.Empty : Utils.GetSubRolesText(killerId, summary: true))})");
         }
 
         KillLog = sb.Append("</size>").ToString();
         if (!KillLog.Contains('\n')) KillLog = string.Empty;
+        
+        sb.Clear();
+
+        foreach ((byte id, PlayerState state) in Main.PlayerStates)
+        {
+            if (state.RoleHistory.Count > 0)
+            {
+                string join = string.Join(" > ", state.RoleHistory.ConvertAll(x => x.ToColoredString()));
+                sb.AppendLine($"{id.ColoredPlayerName()}: {join} > {state.MainRole.ToColoredString()}");
+            }
+        }
+
+        if (sb.Length > 0)
+        {
+            sb.Insert(0, $"<size=70%>{GetString("RoleHistoryText")}\n");
+            RoleChangeLog = sb.ToString().Trim() + "</size>";
+        }
+        else
+            RoleChangeLog = string.Empty;
 
         Main.NormalOptions.KillCooldown = Options.DefaultKillCooldown;
 
@@ -118,7 +138,7 @@ internal static class EndGamePatch
             ChatCommands.Spectators.Clear();
 
             Utils.NumSnapToCallsThisRound = 0;
-            Main.GameTimer = 0f;
+            Main.GameTimer.Reset();
 
             switch (Options.CurrentGameMode)
             {
@@ -456,11 +476,12 @@ internal static class SetEverythingUpPatch
 
         IEnumerator SetupPoolablePlayers()
         {
-            if (Camera.main == null) yield break;
+            Camera main = Camera.main;
+            if (!main) yield break;
 
             yield return null;
 
-            Vector3 pos = Camera.main.ViewportToWorldPoint(new(0f, 1f, Camera.main.nearClipPlane));
+            Vector3 pos = main.ViewportToWorldPoint(new(0f, 1f, main.nearClipPlane));
             GameObject roleSummaryObject = Object.Instantiate(__instance.WinText.gameObject);
             roleSummaryObject.transform.position = new(__instance.Navigation.ExitButton.transform.position.x + 0.1f, pos.y - 0.1f, -15f);
             roleSummaryObject.transform.localScale = new(1f, 1f, 1f);

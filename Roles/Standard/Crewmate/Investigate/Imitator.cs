@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using EHR.Modules;
-using Hazel;
 using UnityEngine;
 
 namespace EHR.Roles;
@@ -34,12 +33,6 @@ public class Imitator : RoleBase
         On = true;
         ImitatingRole[playerId] = CustomRoles.Imitator;
         PlayerIdList.Add(playerId);
-    }
-
-    public override void Remove(byte playerId)
-    {
-        PlayerIdList.Remove(playerId);
-        ImitatingRole.Remove(playerId);
     }
 
     public static void SetRoles()

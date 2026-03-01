@@ -192,7 +192,7 @@ public static class Snowdown
                 if (GameEndsAfterTime && Utils.TimeStamp - GameStartTS >= GameEndTime)
                 {
                     int max = Data.Values.Max(x => x.Points);
-                    CustomWinnerHolder.WinnerIds = Data.Where(x => x.Value.Points == max && x.Key.GetPlayer() != null).Select(x => x.Key).ToHashSet();
+                    CustomWinnerHolder.WinnerIds = Data.Where(x => x.Value.Points == max && x.Key.GetPlayer()).Select(x => x.Key).ToHashSet();
                     Logger.Info($"Winners: {(string.Join(", ", CustomWinnerHolder.WinnerIds.Select(x => Main.AllPlayerNames.GetValueOrDefault(x, "[Unknown player]"))))}", "Snowdown");
                     Main.DoBlockNameChange = true;
                     return true;
@@ -260,13 +260,13 @@ public static class Snowdown
 
             long now = Utils.TimeStamp;
             Vector2 pos = __instance.Pos();
-            Snowball touchingSnowball = Snowballs.Find(x => x.Active && x.Thrower != __instance && Vector2.Distance(x.Position, pos) < 1.5f);
+            Snowball touchingSnowball = Snowballs.Find(x => x.Active && x.Thrower != __instance && FastVector2.DistanceWithinRange(x.Position, pos, 1.5f));
 
             if (touchingSnowball != null)
             {
                 touchingSnowball.SetInactive();
                 
-                if (touchingSnowball.Thrower != null && Data.TryGetValue(touchingSnowball.Thrower.PlayerId, out PlayerData throwerData) && throwerData.Coins < throwerData.MaxCoins)
+                if (touchingSnowball.Thrower && Data.TryGetValue(touchingSnowball.Thrower.PlayerId, out PlayerData throwerData) && throwerData.Coins < throwerData.MaxCoins)
                     throwerData.Coins++;
             }
 
@@ -276,7 +276,7 @@ public static class Snowdown
                 data.LastSnowballGainTS = now;
             }
 
-            if (Vector2.Distance(pos, data.LastPosition) > 0.01f)
+            if (!FastVector2.DistanceWithinRange(pos, data.LastPosition, 0.01f))
             {
                 data.LastLastPosition = data.LastPosition;
                 data.LastPosition = pos;

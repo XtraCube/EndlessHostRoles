@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,12 +14,12 @@ using BepInEx.Unity.IL2CPP;
 using BepInEx.Unity.IL2CPP.Utils.Collections;
 using EHR;
 using EHR.Modules;
+using EHR.Patches;
 using EHR.Roles;
 using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 using UnityEngine.Networking;
-using EHR.Patches;
 
 [assembly: AssemblyFileVersion(Main.PluginVersion)]
 [assembly: AssemblyInformationalVersion(Main.PluginVersion)]
@@ -30,7 +30,8 @@ namespace EHR;
 [BepInPlugin(PluginGuid, "EHR", PluginVersion)]
 [BepInIncompatibility("jp.ykundesu.supernewroles")]
 [BepInIncompatibility("MalumMenu")]
-[BepInIncompatibility("com.ten.thebetterroles")]
+[BepInIncompatibility("com.crewmod.oficial")]
+[BepInIncompatibility("com.crewmod.showcase")]
 [BepInIncompatibility("xyz.crowdedmods.crowdedmod")]
 [BepInDependency(SubmergedCompatibility.SubmergedGuid, BepInDependency.DependencyFlags.SoftDependency)]
 [BepInProcess("Among Us.exe")]
@@ -40,8 +41,8 @@ public class Main : BasePlugin
     private const string DebugKeyHash = "c0fd562955ba56af3ae20d7ec9e64c664f0facecef4b3e366e109306adeae29d";
     private const string DebugKeySalt = "59687b";
     private const string PluginGuid = "com.gurge44.endlesshostroles";
-    public const string PluginVersion = "7.2.2";
-    public const string PluginDisplayVersion = "7.2.2";
+    public const string PluginVersion = "7.3.0";
+    public const string PluginDisplayVersion = "7.3.0";
     public const bool TestBuild = false;
 
     public const string NeutralColor = "#ffab1b";
@@ -62,8 +63,13 @@ public class Main : BasePlugin
 
     public static readonly Version Version = Version.Parse(PluginVersion);
 
+    //public static ManualLogSource Logger;
     public static bool HasArgumentException;
     public static string CredentialsText;
+
+    // Cache
+    public static readonly Type[] AllTypes = Assembly.GetExecutingAssembly().GetTypes();
+    public static readonly CustomRoles[] CustomRoleValues = Enum.GetValues<CustomRoles>();
 
     public static IntPtr? OriginalAffinity;
     public static Dictionary<byte, PlayerVersion> PlayerVersion = [];
@@ -104,7 +110,6 @@ public class Main : BasePlugin
     public static Dictionary<byte, int> GuesserGuessed = [];
     public static Dictionary<byte, int> GuesserGuessedMeeting = [];
     public static bool HasJustStarted;
-    public static int AliveImpostorCount;
     public static Dictionary<byte, bool> CheckShapeshift = [];
     public static Dictionary<byte, byte> ShapeshiftTarget = [];
     public static bool VisibleTasksCount;
@@ -146,9 +151,8 @@ public class Main : BasePlugin
     public static Dictionary<byte, string> SleuthMsgs = [];
     public static Dictionary<byte, int> NumEmergencyMeetingsUsed = [];
     public static int MadmateNum;
-    public static uint LobbyBehaviourNetId;
-    
-    public static float GameTimer;
+
+    public static Stopwatch GameTimer = new();
     public static bool GameEndDueToTimer;
 
     public static bool ShowResult = true;
@@ -212,30 +216,31 @@ public class Main : BasePlugin
     public static ConfigEntry<string> Preset8 { get; private set; }
     public static ConfigEntry<string> Preset9 { get; private set; }
     public static ConfigEntry<string> Preset10 { get; private set; }
+    public static ConfigEntry<string> Preset11 { get; private set; }
+    public static ConfigEntry<string> Preset12 { get; private set; }
+    public static ConfigEntry<string> Preset13 { get; private set; }
+    public static ConfigEntry<string> Preset14 { get; private set; }
+    public static ConfigEntry<string> Preset15 { get; private set; }
+    public static ConfigEntry<string> Preset16 { get; private set; }
+    public static ConfigEntry<string> Preset17 { get; private set; }
+    public static ConfigEntry<string> Preset18 { get; private set; }
+    public static ConfigEntry<string> Preset19 { get; private set; }
+    public static ConfigEntry<string> Preset20 { get; private set; }
 
     // Other Configs
     public static ConfigEntry<string> WebhookUrl { get; private set; }
     public static ConfigEntry<string> BetaBuildUrl { get; private set; }
     public static ConfigEntry<float> LastKillCooldown { get; private set; }
     public static ConfigEntry<float> LastShapeshifterCooldown { get; private set; }
-    public static bool IsFixedCooldown => CustomRoles.Vampire.IsEnable() || CustomRoles.Poisoner.IsEnable();
-    
-    // Cached Values
-    
-    public static readonly Type[] AllTypes = Assembly.GetExecutingAssembly().GetTypes();
-    
-    public static readonly CustomRoles[] CustomRoleValues = Enum.GetValues<CustomRoles>();
-
 
     public static IReadOnlyList<PlayerControl> AllPlayerControls => EnumeratePlayerControls().ToArray();
-
     public static IReadOnlyList<PlayerControl> AllAlivePlayerControls => EnumerateAlivePlayerControls().ToArray();
 
     public static IEnumerable<PlayerControl> EnumeratePlayerControls()
     {
         foreach (var pc in PlayerControl.AllPlayerControls)
         {
-            if (pc == null || pc.PlayerId >= 254) continue;
+            if (!pc || pc.PlayerId >= 254) continue;
             yield return pc;
         }
     }
@@ -244,7 +249,7 @@ public class Main : BasePlugin
     {
         return EnumeratePlayerControls()
             .Where(pc => pc.IsAlive()
-                         && pc.Data != null
+                         && pc.Data
                          && (!pc.Data.Disconnected || !IntroDestroyed)
                          && !Pelican.IsEaten(pc.PlayerId));
     }
@@ -260,6 +265,7 @@ public class Main : BasePlugin
 
     public override void Load()
     {
+        // EmbeddedDeps.Install();
         Instance = this;
 
         //Client Options
@@ -328,6 +334,16 @@ public class Main : BasePlugin
         Preset8 = Config.Bind("Preset Name Options", "Preset8", "Preset_8");
         Preset9 = Config.Bind("Preset Name Options", "Preset9", "Preset_9");
         Preset10 = Config.Bind("Preset Name Options", "Preset10", "Preset_10");
+        Preset11 = Config.Bind("Preset Name Options", "Preset11", "Preset_11");
+        Preset12 = Config.Bind("Preset Name Options", "Preset12", "Preset_12");
+        Preset13 = Config.Bind("Preset Name Options", "Preset13", "Preset_13");
+        Preset14 = Config.Bind("Preset Name Options", "Preset14", "Preset_14");
+        Preset15 = Config.Bind("Preset Name Options", "Preset15", "Preset_15");
+        Preset16 = Config.Bind("Preset Name Options", "Preset16", "Preset_16");
+        Preset17 = Config.Bind("Preset Name Options", "Preset17", "Preset_17");
+        Preset18 = Config.Bind("Preset Name Options", "Preset18", "Preset_18");
+        Preset19 = Config.Bind("Preset Name Options", "Preset19", "Preset_19");
+        Preset20 = Config.Bind("Preset Name Options", "Preset20", "Preset_20");
         WebhookUrl = Config.Bind("Other", "WebhookURL", "none");
         BetaBuildUrl = Config.Bind("Other", "BetaBuildURL", string.Empty);
         MessageWait = Config.Bind("Other", "MessageWait", 0);
@@ -499,6 +515,8 @@ public class Main : BasePlugin
                 { CustomRoles.TimeMaster, "#44baff" },
                 { CustomRoles.Crusader, "#C65C39" },
                 { CustomRoles.Speedrunner, "#800080" },
+                { CustomRoles.Unshifter, "#00b4eb" },
+                { CustomRoles.Scanner, "#42f5a7" },
                 // Neutrals
                 { CustomRoles.Arsonist, "#ff6633" },
                 { CustomRoles.Pyromaniac, "#ff6633" },
@@ -780,9 +798,8 @@ public class Main : BasePlugin
                 { CustomRoles.Taskinator, "#561dd1" }
             };
 
-            CustomRoles[] allRoles = Main.CustomRoleValues;
-            allRoles.Where(x => x.GetCustomRoleTypes() == CustomRoleTypes.Impostor).Do(x => RoleColors.TryAdd(x, ImpostorColor));
-            allRoles.Where(x => x.IsCoven() || x == CustomRoles.Entranced).Do(x => RoleColors.TryAdd(x, CovenColor));
+            CustomRoleValues.Where(x => x.GetCustomRoleTypes() == CustomRoleTypes.Impostor).Do(x => RoleColors.TryAdd(x, ImpostorColor));
+            CustomRoleValues.Where(x => x.IsCoven() || x == CustomRoles.Entranced).Do(x => RoleColors.TryAdd(x, CovenColor));
         }
         catch (ArgumentException ex)
         {
@@ -928,18 +945,22 @@ public class Main : BasePlugin
         catch (Exception e) { Utils.ThrowException(e); }
     }
 
-    public void StartCoroutine(IEnumerator coroutine)
+    public Coroutine StartCoroutine(IEnumerator coroutine)
     {
-        if (coroutine == null) return;
-
-        coroutines.StartCoroutine(coroutine.WrapToIl2Cpp());
+        if (coroutine == null) return null;
+        return coroutines.StartCoroutine(coroutine.WrapToIl2Cpp());
     }
 
     public void StopCoroutine(IEnumerator coroutine)
     {
         if (coroutine == null) return;
-
         coroutines.StopCoroutine(coroutine.WrapToIl2Cpp());
+    }
+
+    public void StopCoroutine(Coroutine coroutine)
+    {
+        if (coroutine == null) return;
+        coroutines.StopCoroutine(coroutine);
     }
 
     public void StopAllCoroutines()
@@ -1192,3 +1213,5 @@ public enum TieMode
 }
 
 public class Coroutines : MonoBehaviour { }
+
+

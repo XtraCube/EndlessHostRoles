@@ -27,11 +27,11 @@ internal static class HudManagerPatch
     public static Color? CooldownTimerFlashColor = null;
     public static string AchievementUnlockedText = string.Empty;
 
-    public static TaskPanelBehaviour RoleTab;
+    private static TaskPanelBehaviour RoleTab;
 
     public static void ClearLowerInfoText()
     {
-        if (LowerInfoText == null) return;
+        if (!LowerInfoText) return;
         LowerInfoText.text = string.Empty;
     }
 
@@ -42,13 +42,11 @@ internal static class HudManagerPatch
             LoadingScreen.Update();
 
             PlayerControl player = PlayerControl.LocalPlayer;
-            if (player == null) return;
-
-            if (__instance == null) return;
+            if (!player) return;
 
             if (GameStates.IsLobby)
             {
-                if (PingTrackerUpdatePatch.Instance != null && SettingsText == null)
+                if (PingTrackerUpdatePatch.Instance && !SettingsText)
                 {
                     SettingsText = Object.Instantiate(__instance.KillButton.cooldownTimerText, __instance.transform, true);
                     SettingsText.name = "EHR_SettingsText";
@@ -59,19 +57,19 @@ internal static class HudManagerPatch
                     SettingsText.overflowMode = TextOverflowModes.Overflow;
                     SettingsText.enableWordWrapping = false;
                 }
-                else if (PingTrackerUpdatePatch.Instance == null && SettingsText != null)
+                else if (!PingTrackerUpdatePatch.Instance && SettingsText)
                 {
                     Object.Destroy(SettingsText.gameObject);
                     SettingsText = null;
                 }
 
-                if (SettingsText != null)
+                if (SettingsText)
                 {
                     SettingsText.text = OptionShower.GetTextNoFresh();
                     SettingsText.enabled = SettingsText.text != string.Empty;
                 }
             }
-            else if (SettingsText != null)
+            else if (SettingsText)
             {
                 Object.Destroy(SettingsText.gameObject);
                 SettingsText = null;
@@ -79,7 +77,7 @@ internal static class HudManagerPatch
 
             if (AmongUsClient.Instance.AmHost)
             {
-                if (OverriddenRolesText == null)
+                if (!OverriddenRolesText)
                 {
                     OverriddenRolesText = Object.Instantiate(__instance.KillButton.cooldownTimerText, __instance.transform, true);
                     OverriddenRolesText.alignment = TextAlignmentOptions.Right;
@@ -100,7 +98,7 @@ internal static class HudManagerPatch
                     {
                         PlayerControl pc = Utils.GetPlayerById(item.Key);
                         string prefix = first ? string.Empty : "\n";
-                        var text = $"{prefix}{(item.Key == 0 ? "Host" : $"{(pc == null ? $"ID {item.Key}" : $"{pc.GetRealName()}")}")} - <color={Main.RoleColors.GetValueOrDefault(item.Value, "#ffffff")}>{GetString(item.Value.ToString())}</color>";
+                        var text = $"{prefix}{(item.Key == 0 ? "Host" : $"{(!pc ? $"ID {item.Key}" : $"{pc.GetRealName()}")}")} - <color={Main.RoleColors.GetValueOrDefault(item.Value, "#ffffff")}>{GetString(item.Value.ToString())}</color>";
                         resultText[item.Key] = text;
                         first = false;
                     }
@@ -121,7 +119,7 @@ internal static class HudManagerPatch
                             else
                             {
                                 string prefix = first ? string.Empty : "\n";
-                                var text = $"{prefix}{(item.Key == 0 ? "Host" : $"{(pc == null ? $"ID {item.Key}" : $"{pc.GetRealName()}")}")} - <#ffffff>(</color><color={Main.RoleColors.GetValueOrDefault(role, "#ffffff")}>{GetString(role.ToString())}</color><#ffffff>)</color>";
+                                var text = $"{prefix}{(item.Key == 0 ? "Host" : $"{(!pc ? $"ID {item.Key}" : $"{pc.GetRealName()}")}")} - <#ffffff>(</color><color={Main.RoleColors.GetValueOrDefault(role, "#ffffff")}>{GetString(role.ToString())}</color><#ffffff>)</color>";
                                 resultText[item.Key] = text;
                                 first = false;
                             }
@@ -138,7 +136,7 @@ internal static class HudManagerPatch
 
                 if (Options.AutoGMRotationEnabled)
                 {
-                    if (AutoGMRotationStatusText == null)
+                    if (!AutoGMRotationStatusText)
                     {
                         AutoGMRotationStatusText = Object.Instantiate(__instance.KillButton.cooldownTimerText, __instance.transform, true);
                         AutoGMRotationStatusText.alignment = TextAlignmentOptions.Left;
@@ -153,7 +151,7 @@ internal static class HudManagerPatch
                     AutoGMRotationStatusText.text = BuildAutoGMRotationStatusText(false);
                     AutoGMRotationStatusText.enabled = AutoGMRotationStatusText.text != string.Empty && GameStates.IsLobby;
                 }
-                else if (AutoGMRotationStatusText != null)
+                else if (AutoGMRotationStatusText)
                 {
                     AutoGMRotationStatusText.text = string.Empty;
                     AutoGMRotationStatusText.enabled = false;
@@ -196,7 +194,7 @@ internal static class HudManagerPatch
 
                     CustomRoles role = player.GetCustomRole();
 
-                    if (RoleTab == null) RoleTab = TaskPanelBehaviourPatch.CreateRoleTab(role);
+                    if (!RoleTab) RoleTab = TaskPanelBehaviourPatch.CreateRoleTab(role);
                     TaskPanelBehaviourPatch.UpdateRoleTab(RoleTab, role);
 
                     bool usesPetInsteadOfKill = player.UsesPetInsteadOfKill();
@@ -247,7 +245,7 @@ internal static class HudManagerPatch
                         case CustomRoles.CTFPlayer:
                             __instance.AbilityButton?.OverrideText(GetString("CTF_ButtonText"));
                             break;
-                        case CustomRoles.RRPlayer when __instance.AbilityButton != null && RoomRush.VentLimit.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out int ventLimit):
+                        case CustomRoles.RRPlayer when __instance.AbilityButton && RoomRush.VentLimit.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out int ventLimit):
                             __instance.AbilityButton?.SetUsesRemaining(ventLimit);
                             break;
                         case CustomRoles.SnowdownPlayer:
@@ -258,7 +256,7 @@ internal static class HudManagerPatch
                     if (role.PetActivatedAbility() && Options.CurrentGameMode == CustomGameMode.Standard && player.GetRoleTypes() != RoleTypes.Engineer && !role.OnlySpawnsWithPets() && !role.AlwaysUsesPhantomBase() && !player.GetCustomSubRoles().Any(StartGameHostPatch.BasisChangingAddons.ContainsKey) && role is not CustomRoles.Changeling and not CustomRoles.Ninja and not CustomRoles.Duality and not CustomRoles.Witch and not CustomRoles.Silencer && (!role.SimpleAbilityTrigger() || !Options.UsePhantomBasis.GetBool() || !(player.IsNeutralKiller() && Options.UsePhantomBasisForNKs.GetBool())) && !(Options.UseMeetingShapeshift.GetBool() && player.UsesMeetingShapeshift()) && !role.ToString().EndsWith("EHR") && !role.IsVanilla())
                         __instance.AbilityButton?.Hide();
 
-                    if (LowerInfoText == null)
+                    if (!LowerInfoText)
                     {
                         LowerInfoText = Object.Instantiate(__instance.KillButton.cooldownTimerText, __instance.transform, true);
                         LowerInfoText.alignment = TextAlignmentOptions.Center;
@@ -275,7 +273,7 @@ internal static class HudManagerPatch
                         CustomGameMode.FFA => FreeForAll.GetHudText(),
                         CustomGameMode.StopAndGo => StopAndGo.GetHudText(),
                         CustomGameMode.HotPotato => HotPotato.GetSuffixText(player.PlayerId, true),
-                        CustomGameMode.HideAndSeek when player.IsHost() => CustomHnS.GetSuffixText(player, player, true),
+                        CustomGameMode.HideAndSeek => CustomHnS.GetSuffixText(player, player, true),
                         CustomGameMode.NaturalDisasters => NaturalDisasters.SuffixText(),
                         CustomGameMode.Deathrace => Deathrace.GetSuffix(player, player, true),
                         CustomGameMode.Snowdown => Snowdown.GetHudText(),
@@ -390,8 +388,8 @@ internal static class HudManagerPatch
                 }
             }
 
-
-            if (Input.GetKeyDown(KeyCode.Y) && AmongUsClient.Instance.NetworkMode == NetworkModes.FreePlay)
+#if DEBUG
+            if (Input.GetKeyDown(KeyCode.Y))
             {
                 __instance.ToggleMapVisible(new()
                 {
@@ -428,6 +426,7 @@ internal static class HudManagerPatch
                 if (Input.GetKeyDown(KeyCode.Alpha9)) RepairSender.Input(9);
                 if (Input.GetKeyDown(KeyCode.Return)) RepairSender.InputEnter();
             }
+#endif
         }
         catch (NullReferenceException e)
         {
@@ -570,7 +569,7 @@ internal static class SetHudActivePatch
     {
         if (GameStates.IsLobby || !isActive) __instance?.ReportButton?.ToggleVisible(false);
 
-        if (__instance == null)
+        if (!__instance)
         {
             Logger.Fatal("HudManager __instance ended up being null", "SetHudActivePatch.Postfix");
             return;
@@ -641,7 +640,7 @@ internal static class SetHudActivePatch
         }
 
         PlayerControl player = PlayerControl.LocalPlayer;
-        if (player == null) return;
+        if (!player) return;
 
         switch (player.GetCustomRole())
         {
@@ -725,7 +724,7 @@ internal static class HudManagerStartPatch
     {
         foreach (AspectPosition aspect in HudManager.Instance.transform.FindChild("Buttons").GetComponentsInChildren<AspectPosition>(true))
         {
-            if (aspect.gameObject == null) continue;
+            if (!aspect.gameObject) continue;
             if (aspect.gameObject.transform.parent.name == "TopRight") continue;
             if (aspect.gameObject.transform.parent.transform.parent.name == "TopRight") continue;
 
@@ -736,7 +735,7 @@ internal static class HudManagerStartPatch
 
         foreach (ActionButton button in HudManager.Instance.GetComponentsInChildren<ActionButton>(true))
         {
-            if (button.gameObject == null) continue;
+            if (!button.gameObject) continue;
 
             button.gameObject.SetActive(!button.isActiveAndEnabled);
             button.gameObject.transform.localScale *= scaleFactor;
@@ -817,7 +816,7 @@ internal static class SabotageMapPatch
 
         foreach (MapRoom mr in __instance.rooms)
         {
-            if (mr.special == null || mr.special.transform == null) continue;
+            if (!mr.special || !mr.special.transform) continue;
 
             SystemTypes room = mr.room;
 
@@ -892,7 +891,7 @@ internal static class MapRoomDoorsUpdatePatch
                 {
                     var autoOpenDoor = door.TryCast<AutoOpenDoor>();
 
-                    if (autoOpenDoor != null)
+                    if (autoOpenDoor)
                     {
                         total = 30f;
                         timer = autoOpenDoor.CooldownTimer;
@@ -948,19 +947,29 @@ internal static class TaskPanelBehaviourPatch
 {
     // Role info tab panel code from https://github.com/All-Of-Us-Mods/MiraAPI and https://github.com/AU-Avengers/TOU-Mira
 
+    public static PassiveButton RolePanelButton;
+    public static TaskPanelBehaviour TaskPanel;
+    public static TextMeshPro TabText;
+    public static TextMeshPro TabPanelName;
     internal static TaskPanelBehaviour CreateRoleTab(CustomRoles role)
     {
-        var ogPanel = HudManager.Instance.TaskStuff.transform.FindChild("TaskPanel").gameObject.GetComponent<TaskPanelBehaviour>();
-        GameObject clonePanel = Object.Instantiate(ogPanel.gameObject, ogPanel.transform.parent);
+        TaskPanel = HudManager.Instance.TaskStuff.transform.FindChild("TaskPanel").gameObject.GetComponent<TaskPanelBehaviour>();
+        GameObject clonePanel = Object.Instantiate(TaskPanel.gameObject, TaskPanel.transform.parent);
         clonePanel.name = "RolePanel";
 
+        var tabRolePanel = clonePanel.transform.FindChild("Tab");
+        var actionMap = tabRolePanel.transform.FindChild("InputDisplayGlyph").GetComponent<ActionMapGlyphDisplay>();
+        actionMap.actionToDisplayMappedGlyphFor = RewiredConstsEnum.Action.ButtonKeyboard;
+        
         var newPanel = clonePanel.GetComponent<TaskPanelBehaviour>();
         newPanel.open = false;
+
+        RolePanelButton = tabRolePanel.GetComponent<PassiveButton>();
 
         GameObject tab = newPanel.tab.gameObject;
         tab.DestroyTranslator();
 
-        newPanel.transform.localPosition = ogPanel.transform.localPosition - new Vector3(0, 1, 0);
+        newPanel.transform.localPosition = TaskPanel.transform.localPosition - new Vector3(0, 1, 0);
 
         UpdateRoleTab(newPanel, role);
         return newPanel;
@@ -970,17 +979,17 @@ internal static class TaskPanelBehaviourPatch
 
     internal static void UpdateRoleTab(TaskPanelBehaviour panel, CustomRoles role)
     {
-        var tabText = panel.tab.gameObject.GetComponentInChildren<TextMeshPro>();
-        var ogPanel = HudManager.Instance.TaskStuff.transform.FindChild("TaskPanel").gameObject.GetComponent<TaskPanelBehaviour>();
+        if (!TabPanelName) TabPanelName = panel.tab.gameObject.GetComponentInChildren<TextMeshPro>();
+        if (!TaskPanel) TaskPanel = HudManager.Instance.TaskStuff.transform.FindChild("TaskPanel").gameObject.GetComponent<TaskPanelBehaviour>();
         string panelName = GetString(Options.CurrentGameMode != CustomGameMode.Standard ? "GameInfo" : "RoleInfo");
-        if (tabText.text != panelName) tabText.text = panelName;
+        if (TabPanelName.text != panelName) TabPanelName.text = panelName;
 
         bool taskingGm = Utils.IsTaskingGameMode();
         
-        float y = ogPanel.taskText.textBounds.size.y + 1;
+        float y = TaskPanel.taskText.textBounds.size.y + 1;
         float defaultPos = taskingGm ? 2f : 0.6f;
-        Vector3 targetClosed = new Vector3(ogPanel.closedPosition.x, taskingGm && ogPanel.open ? y + 0.2f : defaultPos, ogPanel.closedPosition.z);
-        Vector3 targetOpen   = new Vector3(ogPanel.openPosition.x,   taskingGm && ogPanel.open ? y        : defaultPos, ogPanel.openPosition.z);
+        Vector3 targetClosed = new Vector3(TaskPanel.closedPosition.x, taskingGm && TaskPanel.open ? y + 0.2f : defaultPos, TaskPanel.closedPosition.z);
+        Vector3 targetOpen   = new Vector3(TaskPanel.openPosition.x,   taskingGm && TaskPanel.open ? y        : defaultPos, TaskPanel.openPosition.z);
 
         float t = 1f - Mathf.Exp(-PosSmoothSpeed * Time.deltaTime);
 
@@ -1040,27 +1049,48 @@ internal static class TaskPanelBehaviourPatch
                 if (subRoles.Count > 0)
                 {
                     const int max = 3;
-                    var roles = subRoles.Take(max);
                     finalTextBuilder.Append("<size=80%>");
-                    var innerSb = new StringBuilder();
-                    foreach (var cr in roles)
+                    
+                    int taken = 0;
+                    
+                    foreach (var subRole in subRoles)
                     {
+                        if (taken++ >= max) break;
+
+                        StringBuilder innerSb = new StringBuilder();
                         innerSb.Append("\r\n\r\n");
-                        innerSb.Append(cr.ToColoredString());
+                        innerSb.Append(subRole.ToColoredString());
                         innerSb.Append(":\r\n");
-                        innerSb.Append(GetString($"{cr}Info"));
-                        finalTextBuilder.Append(Utils.ColorString(Utils.GetRoleColor(cr), innerSb.ToString()));
+                        innerSb.Append(GetString($"{subRole}Info"));
+                        
+                        finalTextBuilder.Append(Utils.ColorString(Utils.GetRoleColor(subRole), innerSb.ToString()));
                     }
+
                     finalTextBuilder.Append("</size>");
+
                     int chunk = subRoles.Any(x => GetString(x.ToString()).Contains(' ')) ? 3 : 4;
 
                     if (subRoles.Count > max)
                     {
-                        finalTextBuilder.Append($"\r\n<size=80%>....\r\n(");
-                        foreach (var cr in subRoles.Skip(max).Chunk(chunk))
+                        finalTextBuilder.Append("\r\n<size=80%>....\r\n(");
+                        
+                        bool firstChunk = true;
+
+                        foreach (var group in subRoles.Skip(max).Chunk(chunk))
                         {
-                            finalTextBuilder.Append(string.Join(", ", cr.Select(r => r.ToColoredString())));
+                            if (!firstChunk) finalTextBuilder.Append(",\r\n");
+                            firstChunk = false;
+                            
+                            bool first = true;
+
+                            foreach (var groupRole in group)
+                            {
+                                if (!first) finalTextBuilder.Append(", ");
+                                first = false;
+                                finalTextBuilder.Append(groupRole.ToColoredString());
+                            }
                         }
+
                         finalTextBuilder.Append(")</size>");
                     }
                 }
@@ -1076,15 +1106,15 @@ internal static class TaskPanelBehaviourPatch
                 finalTextBuilder.Append("\r\n\r\n");
                 finalTextBuilder.Append(GetString("PVP.ATK"));
                 finalTextBuilder.Append(": ");
-                finalTextBuilder.AppendFormat("{0:N1}", SoloPVP.PlayerATK[lpc.PlayerId]);
+                finalTextBuilder.Append($"{SoloPVP.PlayerATK[lpc.PlayerId]:N1}");
                 finalTextBuilder.Append("\r\n");
                 finalTextBuilder.Append(GetString("PVP.DF"));
                 finalTextBuilder.Append(": ");
-                finalTextBuilder.AppendFormat("{0:N1}", SoloPVP.PlayerDF[lpc.PlayerId]);
+                finalTextBuilder.Append($"{SoloPVP.PlayerDF[lpc.PlayerId]:N1}");
                 finalTextBuilder.Append("\r\n");
                 finalTextBuilder.Append(GetString("PVP.RCO"));
                 finalTextBuilder.Append(": ");
-                finalTextBuilder.AppendFormat("{0:N1}", SoloPVP.PlayerHPReco[lpc.PlayerId]);
+                finalTextBuilder.Append($"{SoloPVP.PlayerHPReco[lpc.PlayerId]:N1}");
                 finalTextBuilder.Append("\r\n");
 
                 finalTextBuilder.Append("<size=80%>");
@@ -1129,7 +1159,7 @@ internal static class TaskPanelBehaviourPatch
                     SummaryText3[id] = summary;
                 }
 
-                List<(int, byte)> list3 = new List<(int, byte)>();
+                List<(int, byte)> list3 = [];
                 foreach (byte id in Main.PlayerStates.Keys) list3.Add((StopAndGo.GetRankFromScore(id), id));
 
                 list3.Sort();
@@ -1145,12 +1175,12 @@ internal static class TaskPanelBehaviourPatch
             }
             case CustomGameMode.HotPotato:
             {
-                List<string> summaryText4 = new List<string>();
+                List<string> summaryText4 = [];
                 summaryText4.AddRange(from pc in Main.EnumeratePlayerControls() let alive = pc.IsAlive() select $"{(!alive ? "<size=90%><#777777>" : "<size=90%>")}{HotPotato.GetIndicator(pc.PlayerId)}{pc.PlayerId.ColoredPlayerName()}{(!alive ? $"</color>  <#ff0000>{GetString("Dead")}</color></size>" : "</size>")}");
                 finalTextBuilder.Append("\r\n\r\n").Append(string.Join('\n', summaryText4));
                 break;
             }
-            case CustomGameMode.HideAndSeek when AmongUsClient.Instance.AmHost:
+            case CustomGameMode.HideAndSeek:
             {
                 finalTextBuilder.Append("\r\n\r\n").Append(CustomHnS.GetTaskBarText());
                 break;
@@ -1260,11 +1290,11 @@ internal static class TaskPanelBehaviourPatch
         {
             if (Utils.IsTaskingGameMode())
             {
-                var tabText = __instance.tab.transform.FindChild("TabText_TMP").GetComponent<TextMeshPro>();
+                if (!TabText) TabText = __instance.tab.transform.FindChild("TabText_TMP").GetComponent<TextMeshPro>();
                 bool fakeTasks = Options.CurrentGameMode is CustomGameMode.Standard or CustomGameMode.HideAndSeek && !Utils.HasTasks(PlayerControl.LocalPlayer.Data, forRecompute: false);
                 string sideText = TranslationController.Instance.GetString(fakeTasks ? StringNames.FakeTasks : StringNames.Tasks);
                 if (fakeTasks) sideText = Utils.ColorString(Utils.GetRoleColor(CustomRoles.ImpostorEHR), sideText.TrimEnd(':'));
-                tabText.SetText($"{sideText}{Utils.GetTaskCount(PlayerControl.LocalPlayer.PlayerId, Utils.IsActive(SystemTypes.Comms))}");
+                TabText.SetText($"{sideText}{Utils.GetTaskCount(PlayerControl.LocalPlayer.PlayerId, Utils.IsActive(SystemTypes.Comms))}");
             }
             else
             {
@@ -1325,7 +1355,7 @@ internal static class TaskPanelBehaviourPatch
 
         PlayerControl player = PlayerControl.LocalPlayer;
 
-        if (taskList == "None" || GameStates.IsLobby || player == null) return;
+        if (taskList == "None" || GameStates.IsLobby || !player) return;
 
         NetworkedPlayerInfo data = PlayerControl.LocalPlayer.Data;
         if (data && data.Role) taskList = taskList.Replace($"\n{data.Role.NiceName} {TranslationController.Instance.GetString(StringNames.RoleHint)}\n{data.Role.BlurbMed}", string.Empty);
@@ -1335,8 +1365,10 @@ internal static class TaskPanelBehaviourPatch
 
         __instance.taskText.text = taskList;
 
+#if DEBUG
         if (RepairSender.Enabled && AmongUsClient.Instance.NetworkMode != NetworkModes.OnlineGame)
             __instance.taskText.text = RepairSender.GetText();
+#endif
     }
 }
 
@@ -1353,6 +1385,7 @@ internal static class DialogueBoxShowPatch
     }
 }
 
+#if DEBUG
 internal static class RepairSender
 {
     public static bool Enabled;
@@ -1401,3 +1434,4 @@ internal static class RepairSender
         return SystemType + "(" + (SystemTypes)SystemType + ")\r\n" + Amount;
     }
 }
+#endif

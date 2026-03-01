@@ -140,11 +140,8 @@ public class Witch : RoleBase
     {
         if (NowSwitchTrigger == SwitchTrigger.Vanish)
         {
-            var pos = pc.Pos();
-            var killRange = NormalGameOptionsV10.KillDistances[Mathf.Clamp(Main.NormalOptions.KillDistance, 0, 2)];
-            var nearPlayers = Main.EnumerateAlivePlayerControls().Without(pc).Where(x => !x.IsImpostor()).Select(x => (pc: x, distance: Vector2.Distance(x.Pos(), pos))).Where(x => x.distance <= killRange).ToArray();
-            PlayerControl target = nearPlayers.Length == 0 ? null : nearPlayers.MinBy(x => x.distance).pc;
-            if (target == null) return false;
+            var killRange = GameManager.Instance.LogicOptions.GetKillDistance();
+            if (!FastVector2.TryGetClosestPlayerInRangeTo(pc, killRange, out PlayerControl target, x => !x.IsImpostor())) return false;
             SetSpelled(pc, target);
         }
 
@@ -226,7 +223,7 @@ public class Witch : RoleBase
                 string cursed = string.Join(", ", spelledPlayers.Select(x => x.ColoredPlayerName()));
                 string role = IsHM ? CustomRoles.HexMaster.ToColoredString() : CustomRoles.Witch.ToColoredString();
                 string text = string.Format(GetString("WitchCursedPlayersMessage"), cursed, role);
-                Utils.SendMessage(text, title: GetString("MessageTitle.Attention"));
+                Utils.SendMessage(text, title: GetString("MessageTitle.Attention"), importance: MessageImportance.High);
             }, 10f, "Witch Cursed Players Notify");
         }
     }

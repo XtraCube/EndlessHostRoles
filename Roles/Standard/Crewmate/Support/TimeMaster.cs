@@ -228,13 +228,13 @@ internal class TimeMaster : RoleBase
             switch (Main.NormalOptions.MapId)
             {
                 case 2:
-                    doComms |= Vector2.Distance(pos, DisableDevice.DevicePos["PolusVital"]) <= usableDistance;
+                    doComms |= FastVector2.DistanceWithinRange(pos, DisableDevice.DevicePos["PolusVital"], usableDistance);
                     break;
                 case 4:
-                    doComms |= Vector2.Distance(pos, DisableDevice.DevicePos["AirshipVital"]) <= usableDistance;
+                    doComms |= FastVector2.DistanceWithinRange(pos, DisableDevice.DevicePos["AirshipVital"], usableDistance);
                     break;
                 case 5:
-                    doComms |= Vector2.Distance(pos, DisableDevice.DevicePos["FungleVital"]) <= usableDistance;
+                    doComms |= FastVector2.DistanceWithinRange(pos, DisableDevice.DevicePos["FungleVital"], usableDistance);
                     break;
             }
         }

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using EHR.Modules;
 
 namespace EHR.Roles;
@@ -41,7 +40,7 @@ public class Loner : RoleBase
         PickedRole = Main.CustomRoleValues.Where(x => x.IsImpostor() && !x.IsVanilla() && !CustomRoleSelector.RoleResult.ContainsValue(x) && x.GetMode() != 0).RandomElement();
         if (PickedRole == CustomRoles.Crewmate) PickedRole = CustomRoles.ImpostorEHR;
 
-        Utils.SendMessage("\n", shapeshifter.PlayerId, string.Format(Translator.GetString("Loner.Picked"), PickedPlayer.ColoredPlayerName(), PickedRole.ToColoredString()));
+        Utils.SendMessage("\n", shapeshifter.PlayerId, string.Format(Translator.GetString("Loner.Picked"), PickedPlayer.ColoredPlayerName(), PickedRole.ToColoredString()), importance: MessageImportance.High);
     }
 
     public override void AfterMeetingTasks()

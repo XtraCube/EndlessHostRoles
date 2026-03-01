@@ -244,8 +244,7 @@ internal class Adventurer : RoleBase
 
                         RemoveAndNotify();
                         break;
-                    case Weapon.Prediction:
-                        PlayerControl closest = Main.EnumerateAlivePlayerControls().Where(x => x.PlayerId != pc.PlayerId).MinBy(x => Vector2.Distance(pc.Pos(), x.Pos()));
+                    case Weapon.Prediction when FastVector2.TryGetClosestPlayerTo(pc, out PlayerControl closest):
                         RevealedPlayers.Add(closest.PlayerId);
                         RemoveAndNotify(closest);
                         break;
@@ -296,7 +295,7 @@ internal class Adventurer : RoleBase
             Utils.NotifyRoles(SpecifySeer: AdventurerPC, SpecifyTarget: AdventurerPC);
         }
 
-        if (LastGroupingResourceTimeStamp + 20 <= now && Main.EnumerateAlivePlayerControls().Count(x => x.PlayerId != pc.PlayerId && Vector2.Distance(x.Pos(), pc.Pos()) < 2f) >= 2)
+        if (LastGroupingResourceTimeStamp + 20 <= now && Main.EnumerateAlivePlayerControls().Count(x => x.PlayerId != pc.PlayerId && FastVector2.DistanceWithinRange(x.Pos(), pc.Pos(), 2f)) >= 2)
         {
             if (ResourceLocations.TryGetValue(Resource.Grouping, out Vector2 location))
             {
@@ -321,7 +320,7 @@ internal class Adventurer : RoleBase
 
         foreach ((Resource resource, Vector2 location) in ResourceLocations)
         {
-            if (Vector2.Distance(pc.Pos(), location) < 2f)
+            if (FastVector2.DistanceWithinRange(pc.Pos(), location, 2f))
             {
                 ResourceCounts[resource]++;
                 Utils.SendRPC(CustomRPC.SyncRoleData, pc.PlayerId, 3, (int)resource);

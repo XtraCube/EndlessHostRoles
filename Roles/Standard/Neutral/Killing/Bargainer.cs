@@ -330,7 +330,7 @@ internal class Bargainer : RoleBase
         }
 
         bool wasInShop = InShop;
-        InShop = ShopLocations.Any(x => Vector2.Distance(pc.Pos(), x) < DisableDevice.UsableDistance);
+        InShop = ShopLocations.Any(x => FastVector2.DistanceWithinRange(pc.Pos(), x, DisableDevice.UsableDistance));
         Utils.SendRPC(CustomRPC.SyncBargainer, pc.PlayerId, 1, InShop);
 
         switch (wasInShop)
@@ -367,7 +367,7 @@ internal class Bargainer : RoleBase
                     item switch
                     {
                         Item.EnergyDrink => (int.MaxValue, byte.MaxValue),
-                        Item.LensOfTruth => (AlignmentVisibleValue, Main.AllAlivePlayerControls.RandomElement().PlayerId),
+                        Item.LensOfTruth => (AlignmentVisibleValue, Main.EnumerateAlivePlayerControls().RandomElement().PlayerId),
                         Item.BandAid => (ShieldDurationValue, byte.MaxValue),
 
                         _ => (0, byte.MaxValue)

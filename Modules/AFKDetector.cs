@@ -42,7 +42,7 @@ public static class AFKDetector
 
     public static void RecordPosition(PlayerControl pc)
     {
-        if (!EnableDetector.GetBool() || !GameStates.IsInTask || pc == null || ExemptedPlayers.Contains(pc.PlayerId) || Options.CurrentGameMode is CustomGameMode.SoloPVP or CustomGameMode.FFA or CustomGameMode.HotPotato or CustomGameMode.Speedrun or CustomGameMode.RoomRush or CustomGameMode.Quiz or CustomGameMode.Deathrace) return;
+        if (!EnableDetector.GetBool() || !GameStates.IsInTask || !pc || ExemptedPlayers.Contains(pc.PlayerId) || Options.CurrentGameMode is CustomGameMode.SoloPVP or CustomGameMode.FFA or CustomGameMode.HotPotato or CustomGameMode.Speedrun or CustomGameMode.RoomRush or CustomGameMode.Quiz or CustomGameMode.Deathrace) return;
 
         var waitingTime = 10f;
         if (!pc.IsAlive()) waitingTime += 5f;
@@ -62,7 +62,7 @@ public static class AFKDetector
     {
         if (!EnableDetector.GetBool() || !GameStates.IsInTask || ExileController.Instance || Main.AllAlivePlayerControls.Count < MinPlayersToActivate.GetInt() || pc == null || !PlayerData.TryGetValue(pc.PlayerId, out Data data)) return;
 
-        if (Vector2.Distance(pc.Pos(), data.LastPosition) > 0.1f && !TempIgnoredPlayers.Contains(pc.PlayerId))
+        if (!FastVector2.DistanceWithinRange(pc.Pos(), data.LastPosition, 0.1f) && !TempIgnoredPlayers.Contains(pc.PlayerId))
         {
             SetNotAFK(pc.PlayerId);
             return;

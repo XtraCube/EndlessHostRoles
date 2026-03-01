@@ -3,9 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using AmongUs.GameOptions;
-using BepInEx.Unity.IL2CPP.Utils.Collections;
 using Hazel;
-using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using UnityEngine;
@@ -16,7 +14,9 @@ public abstract class GameOptionsSender
 {
     protected abstract bool IsDirty { get; set; }
 
-    protected virtual void SendGameOptions()
+    protected virtual int TargetClientId => -1;
+
+    private Il2CppStructArray<byte> BuildOptionArray()
     {
         IGameOptions opt = BuildGameOptions();
 
@@ -31,55 +31,51 @@ public abstract class GameOptionsSender
         else if (opt.TryCast(out HideNSeekGameOptionsV10 hnsOpt))
             HideNSeekGameOptionsV10.Serialize(writer, hnsOpt);
         else
-        {
             Logger.Error("Option cast failed", ToString());
-        }
 
         writer.EndMessage();
 
         Il2CppStructArray<byte> optionArray = writer.ToByteArray(false);
         writer.Recycle();
+        return optionArray;
+    }
+
+    protected virtual void SendGameOptions()
+    {
+        Il2CppStructArray<byte> optionArray = BuildOptionArray();
         SendOptionsArray(optionArray);
     }
 
-    private static bool _pendingSend;
-    private static Coroutine _activeCoroutine;
-    private static Il2CppStructArray<byte> _sendOptions;
-
-    protected virtual void SendOptionsArray(Il2CppStructArray<byte> optionArray)
+    protected virtual IEnumerator SendGameOptionsAsync()
     {
-        if (optionArray == null || optionArray.Length == 0) return;
-
-        _sendOptions = optionArray;
-        _pendingSend = true;
-
-        _activeCoroutine ??= GameManager.Instance.StartCoroutine(CoSendOptionsLoop().WrapToIl2Cpp());
+        Il2CppStructArray<byte> optionArray = BuildOptionArray();
+        yield return SendOptionsArrayAsync(optionArray);
     }
 
-    private static IEnumerator CoSendOptionsLoop()
-    {
-        while (_pendingSend)
-        {
-            _pendingSend = false;
-            var options = _sendOptions;
-            yield return GameManager.Instance.StartCoroutine(CoSendOptionsArray(options).WrapToIl2Cpp());
-        }
-        _activeCoroutine = null;
-    }
-
-    private static IEnumerator CoSendOptionsArray(Il2CppStructArray<byte> optionArray)
+    private void SendOptionsArray(Il2CppStructArray<byte> optionArray)
     {
         int count = GameManager.Instance.LogicComponents.Count;
-        for (int i = 0; i < count; i++)
+
+        for (byte i = 0; i < count; i++)
         {
-            Il2CppSystem.Object logicComponent = GameManager.Instance.LogicComponents[(Index)i];
-            if (logicComponent.TryCast<LogicOptions>(out _))
-                SendOptionsArray(optionArray, (byte)i, -1);
-            yield return null;
+            Il2CppSystem.Object logicComponent = GameManager.Instance.LogicComponents[i];
+            if (logicComponent.TryCast<LogicOptions>(out _)) SendOptionsArray(optionArray, i, TargetClientId);
         }
     }
 
-    protected static void SendOptionsArray(Il2CppStructArray<byte> optionArray, byte LogicOptionsIndex, int targetClientId)
+    private IEnumerator SendOptionsArrayAsync(Il2CppStructArray<byte> optionArray)
+    {
+        int count = GameManager.Instance.LogicComponents.Count;
+
+        for (byte i = 0; i < count; i++)
+        {
+            Il2CppSystem.Object logicComponent = GameManager.Instance.LogicComponents[i];
+            if (logicComponent.TryCast<LogicOptions>(out _)) SendOptionsArray(optionArray, i, TargetClientId);
+            yield return WaitFrameIfNecessary();
+        }
+    }
+
+    private static void SendOptionsArray(Il2CppStructArray<byte> optionArray, byte logicOptionsIndex, int targetClientId)
     {
         try
         {
@@ -93,7 +89,7 @@ public abstract class GameOptionsSender
                 writer.StartMessage(1);
                 {
                     writer.WritePacked(GameManager.Instance.NetId);
-                    writer.StartMessage(LogicOptionsIndex);
+                    writer.StartMessage(logicOptionsIndex);
                     {
                         writer.WriteBytesAndSize(optionArray);
                     }
@@ -121,39 +117,57 @@ public abstract class GameOptionsSender
 
     public static readonly List<GameOptionsSender> AllSenders = [new NormalGameOptionsSender()];
 
-    public static IEnumerator SendAllGameOptionsAsync()
+    public static IEnumerator SendDirtyGameOptionsContinuously()
     {
-        AllSenders.RemoveAll(s => s == null || !s.AmValid());
-
-        for (var index = 0; index < AllSenders.Count; index++)
+        try
         {
-            if (index >= AllSenders.Count) yield break; // Safety check
-            GameOptionsSender sender = AllSenders[index];
-
-            if (sender.IsDirty)
+            while (GameStates.InGame || GameStates.IsLobby)
             {
-                sender.SendGameOptions();
-                yield return null;
+                for (var index = 0; index < AllSenders.Count; index++)
+                {
+                    yield return WaitFrameIfNecessary();
+                    
+                    if (index >= AllSenders.Count) break;
+                    GameOptionsSender sender = AllSenders[index];
+
+                    if (sender == null || !sender.AmValid())
+                    {
+                        AllSenders.RemoveAt(index);
+                        index--;
+                        continue;
+                    }
+
+                    if (sender.IsDirty)
+                        yield return sender.SendGameOptionsAsync();
+
+                    sender.IsDirty = false;
+                }
+
+                ForceWaitFrame = true;
+                yield return WaitFrameIfNecessary();
             }
-
-            sender.IsDirty = false;
         }
-    }
-
-    public static void SendAllGameOptions()
-    {
-        AllSenders.RemoveAll(s => s == null || !s.AmValid());
-
-        // ReSharper disable once ForCanBeConvertedToForeach
-        for (var index = 0; index < AllSenders.Count; index++)
+        finally
         {
-            if (index >= AllSenders.Count) return; // Safety check
-            GameOptionsSender sender = AllSenders[index];
-            if (sender.IsDirty) sender.SendGameOptions();
-
-            sender.IsDirty = false;
+            ActiveCoroutine = null;
         }
     }
+
+    protected static IEnumerator WaitFrameIfNecessary()
+    {
+        if (ForceWaitFrame || Stopwatch.ElapsedMilliseconds >= FrameBudget)
+        {
+            ForceWaitFrame = false;
+            Stopwatch.Reset();
+            yield return null;
+            Stopwatch.Start();
+        }
+    }
+
+    public static Coroutine ActiveCoroutine;
+    private static readonly Stopwatch Stopwatch = new();
+    private const int FrameBudget = 4; // in milliseconds
+    protected static bool ForceWaitFrame;
 
     #endregion
 }

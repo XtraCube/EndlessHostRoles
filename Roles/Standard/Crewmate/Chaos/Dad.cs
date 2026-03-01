@@ -270,7 +270,7 @@ public class Dad : RoleBase
                 break;
             case Ability.GiveDrink:
                 Vector2 pos = pc.Pos();
-                DrunkPlayers = Main.EnumerateAlivePlayerControls().Without(pc).Where(x => Vector2.Distance(x.Pos(), pos) <= GivingDrinkRange.GetFloat()).Select(x => x.PlayerId).ToList();
+                DrunkPlayers = Main.EnumerateAlivePlayerControls().Without(pc).Where(x => FastVector2.DistanceWithinRange(x.Pos(), pos, GivingDrinkRange.GetFloat())).Select(x => x.PlayerId).ToList();
                 Utils.NotifyRoles(SpecifySeer: pc);
                 break;
             case Ability.BecomeGodOfAlcohol:
@@ -318,13 +318,12 @@ public class Dad : RoleBase
         if (!pc.IsAlive() || !GameStates.IsInTask || ExileController.Instance) return;
 
         if (Count++ < 15) return;
-
         Count = 0;
 
-        Vector2 pos = pc.Pos();
-        if (UsingAbilities.Contains(Ability.Rage) && Main.EnumerateAlivePlayerControls().FindFirst(x => Vector2.Distance(pos, x.Pos()) < 1.3f, out PlayerControl target) && pc.RpcCheckAndMurder(target)) UsingAbilities.Remove(Ability.Rage);
+        if (UsingAbilities.Contains(Ability.Rage) && FastVector2.TryGetClosestPlayerInRangeTo(pc, 1.3f, out PlayerControl target) && pc.RpcCheckAndMurder(target))
+            UsingAbilities.Remove(Ability.Rage);
 
-        bool notify = Vector2.Distance(pc.Pos(), Shop.transform.position) < 2f;
+        bool notify = FastVector2.DistanceWithinRange(pc.Pos(), Shop.transform.position, 2f);
 
         long now = Utils.TimeStamp;
         long elapsed = now - LastUpdate;
@@ -440,7 +439,7 @@ public class Dad : RoleBase
 
         var sb = new StringBuilder();
 
-        if (Vector2.Distance(seer.Pos(), Shop.transform.position) <= 2f)
+        if (FastVector2.DistanceWithinRange(seer.Pos(), Shop.transform.position, 2f))
         {
             float canBuyAmount = seer.GetAbilityUseLimit() / AlcoholCost.GetInt();
             sb.Append(string.Format(Translator.GetString("Dad.ShopSuffix"), canBuyAmount));

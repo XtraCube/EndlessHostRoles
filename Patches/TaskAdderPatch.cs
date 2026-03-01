@@ -1,4 +1,3 @@
-using System;
 using AmongUs.GameOptions;
 using HarmonyLib;
 using UnityEngine;
@@ -69,9 +68,9 @@ internal class TaskAddButtonUpdatePatch
         {
             if ((int)__instance.Role.Role >= 1000)
             {
-                CustomRoles PlayerCustomRole = PlayerControl.LocalPlayer.GetCustomRole();
-                CustomRoles FileCustomRole = (CustomRoles)__instance.Role.Role - 1000;
-                __instance.Overlay.enabled = PlayerCustomRole == FileCustomRole;
+                CustomRoles playerCustomRole = PlayerControl.LocalPlayer.GetCustomRole();
+                CustomRoles fileCustomRole = (CustomRoles)__instance.Role.Role - 1000;
+                __instance.Overlay.enabled = playerCustomRole == fileCustomRole;
             }
         }
         catch { }

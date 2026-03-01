@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 namespace EHR.Roles;
 
 public class Commited : IAddon
@@ -41,10 +42,12 @@ public class Commited : IAddon
         if (!PermanentReduction.GetBool())
             ReduceKCD = [];
 
-        foreach (PlayerControl pc in Main.EnumerateAlivePlayerControls())
+        var aapc = Main.AllAlivePlayerControls;
+
+        foreach (PlayerControl pc in aapc)
         {
             if (pc.Is(CustomRoles.Commited))
-                Target[pc.PlayerId] = Main.EnumerateAlivePlayerControls().Where(x => !x.Is(CustomRoles.Commited)).RandomElement().PlayerId;
+                Target[pc.PlayerId] = aapc.Where(x => !x.Is(CustomRoles.Commited)).RandomElement().PlayerId;
         }
     }
 

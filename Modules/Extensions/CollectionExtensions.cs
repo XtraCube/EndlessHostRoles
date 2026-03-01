@@ -369,7 +369,7 @@ public static class CollectionExtensions
     {
         if (collection is not List<T> list)
             list = collection.ToList();
-
+        
         int n = list.Count;
         var r = IRandom.Instance;
 

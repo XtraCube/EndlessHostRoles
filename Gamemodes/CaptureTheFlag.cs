@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using AmongUs.GameOptions;
 using EHR.Modules;
@@ -276,7 +277,7 @@ public static class CaptureTheFlag
             {
                 PlayerControl pc = key.GetPlayer();
 
-                if (pc != null && outfit != null)
+                if (pc && outfit != null)
                     Utils.RpcChangeSkin(pc, outfit);
             }
         }
@@ -302,9 +303,11 @@ public static class CaptureTheFlag
         Main.AllPlayerKillCooldown.SetAllValues(TagCooldown.GetFloat());
 
         yield return new WaitForSecondsRealtime(3f);
+        
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         // Assign players to teams
-        List<PlayerControl> players = Main.EnumerateAlivePlayerControls().Shuffle().ToList();
+        List<PlayerControl> players = Main.EnumerateAlivePlayerControls().Shuffle();
         if (Main.GM.Value) players.RemoveAll(x => x.IsHost());
         if (ChatCommands.Spectators.Count > 0) players.RemoveAll(x => ChatCommands.Spectators.Contains(x.PlayerId));
 
@@ -319,7 +322,7 @@ public static class CaptureTheFlag
             PlayerTeams[player.PlayerId] = CTFTeam.Blue;
             bluePlayers.Add(player.PlayerId);
             player.RpcSetColor(1);
-            yield return null;
+            yield return WaitFrameIfNecessary();
         }
 
         foreach (PlayerControl player in players)
@@ -327,10 +330,8 @@ public static class CaptureTheFlag
             PlayerTeams[player.PlayerId] = CTFTeam.Yellow;
             yellowPlayers.Add(player.PlayerId);
             player.RpcSetColor(5);
-            yield return null;
+            yield return WaitFrameIfNecessary();
         }
-
-        yield return new WaitForSecondsRealtime(0.5f);
 
         // Create flags
         (Vector2 Position, string RoomName) blueFlagBase = BlueFlagBase;
@@ -364,58 +365,60 @@ public static class CaptureTheFlag
             pc.RpcChangeRoleBasis(CustomRoles.CTFPlayer);
             pc.RpcResetAbilityCooldown();
 
-            yield return null;
+            yield return WaitFrameIfNecessary();
         }
-
-        yield return new WaitForSecondsRealtime(0.2f);
         
-        try
+        foreach (CTFTeamData data in TeamData.Values)
         {
-            foreach (CTFTeamData data in TeamData.Values)
+            foreach (byte id1 in data.Players)
             {
                 try
                 {
-                    foreach (byte id1 in data.Players)
+                    var pc1 = id1.GetPlayer();
+                    if (!pc1 || pc1.AmOwner) continue;
+
+                    var sender = CustomRpcSender.Create("CTF Set Teams");
+                    sender.StartMessage(pc1.OwnerId);
+
+                    foreach (byte id2 in data.Players)
                     {
                         try
                         {
-                            var pc1 = id1.GetPlayer();
-                            if (pc1 == null || pc1.AmOwner) continue;
+                            if (id1 == id2) continue;
 
-                            var sender = CustomRpcSender.Create("CTF Set Teams");
-                            sender.StartMessage(pc1.OwnerId);
+                            var pc2 = id2.GetPlayer();
+                            if (!pc2) continue;
 
-                            foreach (byte id2 in data.Players)
-                            {
-                                try
-                                {
-                                    if (id1 == id2) continue;
-
-                                    var pc2 = id2.GetPlayer();
-                                    if (pc2 == null) continue;
-
-                                    sender.StartRpc(pc2.NetId, RpcCalls.SetRole)
-                                        .Write((ushort)RoleTypes.Phantom)
-                                        .Write(true)
-                                        .EndRpc();
-                                }
-                                catch (Exception e) { Utils.ThrowException(e); }
-                            }
-                            
-                            sender.SendMessage();
+                            sender.StartRpc(pc2.NetId, RpcCalls.SetRole)
+                                .Write((ushort)RoleTypes.Phantom)
+                                .Write(true)
+                                .EndRpc();
                         }
                         catch (Exception e) { Utils.ThrowException(e); }
                     }
+                            
+                    sender.SendMessage();
                 }
                 catch (Exception e) { Utils.ThrowException(e); }
+                
+                yield return WaitFrameIfNecessary();
             }
         }
-        catch (Exception e) { Utils.ThrowException(e); }
-
-        yield return new WaitForSecondsRealtime(0.2f);
 
         ValidTag = true;
         GameStartTS = Utils.TimeStamp;
+        
+        yield break;
+
+        IEnumerator WaitFrameIfNecessary()
+        {
+            if (stopwatch.ElapsedMilliseconds >= 5)
+            {
+                stopwatch.Reset();
+                yield return null;
+                stopwatch.Start();
+            }
+        }
     }
 
     private static void Restart()
@@ -493,7 +496,7 @@ public static class CaptureTheFlag
 
     public static bool IsNotInLocalPlayersTeam(PlayerControl pc)
     {
-        return !PlayerTeams.TryGetValue(pc.PlayerId, out CTFTeam team) || !PlayerTeams.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out CTFTeam lpTeam) || team != lpTeam;
+        return ExtendedPlayerControl.IsValidTargetForKillButton(pc) && (!PlayerTeams.TryGetValue(pc.PlayerId, out CTFTeam team) || !PlayerTeams.TryGetValue(PlayerControl.LocalPlayer.PlayerId, out CTFTeam lpTeam) || team != lpTeam);
     }
 
     private static void SendRPC()
@@ -559,7 +562,6 @@ public static class CaptureTheFlag
         return team switch
         {
             CTFTeam.Blue => CTFTeam.Yellow,
-            CTFTeam.Yellow => CTFTeam.Blue,
             _ => CTFTeam.Blue
         };
     }
@@ -603,7 +605,7 @@ public static class CaptureTheFlag
 
                 PlayerControl flagCarrierPc = FlagCarrier.GetPlayer();
 
-                if (flagCarrierPc == null || !flagCarrierPc.IsAlive())
+                if (!flagCarrierPc || !flagCarrierPc.IsAlive())
                 {
                     DropFlag();
                     return;
@@ -614,7 +616,7 @@ public static class CaptureTheFlag
 
                 CTFTeam enemy = team.GetOppositeTeam();
 
-                if (Vector2.Distance(Flag.Position, enemy.GetFlagBase().Position) <= 2f)
+                if (FastVector2.DistanceWithinRange(Flag.Position, enemy.GetFlagBase().Position, 2f))
                 {
                     Main.EnumeratePlayerControls().NotifyPlayers(Translator.GetString($"CTF_{enemy}TeamWonThisRound"));
                     CTFTeamData enemyTeam = TeamData[enemy];
@@ -697,7 +699,7 @@ public static class CaptureTheFlag
 
         public bool IsNearFlag(Vector2 pos)
         {
-            return Vector2.Distance(Flag.Position, pos) <= FlagPickupRange.GetFloat();
+            return FastVector2.DistanceWithinRange(Flag.Position, pos, FlagPickupRange.GetFloat());
         }
     }
 
@@ -714,7 +716,7 @@ public static class CaptureTheFlag
         {
             if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask || ExileController.Instance || Options.CurrentGameMode != CustomGameMode.CaptureTheFlag || !Main.IntroDestroyed || __instance.PlayerId >= 254 || WinnerData.Team != "No one wins" || IntroCutsceneDestroyPatch.IntroDestroyTS + 5 > Utils.TimeStamp) return;
 
-            if (__instance.IsHost())
+            if (__instance.AmOwner)
             {
                 TeamData.Values.Do(x => x.Update());
 

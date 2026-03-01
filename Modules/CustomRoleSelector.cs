@@ -43,7 +43,7 @@ internal static class CustomRoleSelector
     {
         RoleResult = [];
 
-        if (Main.GM.Value && Main.AllPlayerControls.Count == 1) return;
+        if (Main.GM.Value && PlayerControl.AllPlayerControls.Count == 1) return;
 
         if (Options.CurrentGameMode != CustomGameMode.Standard)
         {
@@ -290,7 +290,7 @@ internal static class CustomRoleSelector
         Logger.Info(string.Join(", ", roles[RoleAssignType.Coven].Select(x => x.Role.ToString())), "SelectedCovenRoles");
         Logger.Msg("======================================================", "SelectedRoles");
 
-        List<PlayerControl> allPlayers = Main.AllAlivePlayerControls.ToList();
+        List<PlayerControl> allPlayers = Main.EnumerateAlivePlayerControls().ToList();
 
         // Players on the EAC banned list will be assigned as GM when opening rooms
         if (BanManager.CheckEACList(PlayerControl.LocalPlayer.FriendCode, PlayerControl.LocalPlayer.GetClient().GetHashedPuid()))

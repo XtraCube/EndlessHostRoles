@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AmongUs.GameOptions;
-using EHR.Roles;
-using EHR.Modules;
-using InnerNet;
 using EHR.Gamemodes;
+using EHR.Modules;
+using EHR.Roles;
+using InnerNet;
 
 namespace EHR;
 
@@ -352,7 +352,7 @@ public class PlayerState(byte playerId)
                 deathReason = Enum.GetValues<DeathReason>()[..^8].RandomElement();
 
             RPC.SendDeathReason(PlayerId, deathReason);
-            Utils.CheckAndSpawnAdditionalRenegade(Utils.GetPlayerInfoById(PlayerId));
+            Utils.CheckAndSpawnAdditionalRenegade(GameData.Instance.GetPlayerById(PlayerId));
         }
     }
 
@@ -435,20 +435,6 @@ public class TaskState
                 // Ability Use Gain with this task completed
                 if (alive && !Main.HasJustStarted)
                 {
-                    switch (player.GetCustomRole())
-                    {
-                        case CustomRoles.Hacker:
-                            if (!player.IsModdedClient() && Hacker.UseLimit.ContainsKey(player.PlayerId))
-                                Hacker.UseLimit[player.PlayerId] += Hacker.HackerAbilityUseGainWithEachTaskCompleted.GetFloat();
-                            else if (Hacker.UseLimitSeconds.ContainsKey(player.PlayerId))
-                                Hacker.UseLimitSeconds[player.PlayerId] += Hacker.HackerAbilityUseGainWithEachTaskCompleted.GetInt() * Hacker.ModdedClientAbilityUseSecondsMultiplier.GetInt();
-
-                            if (Hacker.UseLimitSeconds.ContainsKey(player.PlayerId))
-                                Hacker.SendRPC(player.PlayerId, Hacker.UseLimitSeconds[player.PlayerId]);
-
-                            break;
-                    }
-
                     float add = Utils.GetSettingNameAndValueForRole(player.GetCustomRole(), "AbilityUseGainWithEachTaskCompleted");
                     
                     if (Math.Abs(add - float.MaxValue) > 0.5f && add > 0)

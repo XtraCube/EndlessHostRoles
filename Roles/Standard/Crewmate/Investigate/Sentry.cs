@@ -258,7 +258,7 @@ internal class Sentry : RoleBase
         Vector2 pos = pc.Pos();
         float range = DisableDevice.UsableDistance - 1f;
 
-        if (!AvailableDevices.Any(x => Vector2.Distance(pos, x) <= range))
+        if (!AvailableDevices.Any(x => FastVector2.DistanceWithinRange(pos, x, range)))
         {
             if (UsingDevice.Remove(pc.PlayerId))
             {
