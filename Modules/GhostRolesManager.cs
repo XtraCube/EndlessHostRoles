@@ -140,8 +140,6 @@ internal static class GhostRolesManager
     
     public static readonly Dictionary<CustomRoles, Type> GhostRoleTypes = [];
 
-    public static readonly Dictionary<CustomRoles, Type> GhostRoleTypes = new();
-
     public static IGhostRole CreateGhostRoleInstance(CustomRoles ghostRole, bool check = false)
     {
         try
